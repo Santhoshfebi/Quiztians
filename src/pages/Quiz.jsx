@@ -108,6 +108,7 @@ export default function Quiz() {
 
     if (!isPreview) {
       try {
+        var fullLanguage = (language === 'en') ? 'English' : 'Tamil';
         const { error } = await supabase.from("results").insert([{
           name: results.name,
           phone: results.phone,
@@ -115,7 +116,7 @@ export default function Quiz() {
           chapter: selectedChapter,
           score,
           total: questions.length,
-          language,
+          language: fullLanguage,
           created_at: new Date(),
         }]);
         if (error) console.error("Supabase insert error:", error);
