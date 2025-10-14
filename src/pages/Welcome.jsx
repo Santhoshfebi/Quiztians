@@ -7,9 +7,9 @@ export default function Welcome() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [place, setPlace] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState("ta");
   const [chapter, setChapter] = useState("");
-  const [chapters, setChapters] = useState([en]);
+  const [chapters, setChapters] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isQuizAvailable, setIsQuizAvailable] = useState(false);
   const [config, setConfig] = useState(null);
