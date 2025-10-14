@@ -7,7 +7,7 @@ export default function Welcome() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [place, setPlace] = useState("");
-  const [language, setLanguage] = useState("ta");
+  const [language, setLanguage] = useState("en");
   const [chapter, setChapter] = useState("");
   const [chapters, setChapters] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -206,8 +206,8 @@ export default function Welcome() {
             onChange={(e) => setLanguage(e.target.value)}
             className="w-full border border-gray-300 px-4 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
           >
-            <option value="English">English</option>
-            <option value="Tamil">தமிழ்</option>
+            <option value="en">English</option>
+            <option value="ta">தமிழ்</option>
           </select>
 
           <input
