@@ -32,6 +32,7 @@ export default function Result() {
             p.name === name &&
             p.phone === phone &&
             p.place === place &&
+            p.chapter === chapter &&
             p.score === score
         );
         setRank(playerIndex >= 0 ? playerIndex + 1 : "N/A");
@@ -47,7 +48,7 @@ export default function Result() {
     };
 
     fetchLeaderboard();
-  }, [name, phone, place, score]);
+  }, [name, phone, place, chapter, score]);
 
   if (loading)
     return (

@@ -83,14 +83,14 @@ export default function Quiz() {
     setQuizCompleted(true);
 
     // 🧾 Save user result to Supabase
-    supabase.from("quiz_results").insert([
+    supabase.from("results").insert([
       {
         name,
         phone,
         place,
         chapter: selectedChapter,
         score,
-        total_questions: totalQuestions,
+        total: totalQuestions,
         language,
         created_at: new Date(),
       },

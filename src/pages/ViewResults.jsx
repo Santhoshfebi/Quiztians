@@ -8,44 +8,67 @@ export default function ViewResults() {
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
 
+    // ✅ Fetch results from Supabase
     useEffect(() => {
         const fetchResults = async () => {
+            setLoading(true);
             try {
                 const { data, error } = await supabase
                     .from("results")
                     .select("*")
                     .order("score", { ascending: false })
                     .order("created_at", { ascending: true });
+
                 if (error) throw error;
-                setResults(data);
+                setResults(data || []);
             } catch (err) {
-                console.error(err);
+                console.error("Error fetching results:", err);
                 alert("Failed to fetch results");
             } finally {
                 setLoading(false);
             }
         };
+
         fetchResults();
     }, []);
 
-    const handleExportCSV = () => {
-        const filtered = results.filter((r) =>
-            r.name.toLowerCase().includes(search.toLowerCase()) ||
-            r.place.toLowerCase().includes(search.toLowerCase()) ||
-            r.phone.includes(search) ||
-            r.chapter.toLowerCase().includes(search.toLowerCase())
+    // ✅ Filter safely (no crash on null/undefined)
+    const filteredResults = results.filter((r) => {
+        if (!r) return false;
+        const term = search.toLowerCase();
+        const name = r.name?.toLowerCase() || "";
+        const phone = r.phone?.toString() || "";
+        const place = r.place?.toLowerCase() || "";
+        const chapter = r.chapter?.toLowerCase() || "";
+        const language = r.language?.toLowerCase() || "";
+
+        return (
+            name.includes(term) ||
+            phone.includes(term) ||
+            place.includes(term) ||
+            chapter.includes(term)||
+            language.includes(term)
         );
+    });
+
+    // ✅ CSV export for filtered data
+    const handleExportCSV = () => {
+        if (!filteredResults.length) {
+            alert("No results to export.");
+            return;
+        }
 
         const csv = [
-            ["Name", "Phone", "Place", "Score", "Total", "Chapter", "Submitted At"],
-            ...filtered.map((p) => [
-                p.name,
-                p.phone,
-                p.place,
-                p.score,
-                p.total,
-                p.chapter,
-                p.created_at,
+            ["Name", "Phone", "Place", "Score", "Total", "Chapter", "language", "Submitted At"],
+            ...filteredResults.map((p) => [
+                p.name || "",
+                p.phone || "",
+                p.place || "",
+                p.score ?? "",
+                p.total ?? "",
+                p.chapter || "",
+                p.language || "",
+                new Date(p.created_at).toLocaleString(),
             ]),
         ]
             .map((row) => row.join(","))
@@ -59,24 +82,18 @@ export default function ViewResults() {
         link.click();
     };
 
-    const filteredResults = results.filter((r) => {
-        if (!r) return false; // skip null/undefined
-        const name = r.name?.toLowerCase() || "";
-        const phone = r.phone || "";
-        const place = r.place?.toLowerCase() || "";
-        const chapter = r.chapter?.toLowerCase() || "";
-        const term = search.toLowerCase();
-
-        return name.includes(term) || place.includes(term) || phone.includes(term) || chapter.includes(term);
-    });
-
-
+    // ✅ Loading state
     if (loading)
-        return <p className="text-center mt-20">Loading results...</p>;
+        return (
+            <p className="text-center mt-20 text-lg text-gray-700">
+                Loading results...
+            </p>
+        );
 
     return (
         <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
             <div className="max-w-6xl mx-auto">
+                {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-blue-700">Quiz Results</h1>
                     <button
@@ -87,13 +104,14 @@ export default function ViewResults() {
                     </button>
                 </div>
 
-                <div className="flex justify-between items-center mb-4">
+                {/* Search + Download */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
                     <input
                         type="text"
                         placeholder="Search by name, phone, place or chapter"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border px-3 py-2 rounded-lg w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="border px-3 py-2 rounded-lg w-full sm:w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                     <button
                         onClick={handleExportCSV}
@@ -103,9 +121,10 @@ export default function ViewResults() {
                     </button>
                 </div>
 
-                <div className="overflow-auto max-h-[70vh]">
+                {/* Results Table */}
+                <div className="overflow-auto max-h-[70vh] rounded-lg shadow-md bg-white">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-blue-100">
+                        <thead className="bg-blue-100 sticky top-0">
                             <tr>
                                 <th className="p-2 border">#</th>
                                 <th className="p-2 border">Name</th>
@@ -114,12 +133,13 @@ export default function ViewResults() {
                                 <th className="p-2 border">Score</th>
                                 <th className="p-2 border">Total</th>
                                 <th className="p-2 border">Chapter</th>
+                                <th className="p-2 border">Language</th>
                                 <th className="p-2 border">Submitted At</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredResults.map((r, idx) => (
-                                <tr key={r.id} className="odd:bg-gray-50 even:bg-gray-100">
+                                <tr key={r.id || idx} className="odd:bg-gray-50 even:bg-gray-100">
                                     <td className="p-2 border">{idx + 1}</td>
                                     <td className="p-2 border">{r.name}</td>
                                     <td className="p-2 border">{r.phone}</td>
@@ -127,6 +147,7 @@ export default function ViewResults() {
                                     <td className="p-2 border">{r.score}</td>
                                     <td className="p-2 border">{r.total}</td>
                                     <td className="p-2 border">{r.chapter}</td>
+                                    <td className="p-2 border">{r.language}</td>
                                     <td className="p-2 border">
                                         {new Date(r.created_at).toLocaleString()}
                                     </td>
@@ -134,7 +155,10 @@ export default function ViewResults() {
                             ))}
                             {filteredResults.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="p-4 text-center text-gray-500">
+                                    <td
+                                        colSpan={8}
+                                        className="p-4 text-center text-gray-500 font-medium"
+                                    >
                                         No results found.
                                     </td>
                                 </tr>
