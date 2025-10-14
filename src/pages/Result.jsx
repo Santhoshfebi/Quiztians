@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import Confetti from "react-confetti";
 
 export default function Result() {
   const { state } = useLocation();
@@ -10,6 +11,7 @@ export default function Result() {
   const [topPlayers, setTopPlayers] = useState([]);
   const [rank, setRank] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Fetch leaderboard and calculate rank
   useEffect(() => {
@@ -23,7 +25,6 @@ export default function Result() {
 
         if (error) throw error;
 
-        // Find current participant's rank
         const playerIndex = allPlayers.findIndex(
           (p) =>
             p.name === name &&
@@ -34,8 +35,11 @@ export default function Result() {
         );
         setRank(playerIndex >= 0 ? playerIndex + 1 : "N/A");
 
-        // Top 5 players
         setTopPlayers(allPlayers.slice(0, 5));
+
+        // 🎉 Trigger confetti for 5 seconds when results load
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 10000);
       } catch (err) {
         console.error("Error fetching leaderboard:", err);
       } finally {
@@ -58,85 +62,86 @@ export default function Result() {
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex justify-center">
-      <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-lg space-y-6">
-        <h1 className="text-3xl font-bold text-center">🎉 Quiz Completed!</h1>
-        <p className="text-center text-gray-600">
-          Thank you for participating! May you be blessed with knowledge.
-        </p>
+    <>
+      {/* 🎉 Confetti */}
+      {showConfetti && (
+        <Confetti width={window.innerWidth} height={window.innerHeight} style={{ pointerEvents: "none" }} />
+      )}
 
-        {/* Participant Info */}
-        <div className="text-center">
-          <p className="text-lg font-semibold">
-            {name} ({place})
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex justify-center">
+        <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-lg space-y-6">
+          <h1 className="text-3xl font-bold text-center">🎉 Quiz Completed!</h1>
+          <p className="text-center text-gray-600">
+            Thank you for participating! May you be blessed with knowledge.
           </p>
-          <p className="text-lg font-semibold mt-1">
-            🏆 Your Rank:{" "}
-            <span className="text-blue-600">
-              {rank !== "N/A" ? `#${rank}` : "Unranked"}
-            </span>
+
+          {/* Participant Info */}
+          <div className="text-center">
+            <p className="text-lg font-semibold">
+              {name} ({place})
+            </p>
+            <p className="text-lg font-semibold mt-1">
+              🏆 Your Rank:{" "}
+              <span className="text-blue-600">
+                {rank !== "N/A" ? `#${rank}` : "Unranked"}
+              </span>
+            </p>
+          </div>
+
+          {/* Score */}
+          <p className="text-2xl font-bold text-green-600 text-center">
+            Score: {score} / {total}
           </p>
-        </div>
 
-        {/* Score */}
-        <p className="text-2xl font-bold text-green-600 text-center">
-          Score: {score} / {total}
-        </p>
-
-        {/* Top 5 Leaderboard */}
-        <div className="bg-gray-50 p-4 rounded-lg shadow-inner mt-4">
-          <h4 className="text-lg font-semibold text-center mb-2 text-yellow-600">
-            🏆 Top Scorers
-          </h4>
-          <div className="space-y-2">
-            {topPlayers.map((player, idx) => {
-              const badge =
-                idx === 0
-                  ? "🥇"
-                  : idx === 1
-                  ? "🥈"
-                  : idx === 2
-                  ? "🥉"
-                  : "🏅";
-              return (
-                <div
-                  key={player.id}
-                  className="flex justify-between items-center bg-gray-100 px-4 py-2 rounded-lg"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl">{badge}</span>
-                    <span className="font-medium">
-                      {player.name} ({player.place})
-                    </span>
+          {/* Top 5 Leaderboard */}
+          <div className="bg-gray-50 p-4 rounded-lg shadow-inner mt-4">
+            <h4 className="text-lg font-semibold text-center mb-2 text-yellow-600">
+              🏆 Top Scorers
+            </h4>
+            <div className="space-y-2">
+              {topPlayers.map((player, idx) => {
+                const badge =
+                  idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "🏅";
+                return (
+                  <div
+                    key={player.id}
+                    className="flex justify-between items-center bg-gray-100 px-4 py-2 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl">{badge}</span>
+                      <span className="font-medium">
+                        {player.name} ({player.place})
+                      </span>
+                    </div>
+                    <span className="font-semibold">{player.score}</span>
                   </div>
-                  <span className="font-semibold">{player.score}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
+            <button
+              onClick={() => navigate("/")}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+            >
+              Play Again
+            </button>
+            <button
+              onClick={() =>
+                window.open(
+                  "https://chat.whatsapp.com/GEnGf9jl2SP7EfBRpCnqva?mode=wwt",
+                  "_blank"
+                )
+              }
+              className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all"
+            >
+              💬 Join WhatsApp
+            </button>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
-          <button
-            onClick={() => navigate("/")}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
-          >
-            Play Again
-          </button>
-          <button
-            onClick={() =>
-              window.open(
-                "https://chat.whatsapp.com/GEnGf9jl2SP7EfBRpCnqva?mode=wwt",
-                "_blank"
-              )
-            }
-            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all"
-          >
-            💬 Join WhatsApp
-          </button>
-        </div>
       </div>
-    </div>
+    </>
   );
 }

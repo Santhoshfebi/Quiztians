@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
@@ -206,8 +206,8 @@ export default function Welcome() {
             onChange={(e) => setLanguage(e.target.value)}
             className="w-full border border-gray-300 px-4 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
           >
-            <option value="en">English</option>
-            <option value="ta">தமிழ்</option>
+            <option value="english">English</option>
+            <option value="tamil">தமிழ்</option>
           </select>
 
           <input

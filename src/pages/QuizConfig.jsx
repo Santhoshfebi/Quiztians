@@ -25,8 +25,8 @@ export default function QuizConfig() {
       }
 
       setUser(currentUser);
-      await fetchConfig();
       await fetchChapters();
+      await fetchConfig();
     };
 
     checkAdmin();
@@ -56,7 +56,7 @@ export default function QuizConfig() {
       .limit(1)
       .single();
 
-    if (error && error.code !== "PGRST116") {
+    if (error && error.code !== "PGRST116") { // ignore "no rows found"
       console.error("Error fetching config:", error);
       return;
     }
@@ -64,8 +64,8 @@ export default function QuizConfig() {
     if (data) {
       setDuration(data.duration);
       setStartTime(new Date(data.start_time).toISOString().slice(0, 16));
-      setConfigId(data.id);
       setActiveChapters(data.active_chapters || []);
+      setConfigId(data.id);
     }
   };
 
@@ -90,14 +90,15 @@ export default function QuizConfig() {
         if (error) throw error;
         alert("✅ Quiz configuration updated!");
       } else {
-        const { error } = await supabase.from("quiz_config").insert([
+        const { data, error } = await supabase.from("quiz_config").insert([
           {
             duration,
             start_time: new Date(startTime).toISOString(),
             active_chapters: activeChapters,
           },
-        ]);
+        ]).select().single();
         if (error) throw error;
+        setConfigId(data.id); // save the new row id
         alert("✅ Quiz configuration saved!");
       }
     } catch (err) {
@@ -171,9 +172,7 @@ export default function QuizConfig() {
           onClick={handleSaveConfig}
           disabled={loading}
           className={`w-full py-2 rounded-lg text-white font-semibold transition-all ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
           {loading ? "Saving..." : "Save Configuration"}
