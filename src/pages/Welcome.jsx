@@ -12,45 +12,80 @@ export default function Welcome() {
   const [chapters, setChapters] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isQuizAvailable, setIsQuizAvailable] = useState(false);
+  const [config, setConfig] = useState(null);
+  const [activeTip, setActiveTip] = useState(0); // for animated tips
   const navigate = useNavigate();
 
-  // 🕒 Scheduled quiz start time
-  const scheduledTime = new Date("2025-10-12T19:00:00");
-
-  // 📘 Fetch available chapters from Supabase
+  // Fetch quiz config + live updates
   useEffect(() => {
-    const fetchChapters = async () => {
-      const { data, error } = await supabase.from("questions").select("chapter");
-      if (error) {
-        console.error("Error fetching chapters:", error);
-      } else {
-        const uniqueChapters = [...new Set(data.map((q) => q.chapter))];
-        setChapters(uniqueChapters);
+    const fetchConfig = async () => {
+      const { data, error } = await supabase
+        .from("quiz_config")
+        .select("*")
+        .limit(1)
+        .single();
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching quiz config:", error);
+        return;
+      }
+      if (data) {
+        setConfig(data);
+        setChapters(data.active_chapters || []);
       }
     };
-    fetchChapters();
+
+    fetchConfig();
+
+    const subscription = supabase
+      .channel("public:quiz_config")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "quiz_config" },
+        (payload) => {
+          const newConfig = payload.new;
+          setConfig(newConfig);
+          setChapters(newConfig.active_chapters || []);
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(subscription);
   }, []);
 
-  // ⏱ Countdown timer
+  // Countdown timer
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      const diff = scheduledTime - now;
+    if (!config?.start_time) return;
 
+    const updateTimer = () => {
+      const now = new Date();
+      const start = new Date(config.start_time);
+      const diff = start - now;
       if (diff <= 0) {
         setIsQuizAvailable(true);
         setTimeLeft(0);
-        clearInterval(timer);
       } else {
         setIsQuizAvailable(false);
         setTimeLeft(diff);
       }
-    }, 1000);
+    };
 
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [config]);
 
-  // ⏳ Convert milliseconds to days/hours/min/sec
+  // Animate tips one by one
+  useEffect(() => {
+    if (!config) return;
+
+    const tipsCount = 6; // number of tips
+    const interval = setInterval(() => {
+      setActiveTip((prev) => (prev + 1) % tipsCount);
+    }, 3000); // change tip every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [config]);
+
   const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
   const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
   const minutes = Math.floor((timeLeft / (1000 * 60)) % 60);
@@ -59,25 +94,28 @@ export default function Welcome() {
   const handleStart = () => {
     const phoneRegex = /^[0-9]{10}$/;
     if (!name || !phone || !place || !chapter) {
-      alert(
-        language === "en"
-          ? "Please fill all fields and select a chapter"
-          : "எல்லா புலங்களையும் நிரப்பி ஒரு அத்தியாயத்தைத் தேர்ந்தெடுக்கவும்"
-      );
+      alert(language === "en" ? "Please fill all fields" : "எல்லா புலங்களையும் நிரப்பவும்");
       return;
     }
     if (!phoneRegex.test(phone)) {
       alert(
         language === "en"
-          ? "Please enter a valid 10-digit phone number"
-          : "தயவுசெய்து செல்லுபடியாகும் 10 இலக்க தொலைபேசி எண்ணை உள்ளிடவும்"
+          ? "Enter a valid 10-digit phone number"
+          : "செல்லுபடியாகும் 10 இலக்க தொலைபேசி எண்ணை உள்ளிடவும்"
       );
       return;
     }
 
-    // 💾 Save chapter and user info
-    localStorage.setItem("selectedChapter", chapter);
-    navigate("/quiz", { state: { name, phone, place, language, chapter } });
+    navigate("/quiz", {
+      state: {
+        name,
+        phone,
+        place,
+        language,
+        chapter,
+        duration: config?.duration || 20,
+      },
+    });
   };
 
   const timeUnits = [
@@ -87,15 +125,33 @@ export default function Welcome() {
     { label: "Sec", value: seconds },
   ];
 
+  const tips = [
+    language === "en" ? "🌐 Choose your preferred language." : "🌐 விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்.",
+    language === "en"
+      ? `⏳ You have ${config?.duration} Minutes to complete the quiz.`
+      : `⏳ வினாடி வினாவை முடிக்க உங்களுக்கு ${config?.duration} நிமிடங்கள் வழங்கப்படும்.`,
+    language === "en" ? "Once selected, answers cannot be changed." : "ஒருமுறை தேர்ந்தெடுத்த பதிலை மாற்ற முடியாது.",
+    language === "en" ? "Try to answer all questions." : "அனைத்து கேள்விகளுக்கும் பதில் சொல்ல முயலுங்கள்.",
+    language === "en" ? "🏅 Correct answers are rewarded." : "🏅 சரியான பதில்களுக்கு மதிப்பெண் வழங்கப்படும்.",
+    language === "en" ? "🥇 Leaderboard will be shown at the end." : "🥇 முடிவில் முன்னணி பட்டியல் காணலாம்.",
+  ];
+
+  if (!config) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-lg font-semibold text-gray-600">
+        Loading quiz setup...
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col-reverse md:flex-row items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      {/* Left: Form */}
-      <div className="mt-20 w-96 bg-white p-6 rounded-2xl shadow-2xl space-y-4 border border-gray-100">
+      {/* Left: Form + Timer */}
+      <div className="mt-20 w-full md:w-96 bg-white p-6 rounded-2xl shadow-2xl space-y-4 border border-gray-100">
         <h1 className="text-3xl font-extrabold text-center text-blue-600 drop-shadow-sm">
           {language === "en" ? "Welcome to the Quiz!" : "வினாடி வினாவிற்கு வருக."}
         </h1>
 
-        {/* ⏳ Countdown Timer */}
         {!isQuizAvailable && (
           <div className="mt-6 text-center">
             <p className="text-gray-600 font-medium mb-2">
@@ -103,49 +159,36 @@ export default function Welcome() {
             </p>
             <div className="flex justify-center gap-3">
               {timeUnits.map((unit, idx) => (
-                <div
-                  key={idx}
-                  className="bg-blue-600 text-white rounded-lg px-3 py-2 w-16 shadow-lg"
-                >
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={unit.value}
-                      initial={{ y: -10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: 10, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-2xl font-mono font-bold"
-                    >
-                      {String(unit.value).padStart(2, "0")}
-                    </motion.div>
-                  </AnimatePresence>
+                <div key={idx} className="bg-blue-600 text-white rounded-lg px-3 py-2 w-16 shadow-lg">
+                  <motion.div
+                    key={unit.value}
+                    initial={{ y: -10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 10, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-2xl font-mono font-bold"
+                  >
+                    {String(unit.value).padStart(2, "0")}
+                  </motion.div>
                   <div className="text-xs uppercase tracking-wide">{unit.label}</div>
                 </div>
               ))}
             </div>
-            
           </div>
         )}
 
-        <p disabled={!isQuizAvailable} className="text-center text-gray-600">
-          {isQuizAvailable
-            ? language === "en"
-              ? "Enjoy the Quiz! Let's get started..."
-              : "வினாடி வினாவை ஆரம்பிக்கலாம்...!"
-            : ""}
-        </p>
-
-        {/* 🔹 Chapter Dropdown */}
-        <h5 className="text-xl font-bold text-center text-indigo-500">
+        {/* Chapter + Inputs */}
+        <h5 className="mt-4 bg-gray-50 p-4 rounded-lg shadow-inner">
           {language === "en" ? "Select Chapter" : "அத்தியாயத்தைத் தேர்ந்தெடுக்கவும்"}
         </h5>
         <select
           value={chapter}
           onChange={(e) => setChapter(e.target.value)}
-          className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          disabled={chapters.length === 0 || !isQuizAvailable}
+          className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option value="">
-            {language === "en" ? "-- Choose Chapter --" : "-- அத்தியாயத்தைத் தேர்ந்தெடுக்கவும் --"}
+            {chapters.length === 0 ? (language === "en" ? "Loading chapters..." : "அத்தியாயங்கள் ஏற்றப்படுகிறது...") : "-- Choose Chapter --"}
           </option>
           {chapters.map((ch) => (
             <option key={ch} value={ch}>
@@ -154,22 +197,18 @@ export default function Welcome() {
           ))}
         </select>
 
-        {/* 🗣️ Language + Inputs */}
         <div className="mt-4 bg-gray-50 p-4 rounded-lg shadow-inner">
           <h2 className="text-l text-center mb-2 font-medium">
-            Choose your preferred language / விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்.
+            {language === "en" ? "Choose your preferred language" : "விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்"}
           </h2>
-
-          <div className="w-full mb-4">
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-            >
-              <option value="en">English</option>
-              <option value="ta">தமிழ்</option>
-            </select>
-          </div>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full border border-gray-300 px-4 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          >
+            <option value="en">English</option>
+            <option value="ta">தமிழ்</option>
+          </select>
 
           <input
             type="text"
@@ -195,69 +234,38 @@ export default function Welcome() {
           />
         </div>
 
-        {/* 🚀 Start Quiz Button */}
         <button
           onClick={handleStart}
           disabled={!isQuizAvailable}
-          className={`w-full py-2 rounded-lg text-white font-semibold transition-all shadow-md ${isQuizAvailable
-            ? "bg-blue-500 hover:bg-blue-600"
-            : "bg-gray-400 cursor-not-allowed"
-            }`}
+          className={`w-full py-2 rounded-lg text-white font-semibold transition-all shadow-md ${
+            isQuizAvailable ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400 cursor-not-allowed"
+          }`}
         >
-          {isQuizAvailable
-            ? language === "en"
-              ? "Start Quiz"
-              : "வினாவை தொடங்கு"
-            : language === "en"
-              ? "Quiz Not Started Yet"
-              : "வினா இன்னும் தொடங்கவில்லை"}
+          {isQuizAvailable ? (language === "en" ? "Start Quiz" : "வினாவை தொடங்கு") : language === "en" ? "Quiz Not Started Yet" : "வினா இன்னும் தொடங்கவில்லை"}
         </button>
 
-        {/* 🔐 Admin Access Button */}
         <button
-          onClick={() => navigate("/admin-Login")}
+          onClick={() => navigate("/admin-login")}
           className="w-full mt-4 py-2 rounded-lg text-white font-semibold bg-gray-800 hover:bg-black transition-all shadow-md"
         >
           {language === "en" ? "Admin Access" : "அட்மின் அணுகல்"}
         </button>
       </div>
 
-      {/* Right: Tips Section */}
+      {/* Right: Animated Quiz Tips */}
       <div className="md:ml-8 mt-20 bg-white p-6 rounded-2xl shadow-md w-full md:w-1/3 border border-gray-100">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          {language === "en" ? "💡 Quiz Tips" : "💡 வினா குறிப்புகள்"}
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">{language === "en" ? "💡 Quiz Tips" : "💡 வினா குறிப்புகள்"}</h2>
         <ul className="list-disc pl-5 space-y-2 text-gray-700 text-sm leading-relaxed">
-          <li>
-            {language === "en"
-              ? "🌐 Choose your preferred language."
-              : "🌐 விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்."}
-          </li>
-          <li>
-            {language === "en"
-              ? "⏳ You have 20 Minutes to Complete the Quiz"
-              : "⏳ வினாடி வினாவை முடிக்க உங்களுக்கு 20 நிமிடங்கள் வழங்கப்படும்."}
-          </li>
-          <li>
-            {language === "en"
-              ? "Once selected, answers cannot be changed."
-              : "ஒருமுறை தேர்ந்தெடுத்த பதிலை மாற்ற முடியாது."}
-          </li>
-          <li>
-            {language === "en"
-              ? "Try to answer all questions."
-              : "அனைத்து கேள்விகளுக்கும் பதில் சொல்ல முயலுங்கள்."}
-          </li>
-          <li>
-            {language === "en"
-              ? "🏅 Correct answers are rewarded."
-              : "🏅 சரியான பதில்களுக்கு மதிப்பெண் வழங்கப்படும்."}
-          </li>
-          <li>
-            {language === "en"
-              ? "🥇 Leaderboard will be shown at the end."
-              : "🥇 முடிவில் முன்னணி பட்டியல் காணலாம்."}
-          </li>
+          {tips.map((tip, idx) => (
+            <motion.li
+              key={idx}
+              initial={{ opacity: 0.4 }}
+              animate={{ opacity: idx === activeTip ? 1 : 0.5, scale: idx === activeTip ? 1.05 : 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              {tip}
+            </motion.li>
+          ))}
         </ul>
       </div>
     </div>

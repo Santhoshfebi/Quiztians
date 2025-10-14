@@ -110,6 +110,25 @@ export default function AdminPanel() {
                 {/* 3 Main Buttons */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                     <div
+                        onClick={() =>
+                            navigate("/quiz", {
+                                state: {
+                                    name: "Admin Preview",
+                                    phone: "0000000000",
+                                    place: "Admin",
+                                    language: "en",
+                                    preview: true, // ✅ Important flag
+                                },
+                            })
+                        }
+                        className="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-2xl p-10 flex flex-col items-center justify-center shadow-xl transition-all hover:scale-105"
+                    >
+                        <h2 className="text-2xl font-bold mb-2">Preview Quiz</h2>
+                        <p className="text-center">
+                            View and test the quiz before it goes live (no score will be saved)
+                        </p>
+                    </div>
+                    <div
                         onClick={() => navigate("/admin/add-questions")}
                         className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-2xl p-10 flex flex-col items-center justify-center shadow-xl transition-all hover:scale-105"
                     >
