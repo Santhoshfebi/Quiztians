@@ -126,8 +126,8 @@ export default function AddQuestions() {
 
         {/* Options TA */}
         <div className="grid md:grid-cols-4 gap-4">
-          <input type="text" placeholder="Option C (EN)" value={optionA_en} onChange={(e) => setOptionATa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option D (EN)" value={optionB_en} onChange={(e) => setOptionBTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+          <input type="text" placeholder="Option C (EN)" value={optionC_en} onChange={(e) => setOptionATa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+          <input type="text" placeholder="Option D (EN)" value={optionD_en} onChange={(e) => setOptionBTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option C (TA)" value={optionC_ta} onChange={(e) => setOptionCTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option D (TA)" value={optionD_ta} onChange={(e) => setOptionDTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
         </div>
