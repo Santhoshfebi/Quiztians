@@ -259,7 +259,14 @@ export default function ViewResults() {
         <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
           Back to Admin Panel
         </Button>
-        <Typography variant="h4" fontWeight="bold" color="black">
+
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+          color="black"
+          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+          onClick={() => window.location.reload()}
+        >
           Quiz Results
         </Typography>
         <Button variant="contained" color="success" onClick={handleExportCSV}>

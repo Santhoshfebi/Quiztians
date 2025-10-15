@@ -140,7 +140,7 @@ export default function Welcome() {
 
   if (!config) {
     return (
-      <div className=" items-center min-h-screen text-lg font-semibold text-gray-600">
+      <div className=" items-center min-h-screen text-lg font-semibold animate-pulse text-gray-600">
          <h4 className="text-center">Loading quiz setup...</h4>
         <DotLottieReact
           src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"

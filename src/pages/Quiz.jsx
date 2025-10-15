@@ -66,7 +66,7 @@ export default function Quiz() {
 
   if (loading) return (
     <div className=" items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <h2 className="text-xl text-center font-bold text-indigo-600 animate-pulse">Loading questions...</h2>
+      <h2 className="text-center text-lg font-semibold text-gray-600 animate-pulse">Loading questions...</h2>
       <DotLottieReact
           src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
           loop
