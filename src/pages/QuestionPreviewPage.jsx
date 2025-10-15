@@ -110,7 +110,7 @@ export default function QuestionPreviewPage() {
       <div className="max-w-5xl mx-auto bg-white p-6 rounded-2xl shadow-lg space-y-6">
         <h1
           className="text-3xl font-bold text-center text-blue-700 mb-6 cursor-pointer hover:underline"
-          onClick={() => fetchQuestions()}
+          onClick={() => window.location.reload()}
         >
           Preview Questions
         </h1>
