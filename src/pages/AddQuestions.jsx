@@ -100,6 +100,10 @@ export default function AddQuestions() {
           onChange={(e) => setChapter(e.target.value)}
           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
+        <div class="flex justify-evenly gap-10">
+          <h2 className="text-xl items-center  font-semibold text-gray-600">English</h2>
+          <h2 className="text-xl items-center  font-semibold text-gray-600">Tamil</h2>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           <textarea
@@ -116,20 +120,24 @@ export default function AddQuestions() {
           />
         </div>
 
+        <div class="flex gap-4">
+
         {/* Options EN */}
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
           <input type="text" placeholder="Option A (EN)" value={optionA_en} onChange={(e) => setOptionAEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option B (EN)" value={optionB_en} onChange={(e) => setOptionBEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option A (TA)" value={optionA_ta} onChange={(e) => setOptionATa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option B (TA)" value={optionB_ta} onChange={(e) => setOptionBTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+          <input type="text" placeholder="Option C (EN)" value={optionC_en} onChange={(e) => setOptionCEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+          <input type="text" placeholder="Option D (EN)" value={optionD_en} onChange={(e) => setOptionDEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
         </div>
 
         {/* Options TA */}
-        <div className="grid md:grid-cols-4 gap-4">
-          <input type="text" placeholder="Option C (EN)" value={optionC_en} onChange={(e) => setOptionCEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option D (EN)" value={optionD_en} onChange={(e) => setOptionDEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        <div className="grid md:grid-cols-2 gap-4">
+          <input type="text" placeholder="Option A (TA)" value={optionA_ta} onChange={(e) => setOptionATa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+          <input type="text" placeholder="Option B (TA)" value={optionB_ta} onChange={(e) => setOptionBTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option C (TA)" value={optionC_ta} onChange={(e) => setOptionCTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option D (TA)" value={optionD_ta} onChange={(e) => setOptionDTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+        </div>
+
         </div>
 
         {/* Correct Answers */}
