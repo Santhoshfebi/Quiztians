@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function AddQuestions() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function AddQuestions() {
       const currentUser = data.session?.user;
 
       if (!currentUser || (currentUser.user_metadata.role !== "admin" && currentUser.user_metadata.role !== "superadmin")) {
-        alert("Access denied");
+        toast.error("Access denied");
         navigate("/admin-login");
         return;
       }
@@ -43,13 +44,12 @@ export default function AddQuestions() {
   const handleAddQuestion = async () => {
     // Basic validation
     if (!chapter || !question_en || !question_ta || !optionA_en || !optionB_en || !optionC_en || !optionD_en || !optionA_ta || !optionB_ta || !optionC_ta || !optionD_ta || !correct_en || !correct_ta) {
-      alert("Please fill all fields");
-      return;
+      return toast.error("Please fill all fields");
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("questions").insert([
+      const { error } = await supabase.from("questions").insert([
         {
           chapter,
           question_en,
@@ -70,7 +70,8 @@ export default function AddQuestions() {
 
       if (error) throw error;
 
-      alert("Question added successfully!");
+      toast.success("✅ Question added successfully!");
+
       // Reset form
       setChapter("");
       setQuestionEn("");
@@ -87,7 +88,7 @@ export default function AddQuestions() {
       setCorrectTa("");
     } catch (err) {
       console.error(err);
-      alert("Failed to add question");
+      toast.error("❌ Failed to add question");
     } finally {
       setLoading(false);
     }
@@ -97,6 +98,7 @@ export default function AddQuestions() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-100 p-4">
+      <Toaster position="top-right" />
       <div className="w-full max-w-4xl bg-white p-8 rounded-2xl shadow-lg space-y-6">
         <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">Add New Question</h1>
 
@@ -123,7 +125,7 @@ export default function AddQuestions() {
           />
         </div>
 
-        {/* Options */}
+        {/* Options EN */}
         <div className="grid md:grid-cols-4 gap-4">
           <input type="text" placeholder="Option A (EN)" value={optionA_en} onChange={(e) => setOptionAEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option B (EN)" value={optionB_en} onChange={(e) => setOptionBEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
@@ -131,6 +133,7 @@ export default function AddQuestions() {
           <input type="text" placeholder="Option D (EN)" value={optionD_en} onChange={(e) => setOptionDEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
         </div>
 
+        {/* Options TA */}
         <div className="grid md:grid-cols-4 gap-4">
           <input type="text" placeholder="Option A (TA)" value={optionA_ta} onChange={(e) => setOptionATa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
           <input type="text" placeholder="Option B (TA)" value={optionB_ta} onChange={(e) => setOptionBTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
@@ -159,9 +162,7 @@ export default function AddQuestions() {
         <button
           onClick={handleAddQuestion}
           disabled={loading}
-          className={`w-full py-2 rounded-lg text-white font-semibold transition-all ${
-            loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className={`w-full py-2 rounded-lg text-white font-semibold transition-all ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
         >
           {loading ? "Adding..." : "Add Question"}
         </button>

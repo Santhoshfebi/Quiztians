@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -13,13 +14,14 @@ export default function AdminPanel() {
       const currentUser = data.session?.user;
 
       if (!currentUser) {
+        toast.error("You must login first");
         navigate("/admin-login");
         return;
       }
 
       const role = currentUser.user_metadata?.role;
       if (role !== "admin" && role !== "superadmin") {
-        alert("Access denied: admin only");
+        toast.error("Access denied: admin only");
         await supabase.auth.signOut();
         navigate("/admin-login");
         return;
@@ -27,12 +29,14 @@ export default function AdminPanel() {
 
       setUser(currentUser);
       setLoading(false);
+      toast.success("Welcome to Admin Panel!");
     };
     checkSession();
   }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    toast.success("Logged out successfully");
     navigate("/admin-login");
   };
 
@@ -42,6 +46,7 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Toaster position="top-right" />
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-bold text-blue-700">Admin Panel</h1>
