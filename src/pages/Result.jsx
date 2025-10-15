@@ -8,24 +8,34 @@ export default function Result() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { name, phone, place, score, total, chapter } = state || {};
+
   const [topPlayers, setTopPlayers] = useState([]);
   const [rank, setRank] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Fetch leaderboard and calculate rank
+  // 🧠 Fetch leaderboard filtered by chapter
   useEffect(() => {
     const fetchLeaderboard = async () => {
+      if (!chapter) {
+        console.error("Chapter not found in state");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const { data: allPlayers, error } = await supabase
+        // ✅ Fetch only players from the same chapter
+        const { data: chapterResults, error } = await supabase
           .from("results")
           .select("*")
+          .eq("chapter", chapter)
           .order("score", { ascending: false })
           .order("created_at", { ascending: true });
 
         if (error) throw error;
 
-        const playerIndex = allPlayers.findIndex(
+        // ✅ Find this player’s rank within the filtered chapter
+        const playerIndex = chapterResults.findIndex(
           (p) =>
             p.name === name &&
             p.phone === phone &&
@@ -33,11 +43,13 @@ export default function Result() {
             p.score === score &&
             p.chapter === chapter
         );
+
         setRank(playerIndex >= 0 ? playerIndex + 1 : "N/A");
 
-        setTopPlayers(allPlayers.slice(0, 5));
+        // ✅ Show top 5 players from that chapter
+        setTopPlayers(chapterResults.slice(0, 5));
 
-        // 🎉 Trigger confetti for 5 seconds when results load
+        // 🎉 Confetti for top scorers
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 10000);
       } catch (err) {
@@ -65,7 +77,11 @@ export default function Result() {
     <>
       {/* 🎉 Confetti */}
       {showConfetti && (
-        <Confetti width={window.innerWidth} height={window.innerHeight} style={{ pointerEvents: "none" }} />
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          style={{ pointerEvents: "none" }}
+        />
       )}
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex justify-center">
@@ -86,6 +102,7 @@ export default function Result() {
                 {rank !== "N/A" ? `#${rank}` : "Unranked"}
               </span>
             </p>
+            <p className="text-sm text-gray-500 mt-1">Chapter: {chapter}</p>
           </div>
 
           {/* Score */}
@@ -93,30 +110,42 @@ export default function Result() {
             Score: {score} / {total}
           </p>
 
-          {/* Top 5 Leaderboard */}
+          {/* Top 5 Leaderboard (Filtered by Chapter) */}
           <div className="bg-gray-50 p-4 rounded-lg shadow-inner mt-4">
             <h4 className="text-lg font-semibold text-center mb-2 text-yellow-600">
-              🏆 Top Scorers
+              🏆 Top Scorers in {chapter}
             </h4>
             <div className="space-y-2">
-              {topPlayers.map((player, idx) => {
-                const badge =
-                  idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "🏅";
-                return (
-                  <div
-                    key={player.id}
-                    className="flex justify-between items-center bg-gray-100 px-4 py-2 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl">{badge}</span>
-                      <span className="font-medium">
-                        {player.name} ({player.place})
-                      </span>
+              {topPlayers.length > 0 ? (
+                topPlayers.map((player, idx) => {
+                  const badge =
+                    idx === 0
+                      ? "🥇"
+                      : idx === 1
+                      ? "🥈"
+                      : idx === 2
+                      ? "🥉"
+                      : "🏅";
+                  return (
+                    <div
+                      key={player.id}
+                      className="flex justify-between items-center bg-gray-100 px-4 py-2 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl">{badge}</span>
+                        <span className="font-medium">
+                          {player.name} ({player.place})
+                        </span>
+                      </div>
+                      <span className="font-semibold">{player.score}</span>
                     </div>
-                    <span className="font-semibold">{player.score}</span>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-center text-gray-500">
+                  No players found for this chapter yet.
+                </p>
+              )}
             </div>
           </div>
 
