@@ -8,7 +8,6 @@ export default function AddQuestions() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Form state
   const [chapter, setChapter] = useState("");
   const [question_en, setQuestionEn] = useState("");
   const [question_ta, setQuestionTa] = useState("");
@@ -23,7 +22,6 @@ export default function AddQuestions() {
   const [correct_en, setCorrectEn] = useState("");
   const [correct_ta, setCorrectTa] = useState("");
 
-  // ✅ Check if user is admin
   useEffect(() => {
     const checkAdmin = async () => {
       const { data } = await supabase.auth.getSession();
@@ -36,15 +34,20 @@ export default function AddQuestions() {
       }
 
       setUser(currentUser);
+
+      if (!sessionStorage.getItem("addQuestionWelcome")) {
+        toast.success(`Welcome, ${currentUser.email}! You can add questions now.`);
+        sessionStorage.setItem("addQuestionWelcome", "true");
+      }
     };
 
     checkAdmin();
   }, [navigate]);
 
   const handleAddQuestion = async () => {
-    // Basic validation
     if (!chapter || !question_en || !question_ta || !optionA_en || !optionB_en || !optionC_en || !optionD_en || !optionA_ta || !optionB_ta || !optionC_ta || !optionD_ta || !correct_en || !correct_ta) {
-      return toast.error("Please fill all fields");
+      toast.error("Please fill all fields");
+      return;
     }
 
     setLoading(true);
@@ -69,26 +72,14 @@ export default function AddQuestions() {
       ]);
 
       if (error) throw error;
-
-      toast.success("✅ Question added successfully!");
-
-      // Reset form
-      setChapter("");
-      setQuestionEn("");
-      setQuestionTa("");
-      setOptionAEn("");
-      setOptionBEn("");
-      setOptionCEn("");
-      setOptionDEn("");
-      setOptionATa("");
-      setOptionBTa("");
-      setOptionCTa("");
-      setOptionDTa("");
-      setCorrectEn("");
-      setCorrectTa("");
+      toast.success("Question added successfully!");
+      setChapter(""); setQuestionEn(""); setQuestionTa("");
+      setOptionAEn(""); setOptionBEn(""); setOptionCEn(""); setOptionDEn("");
+      setOptionATa(""); setOptionBTa(""); setOptionCTa(""); setOptionDTa("");
+      setCorrectEn(""); setCorrectTa("");
     } catch (err) {
       console.error(err);
-      toast.error("❌ Failed to add question");
+      toast.error("Failed to add question");
     } finally {
       setLoading(false);
     }

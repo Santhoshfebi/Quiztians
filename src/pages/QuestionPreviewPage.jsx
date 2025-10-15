@@ -56,6 +56,27 @@ export default function QuestionPreviewPage() {
     setFilteredQuestions(tempQuestions);
   }, [questions, selectedChapter, searchTerm]);
 
+  // Same as previous preview page
+// Add Toaster and welcome toast once per session
+useEffect(() => {
+  const checkAdmin = async () => {
+    const { data } = await supabase.auth.getSession();
+    const currentUser = data.session?.user;
+    if (!currentUser || (currentUser.user_metadata.role !== "admin" && currentUser.user_metadata.role !== "superadmin")) {
+      toast.error("Access denied");
+      navigate("/admin-login");
+      return;
+    }
+    setUser(currentUser);
+    if (!sessionStorage.getItem("previewQuestionsWelcome")) {
+      toast.success(`Welcome, ${currentUser.email}! Preview questions here.`);
+      sessionStorage.setItem("previewQuestionsWelcome", "true");
+    }
+  };
+  checkAdmin();
+}, [navigate]);
+
+
   // Back-to-top button
   useEffect(() => {
     const handleScroll = () => setShowTopBtn(window.scrollY > 300);

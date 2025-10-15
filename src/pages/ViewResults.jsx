@@ -8,7 +8,6 @@ import {
   Container,
   TextField,
   Typography,
-  Paper,
   MenuItem,
   FormControl,
   InputLabel,
@@ -17,6 +16,7 @@ import {
   Switch,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function ViewResults() {
   const navigate = useNavigate();
@@ -37,31 +37,37 @@ export default function ViewResults() {
   const [rowCount, setRowCount] = useState(0);
   const [sortModel, setSortModel] = useState([{ field: "score", sort: "desc" }]);
 
-  // ✅ Superadmin access check
+  // ✅ Superadmin access check with welcome toast
   useEffect(() => {
     const checkAccess = async () => {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user;
 
       if (!currentUser) {
-        alert("Please log in first.");
+        toast.error("Please log in first.");
         navigate("/admin-login");
         return;
       }
 
       if (currentUser.user_metadata.role !== "superadmin") {
-        alert("Access denied. Only Superadmins can view results.");
+        toast.error("Access denied. Only Superadmins can view results.");
         navigate("/admin");
         return;
       }
 
       setUser(currentUser);
+
+      // Show welcome toast only once per session
+      if (!sessionStorage.getItem("viewResultsWelcome")) {
+        toast.success("Welcome to View Results!");
+        sessionStorage.setItem("viewResultsWelcome", "true");
+      }
     };
 
     checkAccess();
   }, [navigate]);
 
-  // ✅ Fetch results from Supabase with pagination & sorting
+  // Fetch results with pagination & sorting
   const fetchResults = useCallback(
     async (currentPage = 0, currentPageSize = 25, currentSortModel = sortModel) => {
       setLoading(true);
@@ -74,7 +80,6 @@ export default function ViewResults() {
           .select("*", { count: "exact" })
           .range(from, to);
 
-        // Apply sorting if any
         if (currentSortModel.length > 0) {
           const sort = currentSortModel[0];
           query = query.order(sort.field, { ascending: sort.sort === "asc" });
@@ -89,6 +94,7 @@ export default function ViewResults() {
         setRowCount(count || 0);
       } catch (err) {
         console.error("Error fetching results:", err);
+        toast.error("Failed to fetch results.");
       } finally {
         setLoading(false);
       }
@@ -100,7 +106,7 @@ export default function ViewResults() {
     if (user) fetchResults(page, pageSize);
   }, [user, page, pageSize, fetchResults]);
 
-  // ✅ Real-time updates
+  // Real-time updates
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -115,7 +121,7 @@ export default function ViewResults() {
     return () => supabase.removeChannel(channel);
   }, [user, fetchResults, page, pageSize]);
 
-  // ✅ Compute duplicates
+  // Compute duplicates
   const duplicatePhones = useMemo(() => {
     const counts = {};
     rows.forEach((r) => {
@@ -124,7 +130,7 @@ export default function ViewResults() {
     return new Set(Object.keys(counts).filter((p) => counts[p] > 1));
   }, [rows]);
 
-  // ✅ Filter rows
+  // Filter rows
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
       if (!r) return false;
@@ -146,18 +152,17 @@ export default function ViewResults() {
     });
   }, [rows, search, chapterFilter, languageFilter, placeFilter, showDuplicates, duplicatePhones]);
 
-  // ✅ Dropdown options
+  // Dropdown options
   const chapterOptions = [...new Set(rows.map((r) => r.chapter).filter(Boolean))];
   const languageOptions = [...new Set(rows.map((r) => r.language).filter(Boolean))];
   const placeOptions = [...new Set(rows.map((r) => r.place).filter(Boolean))];
 
-  // ✅ CSV Export respecting filters & sorting
+  // CSV Export respecting filters & sorting
   const handleExportCSV = async () => {
     try {
       setLoading(true);
 
       let query = supabase.from("results").select("*");
-
       if (sortModel.length > 0) {
         const sort = sortModel[0];
         query = query.order(sort.field, { ascending: sort.sort === "asc" });
@@ -167,9 +172,8 @@ export default function ViewResults() {
 
       const { data, error } = await query;
       if (error) throw error;
-      if (!data?.length) return alert("No results to export.");
+      if (!data?.length) return toast.error("No results to export.");
 
-      // Apply current filters
       const exportRows = data.filter((r) => {
         const term = search.toLowerCase();
         const matchSearch =
@@ -187,7 +191,7 @@ export default function ViewResults() {
         return matchSearch && matchChapter && matchLang && matchPlace && matchDuplicate;
       });
 
-      if (!exportRows.length) return alert("No results to export after filtering.");
+      if (!exportRows.length) return toast.error("No results to export after filtering.");
 
       const csv = [
         ["Name", "Phone", "Place", "Score", "Total", "Chapter", "Language", "Submitted At"],
@@ -211,9 +215,10 @@ export default function ViewResults() {
       link.href = url;
       link.setAttribute("download", "quiz_results.csv");
       link.click();
+      toast.success("CSV exported successfully!");
     } catch (err) {
       console.error("CSV Export Error:", err);
-      alert("Failed to export CSV.");
+      toast.error("Failed to export CSV.");
     } finally {
       setLoading(false);
     }
@@ -228,7 +233,7 @@ export default function ViewResults() {
     { field: "total", headerName: "Total", width: 100 },
     { field: "chapter", headerName: "Chapter", flex: 1 },
     { field: "language", headerName: "Language", width: 110 },
-    { field: "created_at",headerName: "Submitted At",width: 180, },
+    { field: "created_at", headerName: "Submitted At", width: 180 },
   ];
 
   if (!user)
@@ -249,6 +254,7 @@ export default function ViewResults() {
 
   return (
     <Container sx={{ mt: 6, mb: 6 }}>
+      <Toaster position="top-right" />
       <Box display="flex" justifyContent="space-evenly" alignItems="center" mb={4}>
         <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
           Back to Admin Panel
@@ -260,11 +266,12 @@ export default function ViewResults() {
           Download CSV
         </Button>
       </Box>
-      <Box  mb={4}>
+
+      <Box mb={4}>
         <Typography variant="h5" fontWeight="bold" color="black">
-          Participants Details ...!
+          Participants Details
         </Typography>
-        </Box>
+      </Box>
 
       {/* Filters */}
       <Box

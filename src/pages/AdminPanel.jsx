@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
@@ -29,14 +29,19 @@ export default function AdminPanel() {
 
       setUser(currentUser);
       setLoading(false);
-      toast.success("Welcome to Admin Panel!");
+
+      // ✅ Show welcome toast only once per session
+      if (!sessionStorage.getItem("adminWelcomeToast")) {
+        toast.success("Welcome to Admin Panel!");
+        sessionStorage.setItem("adminWelcomeToast", "true");
+      }
     };
     checkSession();
   }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast.success("Logged out successfully");
+    sessionStorage.removeItem("adminWelcomeToast"); // clear flag on logout
     navigate("/admin-login");
   };
 
