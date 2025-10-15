@@ -4,12 +4,12 @@ import Quiz from "./pages/Quiz";
 import Result from "./pages/Result";
 import AdminPanel from "./pages/AdminPanel";
 import AdminLogin from "./pages/AdminLogin";
-import CreateAdmin from "./pages/CreateAdmin";
 import AddQuestions from "./pages/AddQuestions";
 import QuizConfig from "./pages/QuizConfig";
 import ViewResults from "./pages/ViewResults";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/QuizPreview";
+import EditQuestion from "./pages/EditQuestions";
 
 function App() {
   return (
@@ -20,9 +20,9 @@ function App() {
         <Route path="/result" element={<Result />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/create-admin" element={<CreateAdmin />} />
         <Route path="/admin/add-questions" element={<AddQuestions />} />  
         <Route path="/admin/preview-questions" element={<QuestionPreviewPage />} />
+        <Route path="/edit-question/:id" element={<EditQuestion />} />
         <Route path="/admin/preview-quiz" element={<QuizPreview />} />
         <Route path="/admin/quiz-config" element={<QuizConfig />} /> 
         <Route path="/admin/view-results" element={<ViewResults />} /> 

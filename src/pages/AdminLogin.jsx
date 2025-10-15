@@ -19,7 +19,7 @@ export default function AdminLogin() {
 
       // ✅ Check role
       const role = data.user.user_metadata?.role;
-      if (role !== "superadmin") {
+      if (role !== "admin" && role !== "superadmin") {
         alert("Access denied: not an admin");
         await supabase.auth.signOut();
         return;

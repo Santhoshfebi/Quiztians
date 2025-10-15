@@ -1,172 +1,355 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  TextField,
+  Typography,
+  Paper,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormControlLabel,
+  Switch,
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 
 export default function ViewResults() {
-    const navigate = useNavigate();
-    const [results, setResults] = useState([]);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    // ✅ Fetch results from Supabase
-    useEffect(() => {
-        const fetchResults = async () => {
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from("results")
-                    .select("*")
-                    .order("score", { ascending: false })
-                    .order("created_at", { ascending: true });
+  // Filters
+  const [search, setSearch] = useState("");
+  const [chapterFilter, setChapterFilter] = useState("");
+  const [languageFilter, setLanguageFilter] = useState("");
+  const [placeFilter, setPlaceFilter] = useState("");
+  const [showDuplicates, setShowDuplicates] = useState(false);
 
-                if (error) throw error;
-                setResults(data || []);
-            } catch (err) {
-                console.error("Error fetching results:", err);
-                alert("Failed to fetch results");
-            } finally {
-                setLoading(false);
-            }
-        };
+  // Pagination & Sorting
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(0);
+  const [rowCount, setRowCount] = useState(0);
+  const [sortModel, setSortModel] = useState([{ field: "score", sort: "desc" }]);
 
-        fetchResults();
-    }, []);
+  // ✅ Superadmin access check
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data } = await supabase.auth.getSession();
+      const currentUser = data.session?.user;
 
-    // ✅ Filter safely (no crash on null/undefined)
-    const filteredResults = results.filter((r) => {
-        if (!r) return false;
-        const term = search.toLowerCase();
-        const name = r.name?.toLowerCase() || "";
-        const phone = r.phone?.toString() || "";
-        const place = r.place?.toLowerCase() || "";
-        const chapter = r.chapter?.toLowerCase() || "";
-        const language = r.language?.toLowerCase() || "";
+      if (!currentUser) {
+        alert("Please log in first.");
+        navigate("/admin-login");
+        return;
+      }
 
-        return (
-            name.includes(term) ||
-            phone.includes(term) ||
-            place.includes(term) ||
-            chapter.includes(term)||
-            language.includes(term)
-        );
-    });
+      if (currentUser.user_metadata.role !== "superadmin") {
+        alert("Access denied. Only Superadmins can view results.");
+        navigate("/admin");
+        return;
+      }
 
-    // ✅ CSV export for filtered data
-    const handleExportCSV = () => {
-        if (!filteredResults.length) {
-            alert("No results to export.");
-            return;
-        }
-
-        const csv = [
-            ["Name", "Phone", "Place", "Score", "Total", "Chapter", "language", "Submitted At"],
-            ...filteredResults.map((p) => [
-                p.name || "",
-                p.phone || "",
-                p.place || "",
-                p.score ?? "",
-                p.total ?? "",
-                p.chapter || "",
-                p.language || "",
-                new Date(p.created_at).toLocaleString(),
-            ]),
-        ]
-            .map((row) => row.join(","))
-            .join("\n");
-
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "quiz_results.csv");
-        link.click();
+      setUser(currentUser);
     };
 
-    // ✅ Loading state
-    if (loading)
-        return (
-            <p className="text-center mt-20 text-lg text-gray-700">
-                Loading results...
-            </p>
-        );
+    checkAccess();
+  }, [navigate]);
 
+  // ✅ Fetch results from Supabase with pagination & sorting
+  const fetchResults = useCallback(
+    async (currentPage = 0, currentPageSize = 25, currentSortModel = sortModel) => {
+      setLoading(true);
+      try {
+        const from = currentPage * currentPageSize;
+        const to = from + currentPageSize - 1;
+
+        let query = supabase
+          .from("results")
+          .select("*", { count: "exact" })
+          .range(from, to);
+
+        // Apply sorting if any
+        if (currentSortModel.length > 0) {
+          const sort = currentSortModel[0];
+          query = query.order(sort.field, { ascending: sort.sort === "asc" });
+        } else {
+          query = query.order("score", { ascending: false });
+        }
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+
+        setRows(data || []);
+        setRowCount(count || 0);
+      } catch (err) {
+        console.error("Error fetching results:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sortModel]
+  );
+
+  useEffect(() => {
+    if (user) fetchResults(page, pageSize);
+  }, [user, page, pageSize, fetchResults]);
+
+  // ✅ Real-time updates
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("results_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "results" },
+        () => fetchResults(page, pageSize)
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user, fetchResults, page, pageSize]);
+
+  // ✅ Compute duplicates
+  const duplicatePhones = useMemo(() => {
+    const counts = {};
+    rows.forEach((r) => {
+      if (r.phone) counts[r.phone] = (counts[r.phone] || 0) + 1;
+    });
+    return new Set(Object.keys(counts).filter((p) => counts[p] > 1));
+  }, [rows]);
+
+  // ✅ Filter rows
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (!r) return false;
+
+      const term = search.toLowerCase();
+      const matchSearch =
+        r.name?.toLowerCase().includes(term) ||
+        r.phone?.toString().includes(term) ||
+        r.place?.toLowerCase().includes(term) ||
+        r.chapter?.toLowerCase().includes(term) ||
+        r.language?.toLowerCase().includes(term);
+
+      const matchChapter = !chapterFilter || r.chapter === chapterFilter;
+      const matchLang = !languageFilter || r.language === languageFilter;
+      const matchPlace = !placeFilter || r.place === placeFilter;
+      const matchDuplicate = !showDuplicates || duplicatePhones.has(r.phone);
+
+      return matchSearch && matchChapter && matchLang && matchPlace && matchDuplicate;
+    });
+  }, [rows, search, chapterFilter, languageFilter, placeFilter, showDuplicates, duplicatePhones]);
+
+  // ✅ Dropdown options
+  const chapterOptions = [...new Set(rows.map((r) => r.chapter).filter(Boolean))];
+  const languageOptions = [...new Set(rows.map((r) => r.language).filter(Boolean))];
+  const placeOptions = [...new Set(rows.map((r) => r.place).filter(Boolean))];
+
+  // ✅ CSV Export respecting filters & sorting
+  const handleExportCSV = async () => {
+    try {
+      setLoading(true);
+
+      let query = supabase.from("results").select("*");
+
+      if (sortModel.length > 0) {
+        const sort = sortModel[0];
+        query = query.order(sort.field, { ascending: sort.sort === "asc" });
+      } else {
+        query = query.order("score", { ascending: false });
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      if (!data?.length) return alert("No results to export.");
+
+      // Apply current filters
+      const exportRows = data.filter((r) => {
+        const term = search.toLowerCase();
+        const matchSearch =
+          r.name?.toLowerCase().includes(term) ||
+          r.phone?.toString().includes(term) ||
+          r.place?.toLowerCase().includes(term) ||
+          r.chapter?.toLowerCase().includes(term) ||
+          r.language?.toLowerCase().includes(term);
+
+        const matchChapter = !chapterFilter || r.chapter === chapterFilter;
+        const matchLang = !languageFilter || r.language === languageFilter;
+        const matchPlace = !placeFilter || r.place === placeFilter;
+        const matchDuplicate = !showDuplicates || duplicatePhones.has(r.phone);
+
+        return matchSearch && matchChapter && matchLang && matchPlace && matchDuplicate;
+      });
+
+      if (!exportRows.length) return alert("No results to export after filtering.");
+
+      const csv = [
+        ["Name", "Phone", "Place", "Score", "Total", "Chapter", "Language", "Submitted At"],
+        ...exportRows.map((p) => [
+          p.name || "",
+          p.phone || "",
+          p.place || "",
+          p.score ?? "",
+          p.total ?? "",
+          p.chapter || "",
+          p.language || "",
+          new Date(p.created_at).toLocaleString(),
+        ]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "quiz_results.csv");
+      link.click();
+    } catch (err) {
+      console.error("CSV Export Error:", err);
+      alert("Failed to export CSV.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const columns = [
+    { field: "id", headerName: "#", width: 70 },
+    { field: "name", headerName: "Name", flex: 1 },
+    { field: "phone", headerName: "Phone", width: 140 },
+    { field: "place", headerName: "Place", flex: 1 },
+    { field: "score", headerName: "Score", width: 100 },
+    { field: "total", headerName: "Total", width: 100 },
+    { field: "chapter", headerName: "Chapter", flex: 1 },
+    { field: "language", headerName: "Language", width: 110 },
+    { field: "created_at",headerName: "Submitted At",width: 180, },
+  ];
+
+  if (!user)
     return (
-        <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-blue-700">Quiz Results</h1>
-                    <button
-                        onClick={() => navigate("/admin")}
-                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all"
-                    >
-                        Back to Admin Panel
-                    </button>
-                </div>
-
-                {/* Search + Download */}
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
-                    <input
-                        type="text"
-                        placeholder="Search by name, phone, place or chapter"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="border px-3 py-2 rounded-lg w-full sm:w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                    <button
-                        onClick={handleExportCSV}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
-                    >
-                        Download CSV
-                    </button>
-                </div>
-
-                {/* Results Table */}
-                <div className="overflow-auto max-h-[70vh] rounded-lg shadow-md bg-white">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-blue-100 sticky top-0">
-                            <tr>
-                                <th className="p-2 border">#</th>
-                                <th className="p-2 border">Name</th>
-                                <th className="p-2 border">Phone</th>
-                                <th className="p-2 border">Place</th>
-                                <th className="p-2 border">Score</th>
-                                <th className="p-2 border">Total</th>
-                                <th className="p-2 border">Chapter</th>
-                                <th className="p-2 border">Language</th>
-                                <th className="p-2 border">Submitted At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredResults.map((r, idx) => (
-                                <tr key={r.id || idx} className="odd:bg-gray-50 even:bg-gray-100">
-                                    <td className="p-2 border">{idx + 1}</td>
-                                    <td className="p-2 border">{r.name}</td>
-                                    <td className="p-2 border">{r.phone}</td>
-                                    <td className="p-2 border">{r.place}</td>
-                                    <td className="p-2 border">{r.score}</td>
-                                    <td className="p-2 border">{r.total}</td>
-                                    <td className="p-2 border">{r.chapter}</td>
-                                    <td className="p-2 border">{r.language}</td>
-                                    <td className="p-2 border">
-                                        {new Date(r.created_at).toLocaleString()}
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredResults.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="p-4 text-center text-gray-500 font-medium"
-                                    >
-                                        No results found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <Typography variant="h6" color="text.secondary">
+          Checking admin access...
+        </Typography>
+      </Box>
     );
+
+  if (loading && rows.length === 0)
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <CircularProgress />
+      </Box>
+    );
+
+  return (
+    <Container sx={{ mt: 6, mb: 6 }}>
+      <Box display="flex" justifyContent="space-evenly" alignItems="center" mb={4}>
+        <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
+          Back to Admin Panel
+        </Button>
+        <Typography variant="h4" fontWeight="bold" color="black">
+          Quiz Results
+        </Typography>
+        <Button variant="contained" color="success" onClick={handleExportCSV}>
+          Download CSV
+        </Button>
+      </Box>
+      <Box  mb={4}>
+        <Typography variant="h5" fontWeight="bold" color="black">
+          Participants Details ...!
+        </Typography>
+        </Box>
+
+      {/* Filters */}
+      <Box
+        display="flex"
+        flexDirection={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap="wrap"
+        gap={2}
+        mb={3}
+      >
+        <TextField
+          label="Search by name, phone, place, or chapter"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          variant="outlined"
+          sx={{ width: "100%", maxWidth: 400 }}
+        />
+
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel>Chapter</InputLabel>
+          <Select value={chapterFilter} onChange={(e) => setChapterFilter(e.target.value)} label="Chapter">
+            <MenuItem value="">All</MenuItem>
+            {chapterOptions.map((ch) => (
+              <MenuItem key={ch} value={ch}>
+                {ch}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel>Language</InputLabel>
+          <Select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)} label="Language">
+            <MenuItem value="">All</MenuItem>
+            {languageOptions.map((lang) => (
+              <MenuItem key={lang} value={lang}>
+                {lang}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel>Place</InputLabel>
+          <Select value={placeFilter} onChange={(e) => setPlaceFilter(e.target.value)} label="Place">
+            <MenuItem value="">All</MenuItem>
+            {placeOptions.map((pl) => (
+              <MenuItem key={pl} value={pl}>
+                {pl}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControlLabel
+          control={
+            <Switch checked={showDuplicates} onChange={(e) => setShowDuplicates(e.target.checked)} color="primary" />
+          }
+          label="Show Duplicates Only"
+        />
+      </Box>
+
+      {/* DataGrid */}
+      <DataGrid
+        rows={filteredRows.map((r, idx) => ({ ...r, id: r.id || idx + 1 }))}
+        columns={columns}
+        rowCount={rowCount}
+        paginationMode="server"
+        sortingMode="server"
+        sortModel={sortModel}
+        onSortModelChange={(model) => {
+          setSortModel(model);
+          fetchResults(page, pageSize, model);
+        }}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          setPage(model.page);
+          setPageSize(model.pageSize);
+          fetchResults(model.page, model.pageSize, sortModel);
+        }}
+        disableRowSelectionOnClick
+        loading={loading}
+        pageSizeOptions={[10, 25, 50, 100]}
+      />
+    </Container>
+  );
 }

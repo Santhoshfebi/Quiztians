@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function PreviewQuestions() {
   const [questions, setQuestions] = useState([]);
   const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [selectedChapter, setSelectedChapter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showTopBtn, setShowTopBtn] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,12 +26,13 @@ export default function PreviewQuestions() {
         setQuestions(data);
         setFilteredQuestions(data);
 
-        // Extract unique chapters for filter
         const uniqueChapters = [...new Set(data.map((q) => q.chapter))];
         setChapters(uniqueChapters);
+
+        toast.success("Questions loaded successfully!");
       } catch (err) {
         console.error("Error fetching questions:", err);
-        alert("Failed to fetch questions.");
+        toast.error("Failed to fetch questions.");
       } finally {
         setLoading(false);
       }
@@ -37,14 +41,58 @@ export default function PreviewQuestions() {
     fetchQuestions();
   }, []);
 
-  // Filter questions by selected chapter
+  // Filter questions based on chapter and search term
   useEffect(() => {
-    if (!selectedChapter) {
-      setFilteredQuestions(questions);
-    } else {
-      setFilteredQuestions(questions.filter((q) => q.chapter === selectedChapter));
+    let tempQuestions = questions;
+
+    if (selectedChapter) {
+      tempQuestions = tempQuestions.filter((q) => q.chapter === selectedChapter);
     }
-  }, [selectedChapter, questions]);
+
+    if (searchTerm.trim() !== "") {
+      const lowerTerm = searchTerm.toLowerCase();
+      tempQuestions = tempQuestions.filter(
+        (q) =>
+          q.question_en.toLowerCase().includes(lowerTerm) ||
+          q.question_ta.toLowerCase().includes(lowerTerm)
+      );
+    }
+
+    setFilteredQuestions(tempQuestions);
+  }, [selectedChapter, searchTerm, questions]);
+
+  // Show back-to-top button after scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowTopBtn(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this question?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase.from("questions").delete().eq("id", id);
+      if (error) throw error;
+
+      const updatedQuestions = questions.filter((q) => q.id !== id);
+      setQuestions(updatedQuestions);
+
+      toast.success("Question deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting question:", err);
+      toast.error("Failed to delete question.");
+    }
+  };
 
   if (loading)
     return (
@@ -54,14 +102,24 @@ export default function PreviewQuestions() {
     );
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
+      <Toaster position="top-right" />
       <div className="max-w-5xl mx-auto bg-white p-6 rounded-2xl shadow-lg space-y-6">
         <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
           Preview Questions
         </h1>
 
-        {/* Chapter Filter */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={() => navigate("/admin")}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+          >
+            Back to Admin Panel
+          </button>
+        </div>
+
+        {/* Filter & Search */}
+        <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
           <select
             value={selectedChapter}
             onChange={(e) => setSelectedChapter(e.target.value)}
@@ -74,6 +132,14 @@ export default function PreviewQuestions() {
               </option>
             ))}
           </select>
+
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search questions..."
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full md:w-1/3"
+          />
         </div>
 
         {filteredQuestions.length === 0 ? (
@@ -90,7 +156,6 @@ export default function PreviewQuestions() {
                   <span className="font-medium">{q.chapter}</span>
                 </p>
 
-                {/* Questions */}
                 <p className="mt-2">
                   <span className="font-semibold text-gray-700">English:</span>{" "}
                   {q.question_en}
@@ -100,7 +165,6 @@ export default function PreviewQuestions() {
                   {q.question_ta}
                 </p>
 
-                {/* Options */}
                 <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                   <div>
                     <p className="font-medium">Option A:</p>
@@ -124,24 +188,40 @@ export default function PreviewQuestions() {
                   </div>
                 </div>
 
-                {/* Correct Answer */}
                 <p className="mt-3 font-semibold flex justify-center text-green-600">
-                  Correct Answer: English: {q.correct_answer} | Tamil: {q.correct_answer_ta}
+                  Correct Answer: English: {q.correct_answer} | Tamil:{" "}
+                  {q.correct_answer_ta}
                 </p>
+
+                <div className="flex justify-center mt-3 gap-4">
+                  <button
+                    onClick={() => navigate(`/edit-question/${q.id}`)}
+                    className="px-4 py-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-all"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(q.id)}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         )}
-
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={() => navigate("/admin")}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
-          >
-            Back to Admin Panel
-          </button>
-        </div>
       </div>
+
+      {/* Back to Top Button with fade animation */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-8 right-8 px-4 py-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all duration-500 ${
+          showTopBtn ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}
+      >
+        ↑ Top
+      </button>
     </div>
   );
 }
