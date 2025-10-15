@@ -57,24 +57,24 @@ export default function QuestionPreviewPage() {
   }, [questions, selectedChapter, searchTerm]);
 
   // Same as previous preview page
-// Add Toaster and welcome toast once per session
-useEffect(() => {
-  const checkAdmin = async () => {
-    const { data } = await supabase.auth.getSession();
-    const currentUser = data.session?.user;
-    if (!currentUser || (currentUser.user_metadata.role !== "admin" && currentUser.user_metadata.role !== "superadmin")) {
-      toast.error("Access denied");
-      navigate("/admin-login");
-      return;
-    }
-    setUser(currentUser);
-    if (!sessionStorage.getItem("previewQuestionsWelcome")) {
-      toast.success(`Welcome, ${currentUser.email}! Preview questions here.`);
-      sessionStorage.setItem("previewQuestionsWelcome", "true");
-    }
-  };
-  checkAdmin();
-}, [navigate]);
+  // Add Toaster and welcome toast once per session
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data } = await supabase.auth.getSession();
+      const currentUser = data.session?.user;
+      if (!currentUser || (currentUser.user_metadata.role !== "admin" && currentUser.user_metadata.role !== "superadmin")) {
+        toast.error("Access denied");
+        navigate("/admin-login");
+        return;
+      }
+      setUser(currentUser);
+      if (!sessionStorage.getItem("previewQuestionsWelcome")) {
+        toast.success(`Welcome, ${currentUser.email}! Preview questions here.`);
+        sessionStorage.setItem("previewQuestionsWelcome", "true");
+      }
+    };
+    checkAdmin();
+  }, [navigate]);
 
 
   // Back-to-top button
@@ -108,7 +108,12 @@ useEffect(() => {
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
       <Toaster position="top-right" />
       <div className="max-w-5xl mx-auto bg-white p-6 rounded-2xl shadow-lg space-y-6">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">Preview Questions</h1>
+        <h1
+          className="text-3xl font-bold text-center text-blue-700 mb-6 cursor-pointer hover:underline"
+          onClick={() => fetchQuestions()}
+        >
+          Preview Questions
+        </h1>
 
         <div className="flex justify-end mt-6">
           <button onClick={() => navigate("/admin")} className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
@@ -119,14 +124,14 @@ useEffect(() => {
         {/* Filter & Search */}
         <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
           <select value={selectedChapter} onChange={(e) => setSelectedChapter(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
             <option value="">All Chapters</option>
             {chapters.map(ch => <option key={ch} value={ch}>{ch}</option>)}
           </select>
 
           <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                 placeholder="Search questions..."
-                 className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full md:w-1/3" />
+            placeholder="Search questions..."
+            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full md:w-1/3" />
         </div>
 
         {/* Questions List */}
@@ -144,7 +149,7 @@ useEffect(() => {
                 <p className="mt-1"><span className="font-semibold text-gray-700">Tamil:</span> {q.question_ta}</p>
 
                 <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {["a","b","c","d"].map(opt => (
+                  {["a", "b", "c", "d"].map(opt => (
                     <div key={opt}>
                       <p className="font-medium">Option {opt.toUpperCase()}:</p>
                       <p>English: {q[`option_${opt}_en`]}</p>
@@ -160,11 +165,11 @@ useEffect(() => {
                 {/* Buttons */}
                 <div className="flex justify-center mt-3 gap-4">
                   <button onClick={() => navigate(`/edit-question/${q.id}`)}
-                          className="px-4 py-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-all">
+                    className="px-4 py-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-all">
                     Edit
                   </button>
                   <button onClick={() => handleDelete(q.id)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all">
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all">
                     Delete
                   </button>
                 </div>
@@ -176,7 +181,7 @@ useEffect(() => {
 
       {/* Back to Top */}
       <button onClick={scrollToTop}
-              className={`fixed bottom-8 right-8 px-4 py-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all duration-500 ${showTopBtn ? "opacity-100 visible" : "opacity-0 invisible"}`}>
+        className={`fixed bottom-8 right-8 px-4 py-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all duration-500 ${showTopBtn ? "opacity-100 visible" : "opacity-0 invisible"}`}>
         ↑ Top
       </button>
     </div>
