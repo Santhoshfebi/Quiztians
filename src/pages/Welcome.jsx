@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
 
 export default function Welcome() {
   const [name, setName] = useState("");
@@ -138,8 +140,14 @@ export default function Welcome() {
 
   if (!config) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-lg font-semibold text-gray-600">
-        Loading quiz setup...
+      <div className=" items-center min-h-screen text-lg font-semibold text-gray-600">
+         <h4 className="text-center">Loading quiz setup...</h4>
+        <DotLottieReact
+          src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
+          loop
+          autoplay
+        />
+       
       </div>
     );
   }
@@ -179,7 +187,7 @@ export default function Welcome() {
 
         {/* Chapter + Inputs */}
         <h5 className="mt-4 bg-gray-50 p-4 rounded-lg shadow-inner">
-          {language === "en" ? "Select Chapter" : "அத்தியாயத்தைத் தேர்ந்தெடுக்கவும்"}
+          {language === "en" ? "Select Chapter" : "அதிகாரத்தை தேர்ந்தெடுக்கவும்"}
         </h5>
         <select
           value={chapter}
@@ -188,7 +196,7 @@ export default function Welcome() {
           className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
         >
           <option value="">
-            {chapters.length === 0 ? (language === "en" ? "Loading chapters..." : "அத்தியாயங்கள் ஏற்றப்படுகிறது...") : "-- Choose Chapter --"}
+            {chapters.length === 0 ? (language === "en" ? "Loading chapters..." : "அதிகாரங்கள் ஏற்றப்படுகிறது...") : "-- Choose Chapter | அதிகாரம் --"}
           </option>
           {chapters.map((ch) => (
             <option key={ch} value={ch}>
@@ -248,7 +256,7 @@ export default function Welcome() {
           onClick={() => navigate("/admin-login")}
           className="w-full mt-4 py-2 rounded-lg text-white font-semibold bg-gray-800 hover:bg-black transition-all shadow-md"
         >
-          {language === "en" ? "Admin Access" : "அட்மின் அணுகல்"}
+          {language === "en" ? "Admin" : "அட்மின்"}
         </button>
       </div>
 

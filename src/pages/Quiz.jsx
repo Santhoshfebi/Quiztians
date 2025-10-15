@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -64,8 +65,13 @@ export default function Quiz() {
   }, [timeLeft, showWarning, isPreview]);
 
   if (loading) return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <h2 className="text-xl font-bold text-indigo-600 animate-pulse">Loading questions...</h2>
+    <div className=" items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <h2 className="text-xl text-center font-bold text-indigo-600 animate-pulse">Loading questions...</h2>
+      <DotLottieReact
+          src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
+          loop
+          autoplay
+        />
     </div>
   );
 
@@ -143,7 +149,7 @@ export default function Quiz() {
         <div className="flex flex-col md:flex-row justify-between items-center mb-4 text-lg font-semibold">
           <p>👤 {language === "en" ? "Participant" : "பங்கேற்பாளர்"}: <span className="text-blue-950">{results.name}</span></p>
           <h5 className="text-xl font-bold text-center text-indigo-500">
-            📖 {language === "en" ? `Chapter: ${selectedChapter}` : `அத்தியாயம்: ${selectedChapter}`}
+            📖 {language === "en" ? `Chapter: ${selectedChapter}` : `அதிகாரம்: ${selectedChapter}`}
           </h5>
           <div className="text-gray-700">
             {language === "en" ? "Question" : "கேள்வி"}: {current + 1} / {questions.length}
