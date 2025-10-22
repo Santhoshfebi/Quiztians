@@ -159,13 +159,13 @@ export default function ChaptersPreview() {
                   onClick={() => handlePreview(chapter, "en")}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
                 >
-                  🇬🇧 English
+                  English
                 </button>
                 <button
                   onClick={() => handlePreview(chapter, "ta")}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
                 >
-                  🇮🇳 Tamil
+                  Tamil
                 </button>
               </div>
             </div>
