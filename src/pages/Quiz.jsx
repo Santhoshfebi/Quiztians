@@ -9,10 +9,9 @@ export default function Quiz() {
   const results = state || {};
 
   const language = results.language || "en";
-  const selectedChapter =
-    results.chapter || localStorage.getItem("selectedChapter");
+  const selectedChapter = results.chapter || localStorage.getItem("selectedChapter");
   const isPreview = results.isPreview || false;
-  const quizDuration = results.duration || (isPreview ? 5 : 20); // 5 min preview, 20 min live
+  const quizDuration = results.duration || (isPreview ? 5 : 20);
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +23,7 @@ export default function Quiz() {
   const [timeLeft, setTimeLeft] = useState(quizDuration * 60);
   const [showWarning, setShowWarning] = useState(false);
 
-  // ✅ Fetch questions from Supabase
+  // ✅ Fetch questions
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!selectedChapter) {
@@ -44,7 +43,6 @@ export default function Quiz() {
       } else if (!data || data.length === 0) {
         alert("No questions found for this chapter.");
       } else {
-        // Shuffle questions
         setQuestions(data.sort(() => Math.random() - 0.5));
       }
       setLoading(false);
@@ -53,20 +51,18 @@ export default function Quiz() {
     fetchQuestions();
   }, [selectedChapter, navigate]);
 
-  // ⏱️ Timer logic
+  // ⏱️ Timer (skip for preview)
   useEffect(() => {
+    if (isPreview) return;
     if (timeLeft <= 0) {
       handleSubmit();
       return;
     }
-
-    if (timeLeft === 300 && !showWarning && !isPreview) setShowWarning(true);
-
+    if (timeLeft === 300 && !showWarning) setShowWarning(true);
     const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, showWarning, isPreview]);
 
-  // ⏳ Loading screen
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -92,22 +88,16 @@ export default function Quiz() {
 
   // Current question
   const q = questions[current];
-  const correctAnswer =
-    language === "en" ? q.correct_answer : q.correct_answer_ta;
+  const correctAnswer = language === "en" ? q.correct_answer : q.correct_answer_ta;
   const options =
     language === "en"
       ? [q.option_a_en, q.option_b_en, q.option_c_en, q.option_d_en]
       : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
 
-  // Timer format
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
-  };
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  // Answer select handler
   const handleSelect = (option) => {
+    if (isPreview) return; // disable selection effect in preview
     if (showAnswer) return;
     setSelected(option);
     setShowAnswer(true);
@@ -122,7 +112,6 @@ export default function Quiz() {
     }
   };
 
-  // Submit quiz
   const handleSubmit = async () => {
     if (hasSubmitted) return;
     setHasSubmitted(true);
@@ -148,14 +137,27 @@ export default function Quiz() {
       }
     }
 
-    if (isPreview) navigate("/admin");
-    else
-      navigate("/result", {
-        state: { ...results, score, total: questions.length, isPreview },
-      });
+    navigate(isPreview ? "/admin" : "/result", {
+      state: { ...results, score, total: questions.length, isPreview },
+    });
   };
 
-  // Timer styles
+  const handleNext = () => {
+    if (current < questions.length - 1) {
+      setSelected(null);
+      setShowAnswer(false);
+      setCurrent((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (current > 0) {
+      setSelected(null);
+      setShowAnswer(false);
+      setCurrent((prev) => prev - 1);
+    }
+  };
+
   const totalQuizTime = quizDuration * 60;
   const timePercent = (timeLeft / totalQuizTime) * 100;
   const isWarningTime = timeLeft <= 300 && !isPreview;
@@ -163,56 +165,45 @@ export default function Quiz() {
   return (
     <div className="relative flex items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="md:w-3/4 w-96 mx-auto mt-20 bg-white p-6 rounded-2xl shadow-lg relative z-10">
-
-        {/* 🧩 Admin Language Badge */}
-        {isPreview && (
-          <div className="absolute top-6 right-50 bg-blue-100 border border-blue-300 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
-            {language === "ta" ? "🇮🇳 Tamil Version" : "🇬🇧 English Version"}
-          </div>
-        )}
-
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-4 text-lg font-semibold">
-          <p>
-            👤{" "}
-            {language === "en"
-              ? "Participant"
-              : "பங்கேற்பாளர்"}:{" "}
-            <span className="text-blue-950">{results.name}</span>
-          </p>
+          {!isPreview && (
+            <p>
+              👤 {language === "en" ? "Participant" : "பங்கேற்பாளர்"}:{" "}
+              <span className="text-blue-950">{results.name}</span>
+            </p>
+          )}
+
           <h5 className="text-xl font-bold text-center text-indigo-500">
-            📖{" "}
-            {language === "en"
-              ? `Chapter: ${selectedChapter}`
-              : `அதிகாரம்: ${selectedChapter}`}
+            📖 {language === "en" ? `Chapter: ${selectedChapter}` : `அதிகாரம்: ${selectedChapter}`}
           </h5>
+
           <div className="text-gray-700">
-            {language === "en" ? "Question" : "கேள்வி"}: {current + 1} /{" "}
-            {questions.length}
+            {language === "en" ? "Question" : "கேள்வி"}: {current + 1} / {questions.length}
           </div>
         </div>
 
-        {/* Timer */}
-        <div className="flex justify-end mb-2 font-medium text-gray-700">
-          <span> Time Left : </span>
-          <span
-            className={`font-semibold ${
-              isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
-            }`}
-          >
-            ⏱️ {formatTime(timeLeft)}
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 h-3 rounded mb-3">
-          <div
-            className={`h-3 rounded transition-all duration-1000 ease-linear ${
-              isWarningTime ? "bg-red-500" : "bg-green-500"
-            }`}
-            style={{ width: `${timePercent}%` }}
-          />
-        </div>
+        {/* Timer (hidden in preview) */}
+        {!isPreview && (
+          <>
+            <div className="flex justify-end mb-2 font-medium text-gray-700">
+              <span> Time Left : </span>
+              <span
+                className={`font-semibold ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
+                  }`}
+              >
+                ⏱️ {formatTime(timeLeft)}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 h-3 rounded mb-3">
+              <div
+                className={`h-3 rounded transition-all duration-1000 ease-linear ${isWarningTime ? "bg-red-500" : "bg-green-500"
+                  }`}
+                style={{ width: `${timePercent}%` }}
+              />
+            </div>
+          </>
+        )}
 
         {/* Question */}
         <h2 className="text-lg font-semibold mb-2">
@@ -224,7 +215,11 @@ export default function Quiz() {
           {options.map((option, idx) => {
             let cls =
               "w-full px-4 py-2 border rounded-lg transition-all duration-200 ";
-            if (showAnswer) {
+            if (isPreview) {
+              // ✅ In preview mode: highlight correct answer automatically
+              if (option === correctAnswer) cls += "bg-green-500 text-white font-semibold";
+              else cls += "bg-gray-100";
+            } else if (showAnswer) {
               if (selected === option && option === correctAnswer)
                 cls += "bg-green-500 text-white";
               else if (selected === option && option !== correctAnswer)
@@ -232,11 +227,12 @@ export default function Quiz() {
               else cls += "opacity-70";
             } else if (selected === option) cls += "bg-blue-500 text-white";
             else cls += "hover:bg-gray-100";
+
             return (
               <button
                 key={idx}
                 onClick={() => handleSelect(option)}
-                disabled={showAnswer}
+                disabled={showAnswer || isPreview}
                 className={cls}
               >
                 {option}
@@ -245,35 +241,53 @@ export default function Quiz() {
           })}
         </div>
 
-        {/* Submit Button */}
-        {current === questions.length - 1 && (
+        {/* Admin-only navigation buttons */}
+        {isPreview && (
+          <div className="flex justify-between mt-4">
+            <button
+              onClick={handlePrev}
+              disabled={current === 0}
+              className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 disabled:opacity-50"
+            >
+              ⬅️ Previous
+            </button>
+            <button
+              onClick={() => navigate("/admin/preview-quiz")}
+              className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-all"
+            >
+              ⬅️ Back to ChapterPreview
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={current === questions.length - 1}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              Next ➡️
+            </button>
+          </div>
+        )}
+
+        {/* Submit (normal users only) */}
+        {!isPreview && current === questions.length - 1 && (
           <button
             onClick={handleSubmit}
             className="w-full py-2 bg-blue-600 text-white rounded-lg mt-4 hover:bg-blue-700 transition-all"
           >
-            {language === "en"
-              ? isPreview
-                ? "Finish Preview"
-                : "Submit Quiz"
-              : isPreview
-              ? "முன்னோட்டம் முடிக்கவும்"
-              : "வினாவை சமர்ப்பிக்கவும்"}
+            {language === "en" ? "Submit Quiz" : "வினாவை சமர்ப்பிக்கவும்"}
           </button>
         )}
-      </div>
 
-      {/* ⏰ 5-min Warning Modal */}
+        {/* ⏰ 5-min Warning Modal */}
       {showWarning && (
         <div className="fixed inset-0 flex justify-center items-start mt-2 z-50">
           <div className="bg-white p-6 rounded-2xl shadow-xl text-center max-w-sm w-full mx-4">
             <h2 className="text-xl font-bold text-red-600 mb-2">
-              ⚠️{" "}
-              {language === "en" ? "Time Alert!" : "நேர எச்சரிக்கை!"}
+              ⚠️ {language === "en" ? "Time Alert!" : "நேர எச்சரிக்கை!"}
             </h2>
             <p className="text-gray-700 mb-4">
               {language === "en"
-                ? "Only 5 minutes left...! Please review and submit your quiz soon."
-                : "இன்னும் 5 நிமிடங்கள் மட்டுமே உள்ளன...! தயவுசெய்து விரைவில் சமர்ப்பிக்கவும்."}
+                ? "Only 5 minutes left! Please review and submit your quiz soon."
+                : "இன்னும் 5 நிமிடங்கள் மட்டுமே உள்ளன! தயவுசெய்து விரைவில் சமர்ப்பிக்கவும்."}
             </p>
             <button
               onClick={() => setShowWarning(false)}
@@ -284,6 +298,8 @@ export default function Quiz() {
           </div>
         </div>
       )}
+
+      </div>
     </div>
   );
 }

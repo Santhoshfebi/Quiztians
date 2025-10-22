@@ -8,16 +8,21 @@ import AddQuestions from "./pages/AddQuestions";
 import QuizConfig from "./pages/QuizConfig";
 import ViewResults from "./pages/ViewResults";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
-import QuizPreview from "./pages/QuizPreview";
+import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
 
 function App() {
   return (
     <Router>
       <Routes>
+        // user navigation path
+      
         <Route path="/" element={<Welcome />} />
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/result" element={<Result />} />
+
+        // admin navigation path
+        
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/add-questions" element={<AddQuestions />} />  

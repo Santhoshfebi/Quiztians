@@ -141,7 +141,7 @@ export default function Welcome() {
         place,
         language,
         chapter,
-        duration: config?.duration || 20,
+        duration: config?.duration || 20,  // default value 20 mins for Quiz duration
       },
     });
   };
