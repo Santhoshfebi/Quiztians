@@ -31,7 +31,6 @@ export default function ViewResults() {
   const [placeFilter, setPlaceFilter] = useState("");
   const [showDuplicates, setShowDuplicates] = useState(false);
 
-  // Pagination
   const [pageSize, setPageSize] = useState(25);
 
   // ✅ Superadmin access check
@@ -64,21 +63,34 @@ export default function ViewResults() {
   }, [navigate]);
 
   // Fetch all results once
+  const fetchResults = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from("results").select("*");
+      if (error) throw error;
+      setAllRows(data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch results.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchResults = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase.from("results").select("*");
-        if (error) throw error;
-        setAllRows(data || []);
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to fetch results.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchResults();
+
+    // Live updates
+    const channel = supabase
+      .channel("results_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "results" },
+        () => fetchResults()
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, []);
 
   // Compute duplicates
@@ -90,7 +102,7 @@ export default function ViewResults() {
     return new Set(Object.keys(counts).filter((p) => counts[p] > 1));
   }, [allRows]);
 
-  // Filtered rows (applied to all data)
+  // Filtered rows
   const filteredRows = useMemo(() => {
     return allRows.filter((r) => {
       if (!r) return false;
@@ -145,6 +157,28 @@ export default function ViewResults() {
     toast.success("CSV exported successfully!");
   };
 
+  // Reset Attempt
+  const handleResetAttempt = async (phone = null) => {
+    const confirmText = phone
+      ? `Are you sure you want to reset attempts for phone: ${phone}?`
+      : `Are you sure you want to reset all attempts?`;
+    if (!window.confirm(confirmText)) return;
+
+    try {
+      const query = supabase.from("results");
+      const { error } = phone
+        ? await query.delete().eq("phone", phone)
+        : await query.delete();
+      if (error) throw error;
+
+      toast.success("✅ Attempt(s) reset successfully!");
+      fetchResults(); // Refresh live
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Failed to reset attempt(s).");
+    }
+  };
+
   const columns = [
     { field: "id", headerName: "#", width: 70 },
     { field: "name", headerName: "Name", flex: 1 },
@@ -155,6 +189,21 @@ export default function ViewResults() {
     { field: "chapter", headerName: "Chapter", flex: 1 },
     { field: "language", headerName: "Language", width: 110 },
     { field: "created_at", headerName: "Submitted At", width: 180 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 200,
+      renderCell: (params) => (
+        <Button
+          color="error"
+          variant="contained"
+          size="small"
+          onClick={() => handleResetAttempt(params.row.phone)}
+        >
+          Reset Attempt
+        </Button>
+      ),
+    },
   ];
 
   if (!user)
@@ -176,7 +225,7 @@ export default function ViewResults() {
   return (
     <Container sx={{ mt: 6, mb: 6 }}>
       <Toaster position="top-right" />
-      <Box display="flex" justifyContent="space-evenly" alignItems="center" mb={4}>
+      <Box display="flex" justifyContent="space-evenly" alignItems="center" mb={6}>
         <Typography
           variant="h4"
           fontWeight="bold"
@@ -190,26 +239,24 @@ export default function ViewResults() {
         <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
           Back to Admin Panel
         </Button>
-
       </Box>
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          color="black"
-        >
-          Participants Details 
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={6}>
+        <Typography variant="h5" fontWeight="bold">
+          Participants Details
         </Typography>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          color="black"
-        >
-          Total Participants : {filteredRows.length}
+        <Typography variant="h5" fontWeight="bold">
+          Total Participants: {filteredRows.length}
         </Typography>
         <Button variant="contained" color="success" onClick={handleExportCSV}>
           Download CSV
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() => handleResetAttempt()}
+        >
+          Reset All Attempts
         </Button>
       </Box>
 
@@ -221,7 +268,7 @@ export default function ViewResults() {
         alignItems="center"
         flexWrap="wrap"
         gap={2}
-        mb={3}
+        mb={4}
       >
         <TextField
           label="Search by name, phone, place, or chapter"
@@ -236,9 +283,7 @@ export default function ViewResults() {
           <Select value={chapterFilter} onChange={(e) => setChapterFilter(e.target.value)} label="Chapter">
             <MenuItem value="">All</MenuItem>
             {chapterOptions.map((ch) => (
-              <MenuItem key={ch} value={ch}>
-                {ch}
-              </MenuItem>
+              <MenuItem key={ch} value={ch}>{ch}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -248,9 +293,7 @@ export default function ViewResults() {
           <Select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)} label="Language">
             <MenuItem value="">All</MenuItem>
             {languageOptions.map((lang) => (
-              <MenuItem key={lang} value={lang}>
-                {lang}
-              </MenuItem>
+              <MenuItem key={lang} value={lang}>{lang}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -260,9 +303,7 @@ export default function ViewResults() {
           <Select value={placeFilter} onChange={(e) => setPlaceFilter(e.target.value)} label="Place">
             <MenuItem value="">All</MenuItem>
             {placeOptions.map((pl) => (
-              <MenuItem key={pl} value={pl}>
-                {pl}
-              </MenuItem>
+              <MenuItem key={pl} value={pl}>{pl}</MenuItem>
             ))}
           </Select>
         </FormControl>

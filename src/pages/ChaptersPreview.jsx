@@ -115,7 +115,7 @@ export default function ChaptersPreview() {
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-evenly items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-evenly items-center mt-8 mb-6">
           <h1 className="text-3xl font-bold text-blue-700 text-center mb-4 cursor-pointer md:mb-0"
           onClick={() => window.location.reload()}
           >
