@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import {
@@ -21,7 +21,7 @@ import { Toaster, toast } from "react-hot-toast";
 export default function ViewResults() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [rows, setRows] = useState([]);
+  const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -31,13 +31,10 @@ export default function ViewResults() {
   const [placeFilter, setPlaceFilter] = useState("");
   const [showDuplicates, setShowDuplicates] = useState(false);
 
-  // Pagination & Sorting
+  // Pagination
   const [pageSize, setPageSize] = useState(25);
-  const [page, setPage] = useState(0);
-  const [rowCount, setRowCount] = useState(0);
-  const [sortModel, setSortModel] = useState([{ field: "score", sort: "desc" }]);
 
-  // ✅ Superadmin access check with welcome toast
+  // ✅ Superadmin access check
   useEffect(() => {
     const checkAccess = async () => {
       const { data } = await supabase.auth.getSession();
@@ -57,7 +54,6 @@ export default function ViewResults() {
 
       setUser(currentUser);
 
-      // Show welcome toast only once per session
       if (!sessionStorage.getItem("viewResultsWelcome")) {
         toast.success("Welcome to View Results!");
         sessionStorage.setItem("viewResultsWelcome", "true");
@@ -67,74 +63,37 @@ export default function ViewResults() {
     checkAccess();
   }, [navigate]);
 
-  // Fetch results with pagination & sorting
-  const fetchResults = useCallback(
-    async (currentPage = 0, currentPageSize = 25, currentSortModel = sortModel) => {
+  // Fetch all results once
+  useEffect(() => {
+    const fetchResults = async () => {
       setLoading(true);
       try {
-        const from = currentPage * currentPageSize;
-        const to = from + currentPageSize - 1;
-
-        let query = supabase
-          .from("results")
-          .select("*", { count: "exact" })
-          .range(from, to);
-
-        if (currentSortModel.length > 0) {
-          const sort = currentSortModel[0];
-          query = query.order(sort.field, { ascending: sort.sort === "asc" });
-        } else {
-          query = query.order("score", { ascending: false });
-        }
-
-        const { data, error, count } = await query;
+        const { data, error } = await supabase.from("results").select("*");
         if (error) throw error;
-
-        setRows(data || []);
-        setRowCount(count || 0);
+        setAllRows(data || []);
       } catch (err) {
-        console.error("Error fetching results:", err);
+        console.error(err);
         toast.error("Failed to fetch results.");
       } finally {
         setLoading(false);
       }
-    },
-    [sortModel]
-  );
-
-  useEffect(() => {
-    if (user) fetchResults(page, pageSize);
-  }, [user, page, pageSize, fetchResults]);
-
-  // Real-time updates
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("results_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "results" },
-        () => fetchResults(page, pageSize)
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [user, fetchResults, page, pageSize]);
+    };
+    fetchResults();
+  }, []);
 
   // Compute duplicates
   const duplicatePhones = useMemo(() => {
     const counts = {};
-    rows.forEach((r) => {
+    allRows.forEach((r) => {
       if (r.phone) counts[r.phone] = (counts[r.phone] || 0) + 1;
     });
     return new Set(Object.keys(counts).filter((p) => counts[p] > 1));
-  }, [rows]);
+  }, [allRows]);
 
-  // Filter rows
+  // Filtered rows (applied to all data)
   const filteredRows = useMemo(() => {
-    return rows.filter((r) => {
+    return allRows.filter((r) => {
       if (!r) return false;
-
       const term = search.toLowerCase();
       const matchSearch =
         r.name?.toLowerCase().includes(term) ||
@@ -150,78 +109,40 @@ export default function ViewResults() {
 
       return matchSearch && matchChapter && matchLang && matchPlace && matchDuplicate;
     });
-  }, [rows, search, chapterFilter, languageFilter, placeFilter, showDuplicates, duplicatePhones]);
+  }, [allRows, search, chapterFilter, languageFilter, placeFilter, showDuplicates, duplicatePhones]);
 
   // Dropdown options
-  const chapterOptions = [...new Set(rows.map((r) => r.chapter).filter(Boolean))];
-  const languageOptions = [...new Set(rows.map((r) => r.language).filter(Boolean))];
-  const placeOptions = [...new Set(rows.map((r) => r.place).filter(Boolean))];
+  const chapterOptions = [...new Set(allRows.map((r) => r.chapter).filter(Boolean))];
+  const languageOptions = [...new Set(allRows.map((r) => r.language).filter(Boolean))];
+  const placeOptions = [...new Set(allRows.map((r) => r.place).filter(Boolean))];
 
-  // CSV Export respecting filters & sorting
-  const handleExportCSV = async () => {
-    try {
-      setLoading(true);
+  // CSV Export
+  const handleExportCSV = () => {
+    if (!filteredRows.length) return toast.error("No results to export.");
 
-      let query = supabase.from("results").select("*");
-      if (sortModel.length > 0) {
-        const sort = sortModel[0];
-        query = query.order(sort.field, { ascending: sort.sort === "asc" });
-      } else {
-        query = query.order("score", { ascending: false });
-      }
+    const csv = [
+      ["Name", "Phone", "Place", "Score", "Total", "Chapter", "Language", "Submitted At"],
+      ...filteredRows.map((p) => [
+        p.name || "",
+        p.phone || "",
+        p.place || "",
+        p.score ?? "",
+        p.total ?? "",
+        p.chapter || "",
+        p.language || "",
+        new Date(p.created_at).toLocaleString(),
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
-      const { data, error } = await query;
-      if (error) throw error;
-      if (!data?.length) return toast.error("No results to export.");
-
-      const exportRows = data.filter((r) => {
-        const term = search.toLowerCase();
-        const matchSearch =
-          r.name?.toLowerCase().includes(term) ||
-          r.phone?.toString().includes(term) ||
-          r.place?.toLowerCase().includes(term) ||
-          r.chapter?.toLowerCase().includes(term) ||
-          r.language?.toLowerCase().includes(term);
-
-        const matchChapter = !chapterFilter || r.chapter === chapterFilter;
-        const matchLang = !languageFilter || r.language === languageFilter;
-        const matchPlace = !placeFilter || r.place === placeFilter;
-        const matchDuplicate = !showDuplicates || duplicatePhones.has(r.phone);
-
-        return matchSearch && matchChapter && matchLang && matchPlace && matchDuplicate;
-      });
-
-      if (!exportRows.length) return toast.error("No results to export after filtering.");
-
-      const csv = [
-        ["Name", "Phone", "Place", "Score", "Total", "Chapter", "Language", "Submitted At"],
-        ...exportRows.map((p) => [
-          p.name || "",
-          p.phone || "",
-          p.place || "",
-          p.score ?? "",
-          p.total ?? "",
-          p.chapter || "",
-          p.language || "",
-          new Date(p.created_at).toLocaleString(),
-        ]),
-      ]
-        .map((row) => row.join(","))
-        .join("\n");
-
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "quiz_results.csv");
-      link.click();
-      toast.success("CSV exported successfully!");
-    } catch (err) {
-      console.error("CSV Export Error:", err);
-      toast.error("Failed to export CSV.");
-    } finally {
-      setLoading(false);
-    }
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "quiz_results.csv");
+    link.click();
+    toast.success("CSV exported successfully!");
   };
 
   const columns = [
@@ -245,7 +166,7 @@ export default function ViewResults() {
       </Box>
     );
 
-  if (loading && rows.length === 0)
+  if (loading)
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
         <CircularProgress />
@@ -256,28 +177,40 @@ export default function ViewResults() {
     <Container sx={{ mt: 6, mb: 6 }}>
       <Toaster position="top-right" />
       <Box display="flex" justifyContent="space-evenly" alignItems="center" mb={4}>
-        <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
-          Back to Admin Panel
-        </Button>
-
         <Typography
           variant="h4"
           fontWeight="bold"
-          color="black"
-          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+          color="blue"
+          sx={{ cursor: "pointer" }}
           onClick={() => window.location.reload()}
         >
           Quiz Results
         </Typography>
+
+        <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
+          Back to Admin Panel
+        </Button>
+
+      </Box>
+
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          color="black"
+        >
+          Participants Details 
+        </Typography>
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          color="black"
+        >
+          Total Participants : {filteredRows.length}
+        </Typography>
         <Button variant="contained" color="success" onClick={handleExportCSV}>
           Download CSV
         </Button>
-      </Box>
-
-      <Box mb={4}>
-        <Typography variant="h5" fontWeight="bold" color="black">
-          Participants Details
-        </Typography>
       </Box>
 
       {/* Filters */}
@@ -335,9 +268,7 @@ export default function ViewResults() {
         </FormControl>
 
         <FormControlLabel
-          control={
-            <Switch checked={showDuplicates} onChange={(e) => setShowDuplicates(e.target.checked)} color="primary" />
-          }
+          control={<Switch checked={showDuplicates} onChange={(e) => setShowDuplicates(e.target.checked)} color="primary" />}
           label="Show Duplicates Only"
         />
       </Box>
@@ -346,22 +277,11 @@ export default function ViewResults() {
       <DataGrid
         rows={filteredRows.map((r, idx) => ({ ...r, id: r.id || idx + 1 }))}
         columns={columns}
-        rowCount={rowCount}
-        paginationMode="server"
-        sortingMode="server"
-        sortModel={sortModel}
-        onSortModelChange={(model) => {
-          setSortModel(model);
-          fetchResults(page, pageSize, model);
-        }}
-        paginationModel={{ page, pageSize }}
-        onPaginationModelChange={(model) => {
-          setPage(model.page);
-          setPageSize(model.pageSize);
-          fetchResults(model.page, model.pageSize, sortModel);
-        }}
+        pageSize={pageSize}
+        onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+        autoHeight
         disableRowSelectionOnClick
-        loading={loading}
+        pagination
         pageSizeOptions={[10, 25, 50, 100]}
       />
     </Container>
