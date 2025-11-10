@@ -23,12 +23,19 @@ export default function Quiz() {
   const [timeLeft, setTimeLeft] = useState(quizDuration * 60);
   const [showWarning, setShowWarning] = useState(false);
 
-  // ✅ Fetch questions
+  // ✅ Fetch questions & check for reattempt
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!selectedChapter) {
         alert("No chapter selected. Redirecting...");
         navigate("/");
+        return;
+      }
+
+      // 🚫 Prevent reattempt if already completed
+      if (localStorage.getItem(`quiz_completed_${selectedChapter}`) === "true") {
+        alert("You have already completed this quiz. You cannot retake it.");
+        navigate("/result");
         return;
       }
 
@@ -63,6 +70,30 @@ export default function Quiz() {
     return () => clearInterval(timer);
   }, [timeLeft, showWarning, isPreview]);
 
+  // 🚫 Disable refresh and back navigation
+  useEffect(() => {
+    if (isPreview) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "Are you sure you want to leave? Your progress will be lost.";
+    };
+
+    const handlePopState = () => {
+      alert("Back navigation is disabled during the quiz.");
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState(null, "", window.location.href);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [isPreview]);
+
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -86,7 +117,7 @@ export default function Quiz() {
       </div>
     );
 
-  // Current question
+  // 🧠 Current question
   const q = questions[current];
   const correctAnswer = language === "en" ? q.correct_answer : q.correct_answer_ta;
   const options =
@@ -97,7 +128,7 @@ export default function Quiz() {
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   const handleSelect = (option) => {
-    if (isPreview) return; // disable selection effect in preview
+    if (isPreview) return; // disable in preview
     if (showAnswer) return;
     setSelected(option);
     setShowAnswer(true);
@@ -137,6 +168,9 @@ export default function Quiz() {
       }
     }
 
+    // ✅ Prevent quiz reattempt
+    localStorage.setItem(`quiz_completed_${selectedChapter}`, "true");
+
     navigate(isPreview ? "/admin" : "/result", {
       state: { ...results, score, total: questions.length, isPreview },
     });
@@ -175,7 +209,10 @@ export default function Quiz() {
           )}
 
           <h5 className="text-xl font-bold text-center text-indigo-500">
-            📖 {language === "en" ? `Chapter: ${selectedChapter}` : `அதிகாரம்: ${selectedChapter}`}
+            📖{" "}
+            {language === "en"
+              ? `Chapter: ${selectedChapter}`
+              : `அதிகாரம்: ${selectedChapter}`}
           </h5>
 
           <div className="text-gray-700">
@@ -183,22 +220,24 @@ export default function Quiz() {
           </div>
         </div>
 
-        {/* Timer (hidden in preview) */}
+        {/* Timer */}
         {!isPreview && (
           <>
             <div className="flex justify-end mb-2 font-medium text-gray-700">
               <span> Time Left : </span>
               <span
-                className={`font-semibold ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
-                  }`}
+                className={`font-semibold ${
+                  isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
+                }`}
               >
                 ⏱️ {formatTime(timeLeft)}
               </span>
             </div>
             <div className="w-full bg-gray-200 h-3 rounded mb-3">
               <div
-                className={`h-3 rounded transition-all duration-1000 ease-linear ${isWarningTime ? "bg-red-500" : "bg-green-500"
-                  }`}
+                className={`h-3 rounded transition-all duration-1000 ease-linear ${
+                  isWarningTime ? "bg-red-500" : "bg-green-500"
+                }`}
                 style={{ width: `${timePercent}%` }}
               />
             </div>
@@ -216,8 +255,8 @@ export default function Quiz() {
             let cls =
               "w-full px-4 py-2 border rounded-lg transition-all duration-200 ";
             if (isPreview) {
-              // ✅ In preview mode: highlight correct answer automatically
-              if (option === correctAnswer) cls += "bg-green-500 text-white font-semibold";
+              if (option === correctAnswer)
+                cls += "bg-green-500 text-white font-semibold";
               else cls += "bg-gray-100";
             } else if (showAnswer) {
               if (selected === option && option === correctAnswer)
@@ -241,7 +280,7 @@ export default function Quiz() {
           })}
         </div>
 
-        {/* Admin-only navigation buttons */}
+        {/* Admin-only nav buttons */}
         {isPreview && (
           <div className="flex justify-between mt-4">
             <button
@@ -267,7 +306,7 @@ export default function Quiz() {
           </div>
         )}
 
-        {/* Submit (normal users only) */}
+        {/* Submit */}
         {!isPreview && current === questions.length - 1 && (
           <button
             onClick={handleSubmit}
@@ -277,28 +316,27 @@ export default function Quiz() {
           </button>
         )}
 
-        {/* ⏰ 5-min Warning Modal */}
-      {showWarning && (
-        <div className="fixed inset-0 flex justify-center items-start mt-2 z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-xl text-center max-w-sm w-full mx-4">
-            <h2 className="text-xl font-bold text-red-600 mb-2">
-              ⚠️ {language === "en" ? "Time Alert!" : "நேர எச்சரிக்கை!"}
-            </h2>
-            <p className="text-gray-700 mb-4">
-              {language === "en"
-                ? "Only 5 minutes left! Please review and submit your quiz soon."
-                : "இன்னும் 5 நிமிடங்கள் மட்டுமே உள்ளன! தயவுசெய்து விரைவில் சமர்ப்பிக்கவும்."}
-            </p>
-            <button
-              onClick={() => setShowWarning(false)}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
-            >
-              {language === "en" ? "OK, Continue" : "சரி, தொடரவும்"}
-            </button>
+        {/* ⚠️ 5-Min Warning Modal */}
+        {showWarning && (
+          <div className="fixed inset-0 flex justify-center items-start mt-2 z-50">
+            <div className="bg-white p-6 rounded-2xl shadow-xl text-center max-w-sm w-full mx-4">
+              <h2 className="text-xl font-bold text-red-600 mb-2">
+                ⚠️ {language === "en" ? "Time Alert!" : "நேர எச்சரிக்கை!"}
+              </h2>
+              <p className="text-gray-700 mb-4">
+                {language === "en"
+                  ? "Only 5 minutes left! Please review and submit your quiz soon."
+                  : "இன்னும் 5 நிமிடங்கள் மட்டுமே உள்ளன! தயவுசெய்து விரைவில் சமர்ப்பிக்கவும்."}
+              </p>
+              <button
+                onClick={() => setShowWarning(false)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
+              >
+                {language === "en" ? "OK, Continue" : "சரி, தொடரவும்"}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-
+        )}
       </div>
     </div>
   );
