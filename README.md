@@ -1,3 +1,6 @@
+
+<img width="1536" height="1024" alt="banner imag" src="https://github.com/user-attachments/assets/8fa72830-1826-434d-8671-112c0f1b7b25" />
+
 🧠 Quiztians
 
 An interactive bilingual (English / Tamil) quiz platform built with React and Supabase.
