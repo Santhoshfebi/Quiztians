@@ -14,12 +14,14 @@ import {
   Select,
   FormControlLabel,
   Switch,
+  useMediaQuery,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { Toaster, toast } from "react-hot-toast";
 
 export default function ViewResults() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery("(max-width:600px)");
   const [user, setUser] = useState(null);
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,6 @@ export default function ViewResults() {
   const [languageFilter, setLanguageFilter] = useState("");
   const [placeFilter, setPlaceFilter] = useState("");
   const [showDuplicates, setShowDuplicates] = useState(false);
-
   const [pageSize, setPageSize] = useState(25);
 
   // ✅ Superadmin access check
@@ -62,7 +63,7 @@ export default function ViewResults() {
     checkAccess();
   }, [navigate]);
 
-  // Fetch all results once
+  // Fetch results
   const fetchResults = async () => {
     setLoading(true);
     try {
@@ -80,7 +81,6 @@ export default function ViewResults() {
   useEffect(() => {
     fetchResults();
 
-    // Live updates
     const channel = supabase
       .channel("results_changes")
       .on(
@@ -172,7 +172,7 @@ export default function ViewResults() {
       if (error) throw error;
 
       toast.success("✅ Attempt(s) reset successfully!");
-      fetchResults(); // Refresh live
+      fetchResults();
     } catch (err) {
       console.error(err);
       toast.error("❌ Failed to reset attempt(s).");
@@ -180,19 +180,19 @@ export default function ViewResults() {
   };
 
   const columns = [
-    { field: "id", headerName: "#", width: 70 },
-    { field: "name", headerName: "Name", flex: 1 },
-    { field: "phone", headerName: "Phone", width: 140 },
-    { field: "place", headerName: "Place", flex: 1 },
-    { field: "score", headerName: "Score", width: 100 },
-    { field: "total", headerName: "Total", width: 100 },
-    { field: "chapter", headerName: "Chapter", flex: 1 },
-    { field: "language", headerName: "Language", width: 110 },
-    { field: "created_at", headerName: "Submitted At", width: 180 },
+    { field: "id", headerName: "#", width: 60 },
+    { field: "name", headerName: "Name", flex: 1, minWidth: 100 },
+    { field: "phone", headerName: "Phone", width: 120 },
+    { field: "place", headerName: "Place", flex: 1, minWidth: 120 },
+    { field: "score", headerName: "Score", width: 90 },
+    { field: "total", headerName: "Total", width: 90 },
+    { field: "chapter", headerName: "Chapter", flex: 1, minWidth: 120 },
+    { field: "language", headerName: "Language", width: 100 },
+    { field: "created_at", headerName: "Submitted At", width: 160 },
     {
       field: "actions",
       headerName: "Actions",
-      width: 200,
+      width: 140,
       renderCell: (params) => (
         <Button
           color="error"
@@ -200,7 +200,7 @@ export default function ViewResults() {
           size="small"
           onClick={() => handleResetAttempt(params.row.phone)}
         >
-          Reset Attempt
+          Reset
         </Button>
       ),
     },
@@ -223,41 +223,70 @@ export default function ViewResults() {
     );
 
   return (
-    <Container sx={{ mt: 6, mb: 6 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
       <Toaster position="top-right" />
-      <Box display="flex" justifyContent="space-evenly" alignItems="center" mb={6}>
+
+      {/* Header */}
+      <Box
+        display="flex"
+        flexDirection={isMobile ? "column" : "row"}
+        justifyContent="space-evenly"
+        alignItems={isMobile ? "flex-start" : "center"}
+        gap={2}
+        mb={4}
+      >
         <Typography
-          variant="h4"
+          variant={isMobile ? "h5" : "h4"}
           fontWeight="bold"
-          color="blue"
+          color="primary"
           sx={{ cursor: "pointer" }}
-          onClick={() => window.location.reload()}
+          onClick={() => fetchResults()}
         >
           Quiz Results
         </Typography>
 
-        <Button variant="contained" color="secondary" onClick={() => navigate("/admin")}>
+        <Button
+          variant="contained"
+          color="secondary"
+          fullWidth={isMobile}
+          onClick={() => navigate("/admin")}
+        >
           Back to Admin Panel
         </Button>
       </Box>
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={6}>
-        <Typography variant="h5" fontWeight="bold">
-          Participants Details
+      {/* Summary & Actions */}
+      <Box
+        display="flex"
+        flexDirection={isMobile ? "column" : "row"}
+        justifyContent="space-evenly"
+        alignItems={isMobile ? "flex-start" : "center"}
+        flexWrap="wrap"
+        gap={2}
+        mb={4}
+      >
+        <Typography variant="h6" fontWeight="bold">
+          Participants: {filteredRows.length}
         </Typography>
-        <Typography variant="h5" fontWeight="bold">
-          Total Participants: {filteredRows.length}
-        </Typography>
-        <Button variant="contained" color="success" onClick={handleExportCSV}>
-          Download CSV
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={() => handleResetAttempt()}
-        >
-          Reset All Attempts
-        </Button>
+
+        <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2} width="100%" justifyContent="flex-end">
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleExportCSV}
+            fullWidth={isMobile}
+          >
+            Download CSV
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => handleResetAttempt()}
+            fullWidth={isMobile}
+          >
+            Reset All Attempts
+          </Button>
+        </Box>
       </Box>
 
       {/* Filters */}
@@ -268,7 +297,7 @@ export default function ViewResults() {
         alignItems="center"
         flexWrap="wrap"
         gap={2}
-        mb={4}
+        mb={3}
       >
         <TextField
           label="Search by name, phone, place, or chapter"
@@ -278,53 +307,84 @@ export default function ViewResults() {
           sx={{ width: "100%", maxWidth: 400 }}
         />
 
-        <FormControl sx={{ minWidth: 150 }}>
+        <FormControl sx={{ minWidth: 150, width: isMobile ? "100%" : "auto" }}>
           <InputLabel>Chapter</InputLabel>
-          <Select value={chapterFilter} onChange={(e) => setChapterFilter(e.target.value)} label="Chapter">
+          <Select
+            value={chapterFilter}
+            onChange={(e) => setChapterFilter(e.target.value)}
+            label="Chapter"
+          >
             <MenuItem value="">All</MenuItem>
             {chapterOptions.map((ch) => (
-              <MenuItem key={ch} value={ch}>{ch}</MenuItem>
+              <MenuItem key={ch} value={ch}>
+                {ch}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <FormControl sx={{ minWidth: 150 }}>
+        <FormControl sx={{ minWidth: 150, width: isMobile ? "100%" : "auto" }}>
           <InputLabel>Language</InputLabel>
-          <Select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)} label="Language">
+          <Select
+            value={languageFilter}
+            onChange={(e) => setLanguageFilter(e.target.value)}
+            label="Language"
+          >
             <MenuItem value="">All</MenuItem>
             {languageOptions.map((lang) => (
-              <MenuItem key={lang} value={lang}>{lang}</MenuItem>
+              <MenuItem key={lang} value={lang}>
+                {lang}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <FormControl sx={{ minWidth: 150 }}>
+        <FormControl sx={{ minWidth: 150, width: isMobile ? "100%" : "auto" }}>
           <InputLabel>Place</InputLabel>
-          <Select value={placeFilter} onChange={(e) => setPlaceFilter(e.target.value)} label="Place">
+          <Select
+            value={placeFilter}
+            onChange={(e) => setPlaceFilter(e.target.value)}
+            label="Place"
+          >
             <MenuItem value="">All</MenuItem>
             {placeOptions.map((pl) => (
-              <MenuItem key={pl} value={pl}>{pl}</MenuItem>
+              <MenuItem key={pl} value={pl}>
+                {pl}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
 
         <FormControlLabel
-          control={<Switch checked={showDuplicates} onChange={(e) => setShowDuplicates(e.target.checked)} color="primary" />}
+          control={
+            <Switch
+              checked={showDuplicates}
+              onChange={(e) => setShowDuplicates(e.target.checked)}
+              color="primary"
+            />
+          }
           label="Show Duplicates Only"
         />
       </Box>
 
       {/* DataGrid */}
-      <DataGrid
-        rows={filteredRows.map((r, idx) => ({ ...r, id: r.id || idx + 1 }))}
-        columns={columns}
-        pageSize={pageSize}
-        onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
-        autoHeight
-        disableRowSelectionOnClick
-        pagination
-        pageSizeOptions={[10, 25, 50, 100]}
-      />
+      <Box sx={{ width: "100%", overflowX: "auto" }}>
+        <DataGrid
+          rows={filteredRows.map((r, idx) => ({ ...r, id: r.id || idx + 1 }))}
+          columns={columns}
+          pageSize={pageSize}
+          onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+          autoHeight
+          disableRowSelectionOnClick
+          pagination
+          pageSizeOptions={[10, 25, 50, 100]}
+          sx={{
+            minWidth: isMobile ? "700px" : "100%",
+            bgcolor: "background.paper",
+            borderRadius: 2,
+          }}
+        />
+      </Box>
     </Container>
   );
 }
