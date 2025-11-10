@@ -10,6 +10,7 @@ import ViewResults from "./pages/ViewResults";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
+import AlreadyAttempted from "./AlreadyAttempted";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
       
         <Route path="/" element={<Welcome />} />
         <Route path="/quiz" element={<Quiz />} />
+        <Route path="/already-attempted" element={<AlreadyAttempted />} />
         <Route path="/result" element={<Result />} />
 
         // admin navigation path

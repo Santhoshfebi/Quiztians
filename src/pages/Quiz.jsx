@@ -23,19 +23,92 @@ export default function Quiz() {
   const [timeLeft, setTimeLeft] = useState(quizDuration * 60);
   const [showWarning, setShowWarning] = useState(false);
 
-  // ✅ Fetch questions & check for reattempt
+  const phone = results.phone;
+  const participantKey = `quiz_${phone}_${selectedChapter}`;
+
+  // ✅ Disable refresh, back, and forward navigation during quiz
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "Are you sure you want to leave? Your progress will be lost!";
+    };
+
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState(null, "", window.location.href);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  // ✅ Check if user already attempted quiz
+  useEffect(() => {
+    const checkAttempt = async () => {
+      if (!selectedChapter || !phone) {
+        console.warn("Missing quiz details. Redirecting...");
+        navigate("/", { replace: true });
+        return;
+      }
+
+      try {
+        // Check in Supabase (main source of truth)
+        const { data, error } = await supabase
+          .from("results")
+          .select("id")
+          .eq("phone", phone)
+          .eq("chapter", selectedChapter)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error checking attempt:", error);
+          return;
+        }
+
+        if (data) {
+          console.log("⛔ Already attempted — redirecting...");
+          localStorage.setItem(participantKey, "completed");
+
+          setTimeout(() => {
+            navigate("/already-attempted", {
+              replace: true,
+              state: { ...results, chapter: selectedChapter },
+            });
+          }, 100);
+          return;
+        }
+      } catch (err) {
+        console.error("Unexpected error checking attempt:", err);
+      }
+
+      // LocalStorage fallback
+      const alreadyAttempted = localStorage.getItem(participantKey);
+      if (alreadyAttempted) {
+        console.log("Found attempt in localStorage — redirecting...");
+        navigate("/already-attempted", {
+          replace: true,
+          state: { ...results, chapter: selectedChapter },
+        });
+        return;
+      }
+
+      console.log("✅ No previous attempt detected — proceeding.");
+    };
+
+    checkAttempt();
+  }, [navigate, phone, selectedChapter]);
+
+  // ✅ Fetch questions
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!selectedChapter) {
         alert("No chapter selected. Redirecting...");
         navigate("/");
-        return;
-      }
-
-      // 🚫 Prevent reattempt if already completed
-      if (localStorage.getItem(`quiz_completed_${selectedChapter}`) === "true") {
-        alert("You have already completed this quiz. You cannot retake it.");
-        navigate("/result");
         return;
       }
 
@@ -58,7 +131,7 @@ export default function Quiz() {
     fetchQuestions();
   }, [selectedChapter, navigate]);
 
-  // ⏱️ Timer (skip for preview)
+  // ⏱️ Timer
   useEffect(() => {
     if (isPreview) return;
     if (timeLeft <= 0) {
@@ -69,30 +142,6 @@ export default function Quiz() {
     const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, showWarning, isPreview]);
-
-  // 🚫 Disable refresh and back navigation
-  useEffect(() => {
-    if (isPreview) return;
-
-    const handleBeforeUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = "Are you sure you want to leave? Your progress will be lost.";
-    };
-
-    const handlePopState = () => {
-      alert("Back navigation is disabled during the quiz.");
-      window.history.pushState(null, "", window.location.href);
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-    window.history.pushState(null, "", window.location.href);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [isPreview]);
 
   if (loading)
     return (
@@ -117,7 +166,7 @@ export default function Quiz() {
       </div>
     );
 
-  // 🧠 Current question
+  // Current question
   const q = questions[current];
   const correctAnswer = language === "en" ? q.correct_answer : q.correct_answer_ta;
   const options =
@@ -128,7 +177,7 @@ export default function Quiz() {
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   const handleSelect = (option) => {
-    if (isPreview) return; // disable in preview
+    if (isPreview) return;
     if (showAnswer) return;
     setSelected(option);
     setShowAnswer(true);
@@ -146,6 +195,8 @@ export default function Quiz() {
   const handleSubmit = async () => {
     if (hasSubmitted) return;
     setHasSubmitted(true);
+
+    localStorage.setItem(participantKey, "completed");
 
     if (!isPreview) {
       try {
@@ -167,9 +218,6 @@ export default function Quiz() {
         console.error("Error saving participant:", err);
       }
     }
-
-    // ✅ Prevent quiz reattempt
-    localStorage.setItem(`quiz_completed_${selectedChapter}`, "true");
 
     navigate(isPreview ? "/admin" : "/result", {
       state: { ...results, score, total: questions.length, isPreview },
@@ -209,10 +257,7 @@ export default function Quiz() {
           )}
 
           <h5 className="text-xl font-bold text-center text-indigo-500">
-            📖{" "}
-            {language === "en"
-              ? `Chapter: ${selectedChapter}`
-              : `அதிகாரம்: ${selectedChapter}`}
+            📖 {language === "en" ? `Chapter: ${selectedChapter}` : `அதிகாரம்: ${selectedChapter}`}
           </h5>
 
           <div className="text-gray-700">
@@ -226,9 +271,7 @@ export default function Quiz() {
             <div className="flex justify-end mb-2 font-medium text-gray-700">
               <span> Time Left : </span>
               <span
-                className={`font-semibold ${
-                  isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
-                }`}
+                className={`font-semibold ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"}`}
               >
                 ⏱️ {formatTime(timeLeft)}
               </span>
@@ -255,8 +298,7 @@ export default function Quiz() {
             let cls =
               "w-full px-4 py-2 border rounded-lg transition-all duration-200 ";
             if (isPreview) {
-              if (option === correctAnswer)
-                cls += "bg-green-500 text-white font-semibold";
+              if (option === correctAnswer) cls += "bg-green-500 text-white font-semibold";
               else cls += "bg-gray-100";
             } else if (showAnswer) {
               if (selected === option && option === correctAnswer)
@@ -280,7 +322,7 @@ export default function Quiz() {
           })}
         </div>
 
-        {/* Admin-only nav buttons */}
+        {/* Admin navigation */}
         {isPreview && (
           <div className="flex justify-between mt-4">
             <button
@@ -316,7 +358,7 @@ export default function Quiz() {
           </button>
         )}
 
-        {/* ⚠️ 5-Min Warning Modal */}
+        {/* Time warning */}
         {showWarning && (
           <div className="fixed inset-0 flex justify-center items-start mt-2 z-50">
             <div className="bg-white p-6 rounded-2xl shadow-xl text-center max-w-sm w-full mx-4">
