@@ -10,7 +10,7 @@ import ViewResults from "./pages/ViewResults";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
-import AlreadyAttempted from "./AlreadyAttempted";
+import AlreadyAttempted from "./pages/AlreadyAttempted";
 
 function App() {
   return (
