@@ -19,8 +19,8 @@ function App() {
         // user navigation path
       
         <Route path="/" element={<Welcome />} />
-        <Route path="/quiz" element={<Quiz />} />
         <Route path="/already-attempted" element={<AlreadyAttempted />} />
+        <Route path="/quiz" element={<Quiz />} />
         <Route path="/result" element={<Result />} />
 
         // admin navigation path

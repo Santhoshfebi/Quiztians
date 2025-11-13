@@ -15,13 +15,46 @@ import {
   FormControlLabel,
   Switch,
   useMediaQuery,
+  Card,
+  CardContent,
+  Paper,
+  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
+import {
+  ArrowBack,
+  RestartAlt,
+  Download,
+  Search,
+  FilterList,
+  BarChart as BarChartIcon,
+  PieChart as PieChartIcon,
+  Group,
+  School,
+  EmojiEvents,
+} from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import { Toaster, toast } from "react-hot-toast";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 export default function ViewResults() {
   const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width:600px)");
+  const isMobile = useMediaQuery("(max-width:900px)");
   const [user, setUser] = useState(null);
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +67,68 @@ export default function ViewResults() {
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [pageSize, setPageSize] = useState(25);
 
-  // ✅ Superadmin access check
+  // Reset by Chapter dialog
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [selectedResetChapter, setSelectedResetChapter] = useState("");
+
+  // --- Helpers: robust parse + exact format "Nov 13, 2025 7:30 PM" ---
+  const parseDate = (value) => {
+    if (!value && value !== 0) return null;
+    try {
+      if (value instanceof Date) {
+        return isNaN(value.getTime()) ? null : value;
+      }
+      if (typeof value === "number") {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      if (typeof value === "object") {
+        const str = value.toString?.() ?? JSON.stringify(value);
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      if (typeof value === "string") {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(String(value));
+      return isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
+  };
+
+  const formatDateParts = (date) => {
+    if (!date) return "—";
+    const dt = parseDate(date);
+    if (!dt) return "—";
+
+    const parts = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).formatToParts(dt);
+
+    const map = {};
+    parts.forEach((p) => {
+      map[p.type] = (map[p.type] ?? "") + p.value;
+    });
+
+    const month = map.month ?? "";
+    const day = map.day ?? "";
+    const year = map.year ?? "";
+    const hour = map.hour ?? "";
+    const minute = map.minute ?? "";
+    const dayPeriod = map.dayPeriod ?? "";
+
+    if (!month || !day || !year) return "—";
+    return `${month} ${day}, ${year} ${hour}:${minute} ${dayPeriod}`.trim();
+  };
+
+  // --- Auth & access check ---
   useEffect(() => {
     const checkAccess = async () => {
       const { data } = await supabase.auth.getSession();
@@ -53,21 +147,23 @@ export default function ViewResults() {
       }
 
       setUser(currentUser);
-
       if (!sessionStorage.getItem("viewResultsWelcome")) {
-        toast.success("Welcome to View Results!");
+        toast.success("Welcome to the Results Dashboard!");
         sessionStorage.setItem("viewResultsWelcome", "true");
       }
     };
-
     checkAccess();
   }, [navigate]);
 
-  // Fetch results
+  // --- Fetching data ---
   const fetchResults = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("results").select("*");
+      const { data, error } = await supabase
+        .from("results")
+        .select("*")
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       setAllRows(data || []);
     } catch (err) {
@@ -83,26 +179,21 @@ export default function ViewResults() {
 
     const channel = supabase
       .channel("results_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "results" },
-        () => fetchResults()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "results" }, fetchResults)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
   }, []);
 
-  // Compute duplicates
+  // --- Derived data & filters ---
   const duplicatePhones = useMemo(() => {
     const counts = {};
     allRows.forEach((r) => {
-      if (r.phone) counts[r.phone] = (counts[r.phone] || 0) + 1;
+      if (r?.phone) counts[r.phone] = (counts[r.phone] || 0) + 1;
     });
     return new Set(Object.keys(counts).filter((p) => counts[p] > 1));
   }, [allRows]);
 
-  // Filtered rows
   const filteredRows = useMemo(() => {
     return allRows.filter((r) => {
       if (!r) return false;
@@ -123,15 +214,29 @@ export default function ViewResults() {
     });
   }, [allRows, search, chapterFilter, languageFilter, placeFilter, showDuplicates, duplicatePhones]);
 
-  // Dropdown options
   const chapterOptions = [...new Set(allRows.map((r) => r.chapter).filter(Boolean))];
   const languageOptions = [...new Set(allRows.map((r) => r.language).filter(Boolean))];
   const placeOptions = [...new Set(allRows.map((r) => r.place).filter(Boolean))];
 
-  // CSV Export
+  const chapterStats = useMemo(() => {
+    const stats = {};
+    allRows.forEach((r) => {
+      if (!r?.chapter) return;
+      if (!stats[r.chapter]) stats[r.chapter] = { chapter: r.chapter, participants: 0, totalScore: 0 };
+      stats[r.chapter].participants++;
+      stats[r.chapter].totalScore += r.score || 0;
+    });
+    return Object.values(stats).map((s) => ({
+      ...s,
+      avgScore: s.participants ? (s.totalScore / s.participants).toFixed(2) : 0,
+    }));
+  }, [allRows]);
+
+  const COLORS = ["#1976d2", "#9c27b0", "#ff9800", "#4caf50", "#f44336", "#00bcd4", "#8bc34a"];
+
+  // --- CSV export ---
   const handleExportCSV = () => {
     if (!filteredRows.length) return toast.error("No results to export.");
-
     const csv = [
       ["Name", "Phone", "Place", "Score", "Total", "Chapter", "Language", "Submitted At"],
       ...filteredRows.map((p) => [
@@ -142,12 +247,18 @@ export default function ViewResults() {
         p.total ?? "",
         p.chapter || "",
         p.language || "",
-        new Date(p.created_at).toLocaleString(),
+        parseDate(p.created_at) ? formatDateParts(p.created_at) : "",
       ]),
     ]
-      .map((row) => row.join(","))
+      .map((row) =>
+        row.map((cell) => {
+          if (typeof cell === "string" && cell.includes(",")) {
+            return `"${cell.replace(/"/g, '""')}"`;
+          }
+          return cell;
+        }).join(",")
+      )
       .join("\n");
-
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -157,20 +268,25 @@ export default function ViewResults() {
     toast.success("CSV exported successfully!");
   };
 
-  // Reset Attempt
-  const handleResetAttempt = async (phone = null) => {
-    const confirmText = phone
-      ? `Are you sure you want to reset attempts for phone: ${phone}?`
-      : `Are you sure you want to reset all attempts?`;
+  // --- Reset Attempts ---
+  const handleResetAttempt = async (phone = null, chapter = null, all = false) => {
+    let confirmText = "Are you sure you want to reset all attempts?";
+    if (phone && chapter) confirmText = `Reset attempts for ${phone} in ${chapter}?`;
+    else if (phone) confirmText = `Reset all attempts for ${phone}?`;
+    else if (chapter) confirmText = `Reset all attempts in ${chapter}?`;
+    else if (all) confirmText = "⚠️ This will delete ALL results. Continue?";
     if (!window.confirm(confirmText)) return;
 
     try {
-      const query = supabase.from("results");
-      const { error } = phone
-        ? await query.delete().eq("phone", phone)
-        : await query.delete();
-      if (error) throw error;
+      let query = supabase.from("results");
+      if (phone && chapter) query = query.delete().eq("phone", phone).eq("chapter", chapter);
+      else if (phone) query = query.delete().eq("phone", phone);
+      else if (chapter) query = query.delete().eq("chapter", chapter);
+      else if (all) query = query.delete();
+      else return;
 
+      const { error } = await query;
+      if (error) throw error;
       toast.success("✅ Attempt(s) reset successfully!");
       fetchResults();
     } catch (err) {
@@ -180,25 +296,28 @@ export default function ViewResults() {
   };
 
   const columns = [
-    { field: "id", headerName: "#", width: 60 },
-    { field: "name", headerName: "Name", flex: 1, minWidth: 100 },
-    { field: "phone", headerName: "Phone", width: 120 },
-    { field: "place", headerName: "Place", flex: 1, minWidth: 120 },
-    { field: "score", headerName: "Score", width: 90 },
-    { field: "total", headerName: "Total", width: 90 },
-    { field: "chapter", headerName: "Chapter", flex: 1, minWidth: 120 },
-    { field: "language", headerName: "Language", width: 100 },
+    { field: "id", headerName: "#", width: 80 },
+    { field: "name", headerName: "Name", flex: 1, minWidth: 150 },
+    { field: "phone", headerName: "Phone", width: 140 },
+    { field: "place", headerName: "Place", flex: 1, minWidth: 160 },
+    { field: "score", headerName: "Score", width: 100 },
+    { field: "total", headerName: "Total", width: 100 },
+    { field: "chapter", headerName: "Chapter", flex: 1, minWidth: 140 },
+    { field: "language", headerName: "Language", width: 120 },
     { field: "created_at", headerName: "Submitted At", width: 160 },
     {
       field: "actions",
       headerName: "Actions",
-      width: 140,
+      width: 150,
+      sortable: false,
+      filterable: false,
       renderCell: (params) => (
         <Button
           color="error"
-          variant="contained"
+          variant="outlined"
           size="small"
-          onClick={() => handleResetAttempt(params.row.phone)}
+          startIcon={<RestartAlt />}
+          onClick={() => handleResetAttempt(params.row.phone, params.row.chapter)}
         >
           Reset
         </Button>
@@ -223,168 +342,235 @@ export default function ViewResults() {
     );
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 6 }}>
       <Toaster position="top-right" />
 
       {/* Header */}
       <Box
         display="flex"
         flexDirection={isMobile ? "column" : "row"}
-        justifyContent="space-evenly"
-        alignItems={isMobile ? "flex-start" : "center"}
-        gap={2}
+        justifyContent="space-between"
+        alignItems={isMobile ? "stretch" : "center"}
         mb={4}
+        gap={isMobile ? 2 : 0}
       >
-        <Typography
-          variant={isMobile ? "h5" : "h4"}
-          fontWeight="bold"
-          color="primary"
-          sx={{ cursor: "pointer" }}
-          onClick={() => fetchResults()}
-        >
-          Quiz Results
+        <Typography variant="h4" fontWeight={700} color="primary" display="flex" alignItems="center" gap={1}>
+          📊 Results Dashboard
         </Typography>
-
-        <Button
-          variant="contained"
-          color="secondary"
-          fullWidth={isMobile}
-          onClick={() => navigate("/admin")}
-        >
-          Back to Admin Panel
-        </Button>
+        <Stack direction={isMobile ? "column" : "row"} spacing={2}>
+          <Button variant="outlined" color="secondary" startIcon={<ArrowBack />} onClick={() => navigate("/admin")}>
+            Back to Admin
+          </Button>
+          <Button variant="contained" color="warning" startIcon={<RestartAlt />} onClick={() => setResetDialogOpen(true)}>
+            Reset by Chapter
+          </Button>
+          <Button variant="contained" startIcon={<Download />} onClick={handleExportCSV}>
+            Export CSV
+          </Button>
+        </Stack>
       </Box>
 
-      {/* Summary & Actions */}
-      <Box
-        display="flex"
-        flexDirection={isMobile ? "column" : "row"}
-        justifyContent="space-evenly"
-        alignItems={isMobile ? "flex-start" : "center"}
-        flexWrap="wrap"
-        gap={2}
-        mb={4}
-      >
-        <Typography variant="h6" fontWeight="bold">
-          Participants: {filteredRows.length}
-        </Typography>
-
-        <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2} width="100%" justifyContent="flex-end">
+      {/* Reset by Chapter Dialog */}
+      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
+        <DialogTitle>Reset Results by Chapter</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Select Chapter</InputLabel>
+            <Select
+              value={selectedResetChapter}
+              label="Select Chapter"
+              onChange={(e) => setSelectedResetChapter(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              {chapterOptions.map((ch) => (
+                <MenuItem key={ch} value={ch}>
+                  {ch}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
           <Button
-            variant="contained"
-            color="success"
-            onClick={handleExportCSV}
-            fullWidth={isMobile}
-          >
-            Download CSV
-          </Button>
-          <Button
-            variant="contained"
             color="error"
-            onClick={() => handleResetAttempt()}
-            fullWidth={isMobile}
+            variant="contained"
+            disabled={!selectedResetChapter}
+            startIcon={<RestartAlt />}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Are you sure you want to reset all results for chapter "${selectedResetChapter}"?`
+                )
+              ) {
+                handleResetAttempt(null, selectedResetChapter);
+                setResetDialogOpen(false);
+                setSelectedResetChapter("");
+              }
+            }}
           >
-            Reset All Attempts
+            Confirm Reset
           </Button>
-        </Box>
+        </DialogActions>
+      </Dialog>
+
+      {/* Summary Cards */}
+      <Box display="grid" gridTemplateColumns={isMobile ? "1fr" : "repeat(3, 1fr)"} gap={3} mb={5}>
+        {[
+          { label: "Total Participants", value: allRows.length, icon: <Group color="primary" /> },
+          { label: "Total Chapters", value: chapterOptions.length, icon: <School color="primary" /> },
+          {
+            label: "Average Score",
+            value: (
+              allRows.reduce((sum, r) => sum + (r?.score || 0), 0) / (allRows.length || 1)
+            ).toFixed(2),
+            icon: <EmojiEvents color="primary" />,
+          },
+        ].map((item, i) => (
+          <Card
+            key={i}
+            elevation={3}
+            sx={{
+              borderRadius: 3,
+              p: 2,
+              transition: "0.3s",
+              "&:hover": { boxShadow: 6, transform: "translateY(-3px)" },
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2}>
+                {item.icon}
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    {item.label}
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="primary">
+                    {item.value}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+
+      {/* Charts */}
+      <Box display="grid" gridTemplateColumns={isMobile ? "1fr" : "1fr 1fr"} gap={3} mb={5}>
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" fontWeight={600} mb={2} display="flex" alignItems="center" gap={1}>
+            <BarChartIcon color="primary" /> Average Score per Chapter
+          </Typography>
+          <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
+            <BarChart data={chapterStats}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="chapter" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="avgScore" fill="#1976d2" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Paper>
+
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" fontWeight={600} mb={2} display="flex" alignItems="center" gap={1}>
+            <PieChartIcon color="primary" /> Participants by Chapter
+          </Typography>
+          <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
+            <PieChart>
+              <Pie data={chapterStats} dataKey="participants" nameKey="chapter" outerRadius={isMobile ? 80 : 120} label>
+                {chapterStats.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </Paper>
       </Box>
 
       {/* Filters */}
-      <Box
-        display="flex"
-        flexDirection={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <TextField
-          label="Search by name, phone, place, or chapter"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          variant="outlined"
-          sx={{ width: "100%", maxWidth: 400 }}
-        />
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+        <Typography variant="h6" fontWeight={600} mb={2} display="flex" alignItems="center" gap={1}>
+          <FilterList color="primary" /> Filters
+        </Typography>
+        <Box display="flex" flexDirection={isMobile ? "column" : "row"} flexWrap="wrap" gap={2}>
+          <TextField
+            label="Search"
+            placeholder="Search name, phone, place, chapter..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ mr: 1, color: "action.active" }} />,
+            }}
+            sx={{ flex: 1, minWidth: 200 }}
+          />
 
-        <FormControl sx={{ minWidth: 150, width: isMobile ? "100%" : "auto" }}>
-          <InputLabel>Chapter</InputLabel>
-          <Select
-            value={chapterFilter}
-            onChange={(e) => setChapterFilter(e.target.value)}
-            label="Chapter"
-          >
-            <MenuItem value="">All</MenuItem>
-            {chapterOptions.map((ch) => (
-              <MenuItem key={ch} value={ch}>
-                {ch}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Chapter</InputLabel>
+            <Select value={chapterFilter} onChange={(e) => setChapterFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {chapterOptions.map((ch) => (
+                <MenuItem key={ch} value={ch}>
+                  {ch}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl sx={{ minWidth: 150, width: isMobile ? "100%" : "auto" }}>
-          <InputLabel>Language</InputLabel>
-          <Select
-            value={languageFilter}
-            onChange={(e) => setLanguageFilter(e.target.value)}
-            label="Language"
-          >
-            <MenuItem value="">All</MenuItem>
-            {languageOptions.map((lang) => (
-              <MenuItem key={lang} value={lang}>
-                {lang}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Language</InputLabel>
+            <Select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {languageOptions.map((lang) => (
+                <MenuItem key={lang} value={lang}>
+                  {lang}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl sx={{ minWidth: 150, width: isMobile ? "100%" : "auto" }}>
-          <InputLabel>Place</InputLabel>
-          <Select
-            value={placeFilter}
-            onChange={(e) => setPlaceFilter(e.target.value)}
-            label="Place"
-          >
-            <MenuItem value="">All</MenuItem>
-            {placeOptions.map((pl) => (
-              <MenuItem key={pl} value={pl}>
-                {pl}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Place</InputLabel>
+            <Select value={placeFilter} onChange={(e) => setPlaceFilter(e.target.value)}>
+              <MenuItem value="">All</MenuItem>
+              {placeOptions.map((pl) => (
+                <MenuItem key={pl} value={pl}>
+                  {pl}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControlLabel
-          control={
-            <Switch
-              checked={showDuplicates}
-              onChange={(e) => setShowDuplicates(e.target.checked)}
-              color="primary"
-            />
-          }
-          label="Show Duplicates Only"
-        />
-      </Box>
+          <FormControlLabel
+            control={<Switch checked={showDuplicates} onChange={(e) => setShowDuplicates(e.target.checked)} />}
+            label="Show Duplicates"
+          />
+        </Box>
+      </Paper>
 
-      {/* DataGrid */}
-      <Box sx={{ width: "100%", overflowX: "auto" }}>
+      {/* Data Table */}
+      <Paper sx={{ borderRadius: 3, p: 2 }}>
         <DataGrid
-          rows={filteredRows.map((r, idx) => ({ ...r, id: r.id || idx + 1 }))}
+          rows={filteredRows.map((r, i) => ({ ...r, id: r.id ?? i + 1 }))}
           columns={columns}
           pageSize={pageSize}
-          onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
-          autoHeight
-          disableRowSelectionOnClick
+          onPageSizeChange={(newSize) => setPageSize(newSize)}
+          rowsPerPageOptions={[10, 25, 50, 100]}
           pagination
-          pageSizeOptions={[10, 25, 50, 100]}
+          autoHeight
+          disableSelectionOnClick
           sx={{
-            minWidth: isMobile ? "700px" : "100%",
-            bgcolor: "background.paper",
-            borderRadius: 2,
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "#f5f5f5",
+              fontWeight: 600,
+            },
+            "& .MuiDataGrid-row:hover": {
+              bgcolor: "action.hover",
+            },
           }}
         />
-      </Box>
+      </Paper>
     </Container>
   );
 }

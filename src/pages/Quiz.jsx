@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { Toaster, toast } from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -9,7 +11,8 @@ export default function Quiz() {
   const results = state || {};
 
   const language = results.language || "en";
-  const selectedChapter = results.chapter || localStorage.getItem("selectedChapter");
+  const selectedChapter =
+    results.chapter || localStorage.getItem("selectedChapter");
   const isPreview = results.isPreview || false;
   const quizDuration = results.duration || (isPreview ? 5 : 20);
 
@@ -21,95 +24,111 @@ export default function Quiz() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(quizDuration * 60);
-  const [showWarning, setShowWarning] = useState(false);
+  const [refreshWarned, setRefreshWarned] = useState(false);
 
-  const phone = results.phone;
-  const participantKey = `quiz_${phone}_${selectedChapter}`;
+  const attemptKey = `${results.phone || "guest"}_${selectedChapter}_attempted`;
+  const quizSubmittedRef = useRef(false);
 
-  // ✅ Disable refresh, back, and forward navigation during quiz
+  // Restore pending quiz result
   useEffect(() => {
+    const pending = sessionStorage.getItem("pendingQuizResult");
+    if (pending) {
+      const data = JSON.parse(pending);
+      (async () => {
+        try {
+          await supabase.from("results").insert([data]);
+          sessionStorage.removeItem("pendingQuizResult");
+          toast.success("✅ Your last quiz result was safely restored!", {
+            duration: 4000,
+          });
+        } catch (err) {
+          console.error("Error restoring pending result:", err);
+        }
+      })();
+    }
+  }, []);
+
+  // Prevent refresh/back & auto-submit
+  useEffect(() => {
+    if (isPreview) return;
+
     const handleBeforeUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = "Are you sure you want to leave? Your progress will be lost!";
+      if (quizSubmittedRef.current) return;
+
+      if (!refreshWarned) {
+        toast.error(
+          "⚠️ Refreshing or leaving will auto-submit your quiz next time.",
+          { duration: 5000 }
+        );
+        setRefreshWarned(true);
+        e.preventDefault();
+        e.returnValue = "";
+      } else {
+        handleSubmit(true);
+      }
     };
 
-    const handlePopState = () => {
+    const blockKeys = (e) => {
+      if (
+        e.key === "F5" ||
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r")
+      ) {
+        e.preventDefault();
+        handleBeforeUnload(e);
+      }
+    };
+
+    const blockBackForward = () => {
       window.history.pushState(null, "", window.location.href);
+      if (!refreshWarned) {
+        toast.error(
+          "⚠️ Navigation blocked. Next time will submit your quiz.",
+          { duration: 5000 }
+        );
+        setRefreshWarned(true);
+      } else {
+        handleSubmit(true);
+      }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("keydown", blockKeys);
     window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", blockBackForward);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("keydown", blockKeys);
+      window.removeEventListener("popstate", blockBackForward);
     };
-  }, []);
+  }, [refreshWarned]);
 
-  // ✅ Check if user already attempted quiz
-  useEffect(() => {
-    const checkAttempt = async () => {
-      if (!selectedChapter || !phone) {
-        console.warn("Missing quiz details. Redirecting...");
-        navigate("/", { replace: true });
-        return;
-      }
-
-      try {
-        // Check in Supabase (main source of truth)
-        const { data, error } = await supabase
-          .from("results")
-          .select("id")
-          .eq("phone", phone)
-          .eq("chapter", selectedChapter)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Error checking attempt:", error);
-          return;
-        }
-
-        if (data) {
-          console.log("⛔ Already attempted — redirecting...");
-          localStorage.setItem(participantKey, "completed");
-
-          setTimeout(() => {
-            navigate("/already-attempted", {
-              replace: true,
-              state: { ...results, chapter: selectedChapter },
-            });
-          }, 100);
-          return;
-        }
-      } catch (err) {
-        console.error("Unexpected error checking attempt:", err);
-      }
-
-      // LocalStorage fallback
-      const alreadyAttempted = localStorage.getItem(participantKey);
-      if (alreadyAttempted) {
-        console.log("Found attempt in localStorage — redirecting...");
-        navigate("/already-attempted", {
-          replace: true,
-          state: { ...results, chapter: selectedChapter },
-        });
-        return;
-      }
-
-      console.log("✅ No previous attempt detected — proceeding.");
-    };
-
-    checkAttempt();
-  }, [navigate, phone, selectedChapter]);
-
-  // ✅ Fetch questions
+  // Fetch questions & prevent reattempts
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!selectedChapter) {
-        alert("No chapter selected. Redirecting...");
+        toast.error("No chapter selected. Redirecting...");
         navigate("/");
         return;
+      }
+
+      if (!isPreview && localStorage.getItem(attemptKey) === "true") {
+        navigate("/already-attempted", { state: { language } });
+        return;
+      }
+
+      if (!isPreview && results.phone) {
+        const { data: existing } = await supabase
+          .from("results")
+          .select("id")
+          .eq("phone", results.phone)
+          .eq("chapter", selectedChapter);
+
+        if (existing && existing.length > 0) {
+          localStorage.setItem(attemptKey, "true");
+          navigate("/already-attempted", { state: { language } });
+          return;
+        }
       }
 
       const { data, error } = await supabase
@@ -117,31 +136,111 @@ export default function Quiz() {
         .select("*")
         .eq("chapter", selectedChapter);
 
-      if (error) {
-        console.error("Error fetching questions:", error.message);
-        alert("Failed to fetch questions.");
-      } else if (!data || data.length === 0) {
-        alert("No questions found for this chapter.");
-      } else {
-        setQuestions(data.sort(() => Math.random() - 0.5));
+      if (error || !data?.length) {
+        toast.error("⚠️ No questions found for this chapter.");
+        setLoading(false);
+        return;
       }
+
+      setQuestions(data.sort(() => Math.random() - 0.5));
       setLoading(false);
     };
 
     fetchQuestions();
-  }, [selectedChapter, navigate]);
+  }, [selectedChapter]);
 
-  // ⏱️ Timer
+  // Timer logic
   useEffect(() => {
     if (isPreview) return;
-    if (timeLeft <= 0) {
-      handleSubmit();
-      return;
-    }
-    if (timeLeft === 300 && !showWarning) setShowWarning(true);
-    const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
+    const timer = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(timer);
+          handleSubmit(true);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(timer);
-  }, [timeLeft, showWarning, isPreview]);
+  }, []);
+
+  // Handle submit (manual & auto)
+  const handleSubmit = async (isAuto = false) => {
+    if (hasSubmitted || quizSubmittedRef.current) return;
+    quizSubmittedRef.current = true;
+    setHasSubmitted(true);
+    localStorage.setItem(attemptKey, "true");
+
+    const resultData = {
+      name: results.name,
+      phone: results.phone,
+      place: results.place,
+      chapter: selectedChapter,
+      score,
+      total: questions.length,
+      language: language === "en" ? "English" : "Tamil",
+      created_at: new Date(),
+    };
+
+    if (!isPreview) {
+      if (isAuto) {
+        sessionStorage.setItem("pendingQuizResult", JSON.stringify(resultData));
+      }
+
+      try {
+        await supabase.from("results").insert([resultData]);
+        sessionStorage.removeItem("pendingQuizResult");
+      } catch (error) {
+        console.error("Error submitting quiz:", error);
+      }
+    }
+
+    if (isAuto) {
+      toast.success("✅ Quiz auto-submitted.", { duration: 3000 });
+    }
+
+    navigate(isPreview ? "/admin" : "/result", {
+      state: { ...results, score, total: questions.length, isPreview },
+    });
+  };
+
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
+  // Memoize options to avoid recalculation
+  const q = questions[current];
+  const options = useMemo(() => {
+    if (!q) return [];
+    return language === "en"
+      ? [q.option_a_en, q.option_b_en, q.option_c_en, q.option_d_en]
+      : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
+  }, [q, language]);
+
+  const correctAnswer = useMemo(() => {
+    if (!q) return null;
+    return language === "en" ? q.correct_answer : q.correct_answer_ta;
+  }, [q, language]);
+
+  const timePercent = (timeLeft / (quizDuration * 60)) * 100;
+  const isWarningTime = timeLeft <= 300;
+
+  const handleSelect = (option) => {
+    if (isPreview || showAnswer) return;
+
+    setSelected(option);
+    setShowAnswer(true);
+
+    if (option === correctAnswer) setScore((prev) => prev + 1);
+
+    if (current < questions.length - 1) {
+      setTimeout(() => {
+        setSelected(null);
+        setShowAnswer(false);
+        setCurrent((prev) => prev + 1);
+      }, 800);
+    }
+  };
 
   if (loading)
     return (
@@ -157,229 +256,128 @@ export default function Quiz() {
       </div>
     );
 
-  if (!questions || questions.length === 0)
+  if (!questions?.length)
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <h2 className="text-xl font-bold text-red-600">
-          No questions available for this chapter.
+          No questions found for this chapter.
         </h2>
       </div>
     );
 
-  // Current question
-  const q = questions[current];
-  const correctAnswer = language === "en" ? q.correct_answer : q.correct_answer_ta;
-  const options =
-    language === "en"
-      ? [q.option_a_en, q.option_b_en, q.option_c_en, q.option_d_en]
-      : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
-
-  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-
-  const handleSelect = (option) => {
-    if (isPreview) return;
-    if (showAnswer) return;
-    setSelected(option);
-    setShowAnswer(true);
-    if (option === correctAnswer) setScore((prev) => prev + 1);
-
-    if (current < questions.length - 1) {
-      setTimeout(() => {
-        setSelected(null);
-        setShowAnswer(false);
-        setCurrent((prev) => prev + 1);
-      }, 800);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (hasSubmitted) return;
-    setHasSubmitted(true);
-
-    localStorage.setItem(participantKey, "completed");
-
-    if (!isPreview) {
-      try {
-        const fullLanguage = language === "en" ? "English" : "Tamil";
-        const { error } = await supabase.from("results").insert([
-          {
-            name: results.name,
-            phone: results.phone,
-            place: results.place,
-            chapter: selectedChapter,
-            score,
-            total: questions.length,
-            language: fullLanguage,
-            created_at: new Date(),
-          },
-        ]);
-        if (error) console.error("Supabase insert error:", error);
-      } catch (err) {
-        console.error("Error saving participant:", err);
-      }
-    }
-
-    navigate(isPreview ? "/admin" : "/result", {
-      state: { ...results, score, total: questions.length, isPreview },
-    });
-  };
-
-  const handleNext = () => {
-    if (current < questions.length - 1) {
-      setSelected(null);
-      setShowAnswer(false);
-      setCurrent((prev) => prev + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    if (current > 0) {
-      setSelected(null);
-      setShowAnswer(false);
-      setCurrent((prev) => prev - 1);
-    }
-  };
-
-  const totalQuizTime = quizDuration * 60;
-  const timePercent = (timeLeft / totalQuizTime) * 100;
-  const isWarningTime = timeLeft <= 300 && !isPreview;
-
   return (
     <div className="relative flex items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="md:w-3/4 w-96 mx-auto mt-20 bg-white p-6 rounded-2xl shadow-lg relative z-10">
+      <Toaster position="top-center" />
+      <motion.div
+        className="w-full md:w-3/4 max-w-3xl mx-auto mt-16 bg-white p-8 rounded-3xl shadow-lg border border-gray-100"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 text-lg font-semibold">
-          {!isPreview && (
-            <p>
-              👤 {language === "en" ? "Participant" : "பங்கேற்பாளர்"}:{" "}
-              <span className="text-blue-950">{results.name}</span>
-            </p>
-          )}
-
-          <h5 className="text-xl font-bold text-center text-indigo-500">
-            📖 {language === "en" ? `Chapter: ${selectedChapter}` : `அதிகாரம்: ${selectedChapter}`}
-          </h5>
-
-          <div className="text-gray-700">
-            {language === "en" ? "Question" : "கேள்வி"}: {current + 1} / {questions.length}
-          </div>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 text-gray-700">
+          <p className="font-semibold">
+            👤 {results.name} | 📍 {results.place}
+          </p>
+          <h2 className="text-xl font-bold text-blue-700 text-center">
+            {language === "en" ? "Chapter" : "அதிகாரம்"}:{" "}
+            <span className="text-indigo-700">{selectedChapter}</span>
+          </h2>
+          <p className="font-medium">
+            {language === "en" ? "Question" : "கேள்வி"} {current + 1} / {questions.length}
+          </p>
         </div>
 
         {/* Timer */}
         {!isPreview && (
           <>
-            <div className="flex justify-end mb-2 font-medium text-gray-700">
-              <span> Time Left : </span>
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium text-gray-600">
+                ⏱️ {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
+              </span>
               <span
-                className={`font-semibold ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"}`}
+                className={`font-semibold ${
+                  isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
+                }`}
               >
-                ⏱️ {formatTime(timeLeft)}
+                {formatTime(timeLeft)}
               </span>
             </div>
-            <div className="w-full bg-gray-200 h-3 rounded mb-3">
-              <div
-                className={`h-3 rounded transition-all duration-1000 ease-linear ${
+            <div className="w-full bg-gray-200 h-3 rounded-full mb-6">
+              <motion.div
+                className={`h-3 rounded-full ${
                   isWarningTime ? "bg-red-500" : "bg-green-500"
                 }`}
-                style={{ width: `${timePercent}%` }}
+                initial={{ width: "100%" }}
+                animate={{ width: `${timePercent}%` }}
+                transition={{ duration: 1, ease: "linear" }}
               />
             </div>
           </>
         )}
 
         {/* Question */}
-        <h2 className="text-lg font-semibold mb-2">
-          {language === "en" ? q.question_en : q.question_ta}
-        </h2>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 leading-relaxed">
+              {language === "en" ? q.question_en : q.question_ta}
+            </h3>
 
-        {/* Options */}
-        <div className="space-y-3 mb-4">
-          {options.map((option, idx) => {
-            let cls =
-              "w-full px-4 py-2 border rounded-lg transition-all duration-200 ";
-            if (isPreview) {
-              if (option === correctAnswer) cls += "bg-green-500 text-white font-semibold";
-              else cls += "bg-gray-100";
-            } else if (showAnswer) {
-              if (selected === option && option === correctAnswer)
-                cls += "bg-green-500 text-white";
-              else if (selected === option && option !== correctAnswer)
-                cls += "bg-red-500 text-white";
-              else cls += "opacity-70";
-            } else if (selected === option) cls += "bg-blue-500 text-white";
-            else cls += "hover:bg-gray-100";
+            <div className="space-y-3">
+              {options.map((option, idx) => {
+                const base =
+                  "w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 font-medium";
+                const isCorrect = option === correctAnswer;
+                const isSelected = selected === option;
 
-            return (
-              <button
-                key={idx}
-                onClick={() => handleSelect(option)}
-                disabled={showAnswer || isPreview}
-                className={cls}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
+                let styles = base;
+                if (isPreview) {
+                  styles += isCorrect
+                    ? " bg-green-100 border-green-400 text-green-800"
+                    : " bg-gray-100";
+                } else if (showAnswer) {
+                  if (isSelected && isCorrect)
+                    styles += " bg-green-500 text-white border-green-600";
+                  else if (isSelected && !isCorrect)
+                    styles += " bg-red-500 text-white border-red-600";
+                  else styles += " bg-gray-100 opacity-70";
+                } else if (isSelected)
+                  styles += " bg-blue-500 text-white border-blue-600";
+                else styles += " hover:bg-blue-50";
 
-        {/* Admin navigation */}
-        {isPreview && (
-          <div className="flex justify-between mt-4">
-            <button
-              onClick={handlePrev}
-              disabled={current === 0}
-              className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 disabled:opacity-50"
-            >
-              ⬅️ Previous
-            </button>
-            <button
-              onClick={() => navigate("/admin/preview-quiz")}
-              className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-all"
-            >
-              ⬅️ Back to ChapterPreview
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={current === questions.length - 1}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              Next ➡️
-            </button>
-          </div>
-        )}
+                return (
+                  <motion.button
+                    key={idx}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelect(option)}
+                    disabled={showAnswer || isPreview}
+                    className={styles}
+                  >
+                    {option}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Submit */}
         {!isPreview && current === questions.length - 1 && (
-          <button
-            onClick={handleSubmit}
-            className="w-full py-2 bg-blue-600 text-white rounded-lg mt-4 hover:bg-blue-700 transition-all"
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => handleSubmit(false)}
+            className="w-full mt-6 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow hover:bg-blue-700 transition"
           >
             {language === "en" ? "Submit Quiz" : "வினாவை சமர்ப்பிக்கவும்"}
-          </button>
+          </motion.button>
         )}
-
-        {/* Time warning */}
-        {showWarning && (
-          <div className="fixed inset-0 flex justify-center items-start mt-2 z-50">
-            <div className="bg-white p-6 rounded-2xl shadow-xl text-center max-w-sm w-full mx-4">
-              <h2 className="text-xl font-bold text-red-600 mb-2">
-                ⚠️ {language === "en" ? "Time Alert!" : "நேர எச்சரிக்கை!"}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {language === "en"
-                  ? "Only 5 minutes left! Please review and submit your quiz soon."
-                  : "இன்னும் 5 நிமிடங்கள் மட்டுமே உள்ளன! தயவுசெய்து விரைவில் சமர்ப்பிக்கவும்."}
-              </p>
-              <button
-                onClick={() => setShowWarning(false)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
-              >
-                {language === "en" ? "OK, Continue" : "சரி, தொடரவும்"}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      </motion.div>
     </div>
   );
 }
