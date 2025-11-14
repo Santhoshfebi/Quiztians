@@ -28,7 +28,8 @@ export default function Quiz() {
   const attemptKey = `${results.phone || "guest"}_${selectedChapter}_attempted`;
   const quizSubmittedRef = useRef(false);
 
-  // Live warning count state for on-screen display
+  const maxWarnings = 5;
+
   const [warningCount, setWarningCount] = useState(
     parseInt(sessionStorage.getItem(`${attemptKey}_warnings`)) || 0
   );
@@ -52,7 +53,7 @@ export default function Quiz() {
     }
   }, []);
 
-  // Anti-cheating & navigation prevention (3-strike system)
+  // Anti-cheating & navigation prevention (5-strike system)
   useEffect(() => {
     if (isPreview) return;
 
@@ -64,11 +65,13 @@ export default function Quiz() {
 
       warnings += 1;
       sessionStorage.setItem(warningKey, warnings);
-      setWarningCount(warnings); // Update live on-screen
+      setWarningCount(warnings);
 
-      if (warnings < 3) {
+      if (warnings < maxWarnings) {
+        const urgency =
+          warnings < maxWarnings - 1 ? "⚠️ Warning" : "⚠️ FINAL WARNING";
         toast.error(
-          `⚠️ Warning ${warnings}/2: Refreshing or leaving will auto-submit on the 3rd attempt.`,
+          `${urgency} ${warnings}/${maxWarnings - 1}: Refreshing or leaving will auto-submit on the ${maxWarnings}th attempt.`,
           { duration: 5000 }
         );
         e.preventDefault();
@@ -126,20 +129,16 @@ export default function Quiz() {
           .eq("chapter", selectedChapter);
 
         if (existing && existing.length > 0) {
-          // User has attempted: set localStorage and prevent reattempt
           localStorage.setItem(attemptKey, "true");
           navigate("/already-attempted", { state: { language } });
           return;
         } else {
-          // If reset from admin, clear localStorage attempt
           localStorage.removeItem(attemptKey);
-          // Clear session warning count as well
           sessionStorage.removeItem(`${attemptKey}_warnings`);
           setWarningCount(0);
         }
       }
 
-      // Also block reattempt for guests (non-phone) if localStorage says attempted
       if (!isPreview && !results.phone && localStorage.getItem(attemptKey) === "true") {
         navigate("/already-attempted", { state: { language } });
         return;
@@ -180,7 +179,6 @@ export default function Quiz() {
     return () => clearInterval(timer);
   }, []);
 
-  // Handle submit (manual & auto)
   const handleSubmit = async (isAuto = false) => {
     if (hasSubmitted || quizSubmittedRef.current) return;
     quizSubmittedRef.current = true;
@@ -308,18 +306,21 @@ export default function Quiz() {
                 ⏱️ {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
               </span>
               <span
-                className={`font-semibold ${
-                  isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
-                }`}
+                className={`font-semibold ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
+                  }`}
               >
                 {formatTime(timeLeft)}
               </span>
             </div>
-            <div className="w-full bg-gray-200 h-3 rounded-full mb-2">
+
+            <div className="w-full bg-gray-200 h-3 rounded-full mb-2 overflow-hidden">
               <motion.div
-                className={`h-3 rounded-full ${
-                  isWarningTime ? "bg-red-500" : "bg-green-500"
-                }`}
+                className={`h-3 rounded-full ${warningCount === maxWarnings - 1
+                    ? "bg-red-800 animate-[pulse_0.5s_infinite]"
+                    : isWarningTime
+                      ? "bg-red-500"
+                      : "bg-green-500"
+                  }`}
                 initial={{ width: "100%" }}
                 animate={{ width: `${timePercent}%` }}
                 transition={{ duration: 1, ease: "linear" }}
@@ -327,9 +328,14 @@ export default function Quiz() {
             </div>
 
             {/* On-screen warning */}
-            {warningCount > 0 && warningCount < 3 && (
-              <p className="text-sm text-red-600 font-medium mb-2 animate-pulse text-center">
-                ⚠️ Warning {warningCount}/2 – Leaving or refreshing will auto-submit on 3rd attempt
+            {warningCount > 0 && warningCount < maxWarnings && (
+              <p
+                className={`text-sm font-medium mb-2 text-center ${warningCount === maxWarnings - 1
+                    ? "text-red-800 animate-[pulse_0.5s_infinite]"
+                    : "text-red-600 animate-pulse"
+                  }`}
+              >
+                ⚠️ Warning {warningCount}/{maxWarnings - 1} – Quiz will auto-submit on the {maxWarnings}th attempt with 0 score
               </p>
             )}
           </>
@@ -383,6 +389,44 @@ export default function Quiz() {
                 );
               })}
             </div>
+
+            {/* Preview Navigation Buttons */}
+            {isPreview && (
+              <div className="flex justify-between mt-6">
+                <button
+                  onClick={() => setCurrent((prev) => Math.max(prev - 1, 0))}
+                  disabled={current === 0}
+                  className={`px-4 py-2 rounded-lg font-semibold shadow ${
+                    current === 0
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600"
+                  }`}
+                >
+                  Previous
+                </button>
+
+                <button
+                  onClick={() => navigate("/admin/preview-quiz")}
+                  className="px-4 py-2 rounded-lg font-semibold shadow bg-gray-500 text-white hover:bg-gray-600"
+                >
+                  Back to Chapter Preview
+                </button>
+
+                <button
+                  onClick={() =>
+                    setCurrent((prev) => Math.min(prev + 1, questions.length - 1))
+                  }
+                  disabled={current === questions.length - 1}
+                  className={`px-4 py-2 rounded-lg font-semibold shadow ${
+                    current === questions.length - 1
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
 
