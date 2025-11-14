@@ -24,10 +24,14 @@ export default function Quiz() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(quizDuration * 60);
-  const [refreshWarned, setRefreshWarned] = useState(false);
 
   const attemptKey = `${results.phone || "guest"}_${selectedChapter}_attempted`;
   const quizSubmittedRef = useRef(false);
+
+  // Live warning count state for on-screen display
+  const [warningCount, setWarningCount] = useState(
+    parseInt(sessionStorage.getItem(`${attemptKey}_warnings`)) || 0
+  );
 
   // Restore pending quiz result
   useEffect(() => {
@@ -48,22 +52,32 @@ export default function Quiz() {
     }
   }, []);
 
-  // Prevent refresh/back & auto-submit
+  // Anti-cheating & navigation prevention (3-strike system)
   useEffect(() => {
     if (isPreview) return;
+
+    const warningKey = `${attemptKey}_warnings`;
+    let warnings = parseInt(sessionStorage.getItem(warningKey)) || 0;
 
     const handleBeforeUnload = (e) => {
       if (quizSubmittedRef.current) return;
 
-      if (!refreshWarned) {
+      warnings += 1;
+      sessionStorage.setItem(warningKey, warnings);
+      setWarningCount(warnings); // Update live on-screen
+
+      if (warnings < 3) {
         toast.error(
-          "⚠️ Refreshing or leaving will auto-submit your quiz next time.",
+          `⚠️ Warning ${warnings}/2: Refreshing or leaving will auto-submit on the 3rd attempt.`,
           { duration: 5000 }
         );
-        setRefreshWarned(true);
         e.preventDefault();
         e.returnValue = "";
       } else {
+        toast.success(
+          "✅ Quiz auto-submitted due to multiple attempts to leave/refresh.",
+          { duration: 4000 }
+        );
         handleSubmit(true);
       }
     };
@@ -80,15 +94,7 @@ export default function Quiz() {
 
     const blockBackForward = () => {
       window.history.pushState(null, "", window.location.href);
-      if (!refreshWarned) {
-        toast.error(
-          "⚠️ Navigation blocked. Next time will submit your quiz.",
-          { duration: 5000 }
-        );
-        setRefreshWarned(true);
-      } else {
-        handleSubmit(true);
-      }
+      handleBeforeUnload({});
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -101,7 +107,7 @@ export default function Quiz() {
       window.removeEventListener("keydown", blockKeys);
       window.removeEventListener("popstate", blockBackForward);
     };
-  }, [refreshWarned]);
+  }, []);
 
   // Fetch questions & prevent reattempts
   useEffect(() => {
@@ -109,11 +115,6 @@ export default function Quiz() {
       if (!selectedChapter) {
         toast.error("No chapter selected. Redirecting...");
         navigate("/");
-        return;
-      }
-
-      if (!isPreview && localStorage.getItem(attemptKey) === "true") {
-        navigate("/already-attempted", { state: { language } });
         return;
       }
 
@@ -125,10 +126,23 @@ export default function Quiz() {
           .eq("chapter", selectedChapter);
 
         if (existing && existing.length > 0) {
+          // User has attempted: set localStorage and prevent reattempt
           localStorage.setItem(attemptKey, "true");
           navigate("/already-attempted", { state: { language } });
           return;
+        } else {
+          // If reset from admin, clear localStorage attempt
+          localStorage.removeItem(attemptKey);
+          // Clear session warning count as well
+          sessionStorage.removeItem(`${attemptKey}_warnings`);
+          setWarningCount(0);
         }
+      }
+
+      // Also block reattempt for guests (non-phone) if localStorage says attempted
+      if (!isPreview && !results.phone && localStorage.getItem(attemptKey) === "true") {
+        navigate("/already-attempted", { state: { language } });
+        return;
       }
 
       const { data, error } = await supabase
@@ -208,7 +222,6 @@ export default function Quiz() {
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  // Memoize options to avoid recalculation
   const q = questions[current];
   const options = useMemo(() => {
     if (!q) return [];
@@ -302,7 +315,7 @@ export default function Quiz() {
                 {formatTime(timeLeft)}
               </span>
             </div>
-            <div className="w-full bg-gray-200 h-3 rounded-full mb-6">
+            <div className="w-full bg-gray-200 h-3 rounded-full mb-2">
               <motion.div
                 className={`h-3 rounded-full ${
                   isWarningTime ? "bg-red-500" : "bg-green-500"
@@ -312,6 +325,13 @@ export default function Quiz() {
                 transition={{ duration: 1, ease: "linear" }}
               />
             </div>
+
+            {/* On-screen warning */}
+            {warningCount > 0 && warningCount < 3 && (
+              <p className="text-sm text-red-600 font-medium mb-2 animate-pulse text-center">
+                ⚠️ Warning {warningCount}/2 – Leaving or refreshing will auto-submit on 3rd attempt
+              </p>
+            )}
           </>
         )}
 
