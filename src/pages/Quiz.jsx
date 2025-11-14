@@ -5,6 +5,11 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { Toaster, toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Material UI imports
+import PersonIcon from "@mui/icons-material/Person";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+
 export default function Quiz() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -43,7 +48,7 @@ export default function Quiz() {
         try {
           await supabase.from("results").insert([data]);
           sessionStorage.removeItem("pendingQuizResult");
-          toast.success("✅ Your last quiz result was safely restored!", {
+          toast.success("Your last quiz result was safely restored!", {
             duration: 4000,
           });
         } catch (err) {
@@ -69,7 +74,7 @@ export default function Quiz() {
 
       if (warnings < maxWarnings) {
         const urgency =
-          warnings < maxWarnings - 1 ? "⚠️ Warning" : "⚠️ FINAL WARNING";
+          warnings < maxWarnings - 1 ? "Warning" : "FINAL WARNING";
         toast.error(
           `${urgency} ${warnings}/${maxWarnings - 1}: Refreshing or leaving will auto-submit on the ${maxWarnings}th attempt.`,
           { duration: 5000 }
@@ -78,7 +83,7 @@ export default function Quiz() {
         e.returnValue = "";
       } else {
         toast.success(
-          "✅ Quiz auto-submitted due to multiple attempts to leave/refresh.",
+          "Quiz auto-submitted due to multiple attempts to leave/refresh.",
           { duration: 4000 }
         );
         handleSubmit(true);
@@ -150,7 +155,7 @@ export default function Quiz() {
         .eq("chapter", selectedChapter);
 
       if (error || !data?.length) {
-        toast.error("⚠️ No questions found for this chapter.");
+        toast.error("No questions found for this chapter.");
         setLoading(false);
         return;
       }
@@ -210,7 +215,7 @@ export default function Quiz() {
     }
 
     if (isAuto) {
-      toast.success("✅ Quiz auto-submitted.", { duration: 3000 });
+      toast.success("Quiz auto-submitted.", { duration: 3000 });
     }
 
     navigate(isPreview ? "/admin" : "/result", {
@@ -218,7 +223,8 @@ export default function Quiz() {
     });
   };
 
-  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  const formatTime = (s) =>
+    `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   const q = questions[current];
   const options = useMemo(() => {
@@ -286,8 +292,11 @@ export default function Quiz() {
       >
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 text-gray-700 space-y-2 sm:space-y-0">
-          <p className="font-semibold text-sm sm:text-base text-center sm:text-left">
-            👤 {results.name} | 📍 {results.place}
+          <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
+            <PersonIcon fontSize="small" /> {results.name} 
+          </p>
+          <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
+            <LocationOnIcon fontSize="small" /> {results.place} 
           </p>
           <h2 className="text-lg sm:text-xl font-bold text-blue-700 text-center">
             {language === "en" ? "Chapter" : "அதிகாரம்"}:{" "}
@@ -302,8 +311,8 @@ export default function Quiz() {
         {!isPreview && (
           <>
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium text-gray-600 text-sm sm:text-base">
-                ⏱️ {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
+              <span className="font-medium text-gray-600 text-sm sm:text-base flex items-center gap-1">
+                <AccessTimeIcon fontSize="small" /> {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
               </span>
               <span
                 className={`font-semibold text-sm sm:text-base ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
@@ -334,7 +343,7 @@ export default function Quiz() {
                     : "text-red-600 animate-pulse"
                   }`}
               >
-                ⚠️ Warning {warningCount}/{maxWarnings - 1} – Quiz will auto-submit on the {maxWarnings}th attempt with 0 score
+                Warning {warningCount}/{maxWarnings - 1} – Quiz will auto-submit on the {maxWarnings}th attempt with 0 score
               </p>
             )}
           </>

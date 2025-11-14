@@ -10,6 +10,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Material UI Icons
+import LogoutIcon from "@mui/icons-material/Logout";
+import DownloadIcon from "@mui/icons-material/Download";
+import QuizIcon from "@mui/icons-material/Quiz";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import SettingsIcon from "@mui/icons-material/Settings";
+import BarChartIcon from "@mui/icons-material/BarChart";
+
 export default function AdminPanel() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -17,7 +26,7 @@ export default function AdminPanel() {
   const [chapterStats, setChapterStats] = useState([]);
   const [activeIndex, setActiveIndex] = useState(null);
 
-  // ✅ Access control
+  // Access control
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -49,7 +58,7 @@ export default function AdminPanel() {
     checkSession();
   }, [navigate]);
 
-  // ✅ Fetch participant stats
+  // Fetch participant stats
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -88,7 +97,7 @@ export default function AdminPanel() {
   );
 
   const COLORS = chapterStats.map(
-    (_, i) => `hsl(${(i * 360) / chapterStats.length}, 70%, 55%)`
+    (_, i) => `hsl(${(i * 360) / chapterStats.length}, 60%, 55%)`
   );
 
   const handleDownloadChart = () => {
@@ -121,47 +130,85 @@ export default function AdminPanel() {
 
   if (loading)
     return (
-      <p className="text-center mt-20 text-lg font-semibold">
+      <p className="text-center mt-20 text-lg font-semibold text-gray-600">
         Loading admin dashboard...
       </p>
     );
 
+  const quickActions = [
+    {
+      title: "Preview Quiz",
+      desc: "View quiz for a selected chapter",
+      icon: <QuizIcon fontSize="large" />,
+      color: "bg-gradient-to-br from-yellow-400 to-yellow-500",
+      route: "/admin/preview-quiz",
+    },
+    {
+      title: "Preview Questions",
+      desc: "View all questions",
+      icon: <QuestionAnswerIcon fontSize="large" />,
+      color: "bg-gradient-to-br from-orange-400 to-orange-500",
+      route: "/admin/preview-questions",
+    },
+    {
+      title: "Add Questions",
+      desc: "Create new questions",
+      icon: <AddCircleIcon fontSize="large" />,
+      color: "bg-gradient-to-br from-blue-400 to-blue-500",
+      route: "/admin/add-questions",
+    },
+    {
+      title: "Quiz Configuration",
+      desc: "Set quiz duration",
+      icon: <SettingsIcon fontSize="large" />,
+      color: "bg-gradient-to-br from-green-400 to-green-500",
+      route: "/admin/quiz-config",
+    },
+    {
+      title: "View Results",
+      desc: "Preview and export CSV",
+      icon: <BarChartIcon fontSize="large" />,
+      color: "bg-gradient-to-br from-purple-400 to-purple-500",
+      route: "/admin/view-results",
+    },
+  ];
+
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <Toaster position="top-right" />
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
+
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-          <h1 className="text-3xl font-bold text-blue-700">Admin Dashboard</h1>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
+          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
           <div className="flex items-center gap-4">
-            <span className="font-medium text-gray-700">{user.email}</span>
+            <span className="font-medium text-gray-600">{user.email}</span>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow flex items-center gap-2"
             >
-              Logout
+              <LogoutIcon className="transform hover:rotate-12 transition-transform duration-300" /> Logout
             </button>
           </div>
         </div>
 
         {/* Participants Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg mb-10 relative">
+        <div className="bg-white p-6 rounded-2xl shadow-lg mb-12">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-blue-700 mb-3 sm:mb-0 text-center sm:text-left">
+            <h2 className="text-2xl font-bold text-gray-800 mb-3 sm:mb-0 text-center sm:text-left">
               Participants per Chapter
             </h2>
 
             <button
               onClick={handleDownloadChart}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow flex items-center gap-2"
             >
-              Download PNG
+              <DownloadIcon className="transform hover:rotate-12 transition-transform duration-300" /> Download PNG
             </button>
           </div>
 
           {chapterStats.length > 0 ? (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-              {/* Chart */}
               <div
                 id="participantsChart"
                 className="relative h-[300px] sm:h-[400px] w-full sm:w-2/3"
@@ -186,7 +233,7 @@ export default function AdminPanel() {
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index]}
-                          stroke={index === activeIndex ? "#1E3A8A" : "#fff"}
+                          stroke={index === activeIndex ? "#2563EB" : "#fff"}
                           strokeWidth={index === activeIndex ? 3 : 1}
                         />
                       ))}
@@ -195,18 +242,16 @@ export default function AdminPanel() {
                   </PieChart>
                 </ResponsiveContainer>
 
-                {/* Center total */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-gray-500 text-sm">Total</p>
-                  <p className="text-3xl sm:text-4xl font-bold text-blue-700">
+                  <p className="text-gray-400 text-sm">Total</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-gray-800">
                     {totalParticipants}
                   </p>
                 </div>
               </div>
 
-              {/* Chapter list (mobile & desktop) */}
               <div className="w-full sm:w-1/3 flex flex-col items-start justify-center">
-                <h3 className="text-lg font-semibold text-blue-700 mb-3 text-center sm:text-left">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center sm:text-left">
                   Chapter Stats
                 </h3>
                 <ul className="w-full space-y-2 text-sm sm:text-base">
@@ -216,10 +261,10 @@ export default function AdminPanel() {
                       onClick={() =>
                         setActiveIndex(activeIndex === index ? null : index)
                       }
-                      className={`flex justify-between items-center px-4 py-2 rounded-lg shadow-sm cursor-pointer transition-all ${
+                      className={`flex justify-between items-center px-4 py-2 rounded-lg shadow-sm cursor-pointer transition-all duration-300 transform ${
                         activeIndex === index
-                          ? "bg-blue-100 border border-blue-400 text-blue-700 font-semibold"
-                          : "bg-gray-50 hover:bg-gray-100"
+                          ? "bg-blue-50 border border-blue-400 text-blue-700 font-semibold scale-105"
+                          : "bg-gray-50 hover:bg-gray-100 hover:scale-105"
                       }`}
                     >
                       <span>{ch.chapter}</span>
@@ -236,46 +281,18 @@ export default function AdminPanel() {
           )}
         </div>
 
-        {/* Admin Quick Actions */}
+        {/* Quick Action Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {
-              title: "Preview Quiz",
-              desc: "View quiz for a selected chapter",
-              color: "bg-yellow-500 hover:bg-yellow-600",
-              route: "/admin/preview-quiz",
-            },
-            {
-              title: "Preview Questions",
-              desc: "View all questions in the database",
-              color: "bg-orange-500 hover:bg-orange-600",
-              route: "/admin/preview-questions",
-            },
-            {
-              title: "Add Questions",
-              desc: "Create new questions and assign chapters",
-              color: "bg-blue-500 hover:bg-blue-600",
-              route: "/admin/add-questions",
-            },
-            {
-              title: "Quiz Configuration",
-              desc: "Set quiz duration, start time, and active chapters",
-              color: "bg-green-500 hover:bg-green-600",
-              route: "/admin/quiz-config",
-            },
-            {
-              title: "View / Download Results",
-              desc: "Preview participants' scores and export CSV",
-              color: "bg-purple-500 hover:bg-purple-600",
-              route: "/admin/view-results",
-            },
-          ].map((card, idx) => (
+          {quickActions.map((card, idx) => (
             <div
               key={idx}
               onClick={() => navigate(card.route)}
-              className={`cursor-pointer ${card.color} text-white rounded-2xl p-8 flex flex-col items-center justify-center shadow-xl transition-all hover:scale-105`}
+              className={`${card.color} text-white rounded-2xl p-8 flex flex-col items-center justify-center shadow-lg hover:shadow-2xl transform hover:scale-105 transition-transform duration-300 cursor-pointer`}
             >
-              <h2 className="text-2xl font-bold mb-2">{card.title}</h2>
+              <div className="text-4xl mb-3 transform hover:scale-110 transition-transform duration-300">
+                {card.icon}
+              </div>
+              <h2 className="text-2xl font-bold mb-2 text-center">{card.title}</h2>
               <p className="text-center">{card.desc}</p>
             </div>
           ))}

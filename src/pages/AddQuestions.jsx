@@ -2,9 +2,27 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Grid,
+  Button,
+  Stack,
+  CircularProgress,
+  Tabs,
+  Tab,
+  Box,
+  Card,
+  CardContent,
+  useMediaQuery,
+} from "@mui/material";
 
 export default function AddQuestions() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery("(max-width:900px)");
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +39,7 @@ export default function AddQuestions() {
   const [optionD_ta, setOptionDTa] = useState("");
   const [correct_en, setCorrectEn] = useState("");
   const [correct_ta, setCorrectTa] = useState("");
+  const [tabIndex, setTabIndex] = useState(0);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -34,45 +53,55 @@ export default function AddQuestions() {
       }
 
       setUser(currentUser);
-
       if (!sessionStorage.getItem("addQuestionWelcome")) {
-        toast.success(`Welcome, ${currentUser.email}! You can add questions now.`);
+        toast.success(`Welcome, ${currentUser.email}!`);
         sessionStorage.setItem("addQuestionWelcome", "true");
       }
     };
-
     checkAdmin();
   }, [navigate]);
 
+  const allFieldsFilled =
+    chapter &&
+    question_en &&
+    question_ta &&
+    optionA_en &&
+    optionB_en &&
+    optionC_en &&
+    optionD_en &&
+    optionA_ta &&
+    optionB_ta &&
+    optionC_ta &&
+    optionD_ta &&
+    correct_en &&
+    correct_ta;
+
   const handleAddQuestion = async () => {
-    if (!chapter || !question_en || !question_ta || !optionA_en || !optionB_en || !optionC_en || !optionD_en || !optionA_ta || !optionB_ta || !optionC_ta || !optionD_ta || !correct_en || !correct_ta) {
-      toast.error("Please fill all fields");
+    if (!allFieldsFilled) {
+      toast.error("Please fill all fields and select correct answers");
       return;
     }
-
     setLoading(true);
     try {
-      const { error } = await supabase.from("questions").insert([
-        {
-          chapter,
-          question_en,
-          question_ta,
-          option_a_en: optionA_en,
-          option_b_en: optionB_en,
-          option_c_en: optionC_en,
-          option_d_en: optionD_en,
-          option_a_ta: optionA_ta,
-          option_b_ta: optionB_ta,
-          option_c_ta: optionC_ta,
-          option_d_ta: optionD_ta,
-          correct_answer: correct_en,
-          correct_answer_ta: correct_ta,
-          created_at: new Date(),
-        },
-      ]);
-
+      const { error } = await supabase.from("questions").insert([{
+        chapter,
+        question_en,
+        question_ta,
+        option_a_en: optionA_en,
+        option_b_en: optionB_en,
+        option_c_en: optionC_en,
+        option_d_en: optionD_en,
+        option_a_ta: optionA_ta,
+        option_b_ta: optionB_ta,
+        option_c_ta: optionC_ta,
+        option_d_ta: optionD_ta,
+        correct_answer: correct_en,
+        correct_answer_ta: correct_ta,
+        created_at: new Date(),
+      }]);
       if (error) throw error;
       toast.success("Question added successfully!");
+      // Reset all fields
       setChapter(""); setQuestionEn(""); setQuestionTa("");
       setOptionAEn(""); setOptionBEn(""); setOptionCEn(""); setOptionDEn("");
       setOptionATa(""); setOptionBTa(""); setOptionCTa(""); setOptionDTa("");
@@ -85,99 +114,176 @@ export default function AddQuestions() {
     }
   };
 
-  if (!user) return <p className="text-center mt-20">Checking admin...</p>;
+  if (!user)
+    return (
+      <Container sx={{ mt: 10, textAlign: "center" }}>
+        <CircularProgress />
+        <Typography mt={2}>Checking admin access...</Typography>
+      </Container>
+    );
+
+  const optionsEN = [
+    { label: "A", value: optionA_en },
+    { label: "B", value: optionB_en },
+    { label: "C", value: optionC_en },
+    { label: "D", value: optionD_en },
+  ];
+
+  const optionsTA = [
+    { label: "A", value: optionA_ta },
+    { label: "B", value: optionB_ta },
+    { label: "C", value: optionC_ta },
+    { label: "D", value: optionD_ta },
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-100 p-4">
+    <Container maxWidth="lg" sx={{ my: 6 }}>
       <Toaster position="top-right" />
-      <div className="w-full max-w-4xl bg-white p-8 rounded-2xl shadow-lg space-y-6">
-        <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">Add New Question</h1>
 
-        <input
-          type="text"
-          placeholder="Chapter"
-          value={chapter}
-          onChange={(e) => setChapter(e.target.value)}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        {/* <div className=" md:flex justify-evenly gap-10">
-          
-         
-        </div> */}
+      <Stack direction={isMobile ? "column" : "row"} spacing={4} alignItems="stretch">
+        {/* Form Panel */}
+        <Paper sx={{ p: 5, borderRadius: 3, boxShadow: 5, flex: 1, background: "linear-gradient(to bottom, #e3f2fd, #ffffff)" }}>
+          <Typography variant="h4" fontWeight="bold" textAlign="center" color="primary" gutterBottom>
+            Add New Question
+          </Typography>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <textarea
-            placeholder="Question (English)"
-            value={question_en}
-            onChange={(e) => setQuestionEn(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <textarea
-            placeholder="Question (Tamil)"
-            value={question_ta}
-            onChange={(e) => setQuestionTa(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
+          <Stack spacing={4}>
+            {/* Chapter */}
+            <TextField
+              label="Chapter"
+              value={chapter}
+              onChange={(e) => setChapter(e.target.value)}
+              fullWidth
+            />
 
-        <div className="grid md:grid-cols-2 gap-4">
-         
-        {/* Options EN */}
-        <div className="grid md:grid-cols-2 gap-4">
-           <h2 className="text-xl items-center  font-semibold text-gray-600">English</h2>
-           <h2></h2>
-          <input type="text" placeholder="Option A (EN)" value={optionA_en} onChange={(e) => setOptionAEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option B (EN)" value={optionB_en} onChange={(e) => setOptionBEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option C (EN)" value={optionC_en} onChange={(e) => setOptionCEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option D (EN)" value={optionD_en} onChange={(e) => setOptionDEn(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-        </div>
-         
+            {/* Question */}
+            <Tabs value={tabIndex} onChange={(e, val) => setTabIndex(val)} textColor="primary" indicatorColor="primary">
+              <Tab label="English" />
+              <Tab label="Tamil" />
+            </Tabs>
+            {tabIndex === 0 ? (
+              <TextField
+                label="Question (English)"
+                value={question_en}
+                onChange={(e) => setQuestionEn(e.target.value)}
+                fullWidth multiline rows={3} sx={{ mt: 2 }}
+              />
+            ) : (
+              <TextField
+                label="Question (Tamil)"
+                value={question_ta}
+                onChange={(e) => setQuestionTa(e.target.value)}
+                fullWidth multiline rows={3} sx={{ mt: 2 }}
+              />
+            )}
 
-        {/* Options TA */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <h2 className="text-xl items-center  font-semibold text-gray-600">Tamil</h2>
-          <h2></h2>
-          <input type="text" placeholder="Option A (TA)" value={optionA_ta} onChange={(e) => setOptionATa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option B (TA)" value={optionB_ta} onChange={(e) => setOptionBTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option C (TA)" value={optionC_ta} onChange={(e) => setOptionCTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-          <input type="text" placeholder="Option D (TA)" value={optionD_ta} onChange={(e) => setOptionDTa(e.target.value)} className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-        </div>
+            {/* Options Grid */}
+            <Grid container spacing={2}>
+              {tabIndex === 0
+                ? optionsEN.map((opt, idx) => (
+                    <Grid item xs={12} md={6} key={idx}>
+                      <TextField
+                        label={`Option ${opt.label}`}
+                        value={opt.value}
+                        onChange={(e) => [setOptionAEn, setOptionBEn, setOptionCEn, setOptionDEn][idx](e.target.value)}
+                        fullWidth
+                      />
+                    </Grid>
+                  ))
+                : optionsTA.map((opt, idx) => (
+                    <Grid item xs={12} md={6} key={idx}>
+                      <TextField
+                        label={`Option ${opt.label}`}
+                        value={opt.value}
+                        onChange={(e) => [setOptionATa, setOptionBTa, setOptionCTa, setOptionDTa][idx](e.target.value)}
+                        fullWidth
+                      />
+                    </Grid>
+                  ))}
+            </Grid>
 
-        </div>
+            {/* Correct Answer */}
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Correct Answer (English)"
+                  value={correct_en}
+                  onChange={(e) => setCorrectEn(e.target.value)}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Correct Answer (Tamil)"
+                  value={correct_ta}
+                  onChange={(e) => setCorrectTa(e.target.value)}
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
 
-        {/* Correct Answers */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Correct Answer (EN)"
-            value={correct_en}
-            onChange={(e) => setCorrectEn(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="text"
-            placeholder="Correct Answer (TA)"
-            value={correct_ta}
-            onChange={(e) => setCorrectTa(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
+            {/* Action Buttons */}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleAddQuestion}
+                disabled={loading || !allFieldsFilled}
+                fullWidth
+                sx={{ fontWeight: "bold", py: 1.5, textTransform: "none" }}
+              >
+                {loading ? "Adding..." : "Add Question"}
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => navigate("/admin")}
+                fullWidth
+                sx={{ fontWeight: "bold", py: 1.5, textTransform: "none" }}
+              >
+                Back to Admin Panel
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
 
-        <button
-          onClick={handleAddQuestion}
-          disabled={loading}
-          className={`w-full py-2 rounded-lg text-white font-semibold transition-all ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
-        >
-          {loading ? "Adding..." : "Add Question"}
-        </button>
+        {/* Preview Panel */}
+        <Card sx={{ flex: 1, p: 3, borderRadius: 3, boxShadow: 5, background: "#f0f4ff" }}>
+          <CardContent>
+            <Typography variant="h5" fontWeight="bold" gutterBottom color="primary" textAlign="center">
+              Live Preview
+            </Typography>
 
-        <button
-          onClick={() => navigate("/admin")}
-          className="w-full py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-all"
-        >
-          Back to Admin Panel
-        </button>
-      </div>
-    </div>
+            <Box mb={2}>
+              <Typography fontWeight="bold">Chapter:</Typography>
+              <Typography>{chapter || "—"}</Typography>
+            </Box>
+
+            {[{ label: "Question (EN)", value: question_en, opts: optionsEN, correct: correct_en },
+              { label: "Question (TA)", value: question_ta, opts: optionsTA, correct: correct_ta }].map((q, idx) => (
+              <Box key={idx} mb={3}>
+                <Typography fontWeight="bold">{q.label}</Typography>
+                <Typography mb={1}>{q.value || "—"}</Typography>
+                <Stack spacing={1}>
+                  {q.opts.filter(o => o.value).map((opt, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: opt.value === q.correct ? "#c8e6c9" : "#ffffff",
+                        border: "1px solid #ccc",
+                      }}
+                    >
+                      {opt.label}. {opt.value}
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      </Stack>
+    </Container>
   );
 }

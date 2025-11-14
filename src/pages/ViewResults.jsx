@@ -355,7 +355,7 @@ export default function ViewResults() {
         gap={isMobile ? 2 : 0}
       >
         <Typography variant="h4" fontWeight={700} color="primary" display="flex" alignItems="center" gap={1}>
-          📊 Results Dashboard
+          Results Dashboard
         </Typography>
         <Stack direction={isMobile ? "column" : "row"} spacing={2}>
           <Button variant="outlined" color="secondary" startIcon={<ArrowBack />} onClick={() => navigate("/admin")}>
