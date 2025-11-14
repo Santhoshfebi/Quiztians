@@ -53,7 +53,7 @@ export default function Quiz() {
     }
   }, []);
 
-  // Anti-cheating & navigation prevention (5-strike system)
+  // Anti-cheating & navigation prevention
   useEffect(() => {
     if (isPreview) return;
 
@@ -255,7 +255,7 @@ export default function Quiz() {
 
   if (loading)
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
         <h2 className="text-center text-lg font-semibold text-gray-600 animate-pulse">
           Loading questions...
         </h2>
@@ -269,8 +269,8 @@ export default function Quiz() {
 
   if (!questions?.length)
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <h2 className="text-xl font-bold text-red-600">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <h2 className="text-xl font-bold text-red-600 text-center">
           No questions found for this chapter.
         </h2>
       </div>
@@ -280,20 +280,20 @@ export default function Quiz() {
     <div className="relative flex items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Toaster position="top-center" />
       <motion.div
-        className="w-full md:w-3/4 max-w-3xl mx-auto mt-16 bg-white p-8 rounded-3xl shadow-lg border border-gray-100"
+        className="w-full md:w-3/4 max-w-3xl mx-auto mt-16 bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-gray-100 flex flex-col"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 text-gray-700">
-          <p className="font-semibold">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 text-gray-700 space-y-2 sm:space-y-0">
+          <p className="font-semibold text-sm sm:text-base text-center sm:text-left">
             👤 {results.name} | 📍 {results.place}
           </p>
-          <h2 className="text-xl font-bold text-blue-700 text-center">
+          <h2 className="text-lg sm:text-xl font-bold text-blue-700 text-center">
             {language === "en" ? "Chapter" : "அதிகாரம்"}:{" "}
             <span className="text-indigo-700">{selectedChapter}</span>
           </h2>
-          <p className="font-medium">
+          <p className="font-medium text-sm sm:text-base text-center sm:text-right">
             {language === "en" ? "Question" : "கேள்வி"} {current + 1} / {questions.length}
           </p>
         </div>
@@ -302,11 +302,11 @@ export default function Quiz() {
         {!isPreview && (
           <>
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium text-gray-600">
+              <span className="font-medium text-gray-600 text-sm sm:text-base">
                 ⏱️ {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
               </span>
               <span
-                className={`font-semibold ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
+                className={`font-semibold text-sm sm:text-base ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
                   }`}
               >
                 {formatTime(timeLeft)}
@@ -327,10 +327,9 @@ export default function Quiz() {
               />
             </div>
 
-            {/* On-screen warning */}
             {warningCount > 0 && warningCount < maxWarnings && (
               <p
-                className={`text-sm font-medium mb-2 text-center ${warningCount === maxWarnings - 1
+                className={`text-xs sm:text-sm font-medium mb-2 text-center ${warningCount === maxWarnings - 1
                     ? "text-red-800 animate-[pulse_0.5s_infinite]"
                     : "text-red-600 animate-pulse"
                   }`}
@@ -349,15 +348,16 @@ export default function Quiz() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4 }}
+            className="flex flex-col"
           >
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 leading-relaxed">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 leading-relaxed break-words">
               {language === "en" ? q.question_en : q.question_ta}
             </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {options.map((option, idx) => {
                 const base =
-                  "w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 font-medium";
+                  "w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl border transition-all duration-200 font-medium break-words";
                 const isCorrect = option === correctAnswer;
                 const isSelected = selected === option;
 
@@ -392,11 +392,11 @@ export default function Quiz() {
 
             {/* Preview Navigation Buttons */}
             {isPreview && (
-              <div className="flex justify-between mt-6">
+              <div className="flex flex-col sm:flex-row justify-between mt-6 gap-3">
                 <button
                   onClick={() => setCurrent((prev) => Math.max(prev - 1, 0))}
                   disabled={current === 0}
-                  className={`px-4 py-2 rounded-lg font-semibold shadow ${
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${
                     current === 0
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-500 text-white hover:bg-blue-600"
@@ -407,7 +407,7 @@ export default function Quiz() {
 
                 <button
                   onClick={() => navigate("/admin/preview-quiz")}
-                  className="px-4 py-2 rounded-lg font-semibold shadow bg-gray-500 text-white hover:bg-gray-600"
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow bg-gray-500 text-white hover:bg-gray-600"
                 >
                   Back to Chapter Preview
                 </button>
@@ -417,7 +417,7 @@ export default function Quiz() {
                     setCurrent((prev) => Math.min(prev + 1, questions.length - 1))
                   }
                   disabled={current === questions.length - 1}
-                  className={`px-4 py-2 rounded-lg font-semibold shadow ${
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${
                     current === questions.length - 1
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-500 text-white hover:bg-blue-600"
