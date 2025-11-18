@@ -18,20 +18,93 @@ export default function Result() {
   const [showTrophy, setShowTrophy] = useState(false);
   const [showChampionBadge, setShowChampionBadge] = useState(false);
   const [perfectScore, setPerfectScore] = useState(false);
-
   const [displayRank, setDisplayRank] = useState(0);
+
   const animRef = useRef(null);
 
-  /** ---------------- Helper Functions ---------------- **/
+  // Fetch leaderboard for the chapter
+  useEffect(() => {
+    let mounted = true;
 
-  const getGlowClass = () => {
-    if (rank === 1) return "border-yellow-400 shadow-[0_20px_50px_rgba(250,204,21,0.12)]";
-    if (rank === 2) return "border-slate-300 shadow-[0_20px_40px_rgba(148,163,184,0.08)]";
-    if (rank === 3) return "border-amber-600 shadow-[0_18px_40px_rgba(245,166,35,0.08)]";
-    if (rank > 3 && rank <= 5) return "border-blue-300 shadow-[0_16px_36px_rgba(59,130,246,0.06)]";
-    return "border-transparent shadow-sm";
-  };
+    const fetchLeaderboard = async () => {
+      if (!chapter) {
+        if (mounted) setLoading(false);
+        return;
+      }
 
+      try {
+        const { data, error } = await supabase
+          .from("results")
+          .select("id, name, place, phone, score, created_at")
+          .eq("chapter", chapter)
+          .order("score", { ascending: false })
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+        if (!mounted) return;
+
+        // Find the current user's rank
+        const index = data.findIndex(
+          (p) =>
+            (phone && p.phone && p.phone === phone) ||
+            (p.name === name && p.place === place && Number(p.score) === Number(score))
+        );
+
+        const playerRank = index >= 0 ? index + 1 : null;
+        setRank(playerRank);
+
+        setShowTrophy(playerRank && playerRank <= 5);
+        setShowChampionBadge(playerRank && playerRank <= 5);
+        setPerfectScore(Number(score) === Number(total));
+
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 8000);
+
+        setTopPlayers(data.slice(0, 5));
+      } catch (err) {
+        console.error("Error fetching leaderboard:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+
+    return () => {
+      mounted = false;
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [name, phone, place, score, total, chapter]);
+
+  // Animate rank count-up
+  useEffect(() => {
+    if (!rank || rank <= 0) {
+      setDisplayRank(0);
+      return;
+    }
+
+    let start = null;
+    const duration = Math.max(500, Math.min(1200, rank * 80));
+    const from = 0;
+    const to = rank;
+
+    const step = (timestamp) => {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(from + (to - from) * eased);
+      setDisplayRank(current);
+      if (progress < 1) animRef.current = requestAnimationFrame(step);
+      else setDisplayRank(to);
+    };
+
+    animRef.current = requestAnimationFrame(step);
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [rank]);
+
+  // Handle share
   const handleShare = async () => {
     const text = `🎉 Quiz Result 🎉
 Name: ${name}
@@ -46,118 +119,43 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
     } else {
       try {
         await navigator.clipboard.writeText(text);
-        alert("Result copied to clipboard — you can paste it to share.");
+        alert("Result copied to clipboard.");
       } catch {
-        alert("Sharing not supported. Please copy manually.");
+        alert("Sharing not supported.");
       }
     }
   };
 
-  /** ---------------- Data Fetching ---------------- **/
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchLeaderboard = async () => {
-      if (!chapter) {
-        if (mounted) setLoading(false);
-        return;
-      }
-      try {
-        const { data, error } = await supabase
-          .from("results")
-          .select("id, name, place, phone, score, created_at")
-          .eq("chapter", chapter)
-          .order("score", { ascending: false })
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-        if (!mounted) return;
-
-        const index = data.findIndex(
-          (p) =>
-            (phone && p.phone && p.phone === phone) ||
-            (p.name === name && p.place === place && Number(p.score) === Number(score))
-        );
-
-        const playerRank = index >= 0 ? index + 1 : null;
-        setRank(playerRank);
-
-        if (playerRank && playerRank <= 5) {
-          setShowTrophy(true);
-          setShowChampionBadge(true);
-        }
-
-        setPerfectScore(Number(score) === Number(total));
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 8000);
-
-        setTopPlayers(data.slice(0, 5));
-      } catch (err) {
-        console.error("Error fetching leaderboard:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
-    return () => {
-      mounted = false;
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [name, phone, place, score, total, chapter]);
-
-  /** ---------------- Rank Animation ---------------- **/
-
-  useEffect(() => {
-    if (!rank || rank <= 0) {
-      setDisplayRank(0);
-      return;
-    }
-
-    let start = null;
-    const duration = Math.max(500, Math.min(1200, rank * 80));
-    const step = (timestamp) => {
-      if (!start) start = timestamp;
-      const progress = Math.min((timestamp - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayRank(Math.floor(eased * rank));
-      if (progress < 1) animRef.current = requestAnimationFrame(step);
-      else setDisplayRank(rank);
-    };
-
-    animRef.current = requestAnimationFrame(step);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [rank]);
-
-  /** ---------------- Framer Motion Variants ---------------- **/
+  const getGlowClass = () => {
+    if (rank === 1) return "border-yellow-400 shadow-[0_20px_50px_rgba(250,204,21,0.12)]";
+    if (rank === 2) return "border-slate-300 shadow-[0_20px_40px_rgba(148,163,184,0.08)]";
+    if (rank === 3) return "border-amber-600 shadow-[0_18px_40px_rgba(245,166,35,0.08)]";
+    if (rank > 3 && rank <= 5) return "border-blue-300 shadow-[0_16px_36px_rgba(59,130,246,0.06)]";
+    return "border-transparent shadow-sm";
+  };
 
   const listVariant = { hidden: {}, show: { transition: { staggerChildren: 0.12 } } };
   const itemVariant = { hidden: { opacity: 0, x: -24, scale: 0.98 }, show: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 120, damping: 16 } } };
 
-  /** ---------------- Loading ---------------- **/
-
-  if (loading)
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-6">
-        <DotLottieReact
-          src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
-          loop
-          autoplay
-          style={{ width: 140, height: 140 }}
-        />
+        <DotLottieReact src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie" loop autoplay style={{ width: 140, height: 140 }} />
       </div>
     );
+  }
+
   return (
     <>
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={220} gravity={0.28} />}
+
       <div className="min-h-screen w-full p-6 md:p-12 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex items-center justify-center">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-          {/* Main card */}
+          {/* MAIN CARD */}
           <div className="lg:col-span-2">
             <div className={`relative rounded-3xl p-8 backdrop-blur-md bg-white/60 border ${getGlowClass()} border-white/30 transition-all`}>
+              
               {/* Perfect score */}
               <AnimatePresence>
                 {perfectScore && (
@@ -182,11 +180,13 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
                 <p className="text-sm text-slate-600 mt-2">Thanks for participating — may knowledge bless your journey.</p>
               </div>
 
-              {/* User summary */}
+              {/* User Summary */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 <div className="md:col-span-2">
                   <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-300 to-purple-300 flex items-center justify-center text-white font-bold text-xl shadow-md">{name?.charAt(0).toUpperCase() || "U"}</div>
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-300 to-purple-300 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                      {name ? name.charAt(0).toUpperCase() : "U"}
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <h2 className="text-xl font-semibold text-slate-900">{name || "Unknown"}</h2>
@@ -197,11 +197,13 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
                     </div>
                   </div>
 
+                  {/* Score & Rank */}
                   <div className="mt-5 flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm">
                       <p className="text-sm text-slate-500">Score</p>
                       <div className="text-3xl md:text-4xl font-extrabold text-emerald-600">{score} <span className="text-lg text-slate-500">/ {total}</span></div>
                     </div>
+
                     <div className="w-44 rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm flex flex-col justify-center items-start">
                       <p className="text-sm text-slate-500">Rank</p>
                       <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 160, damping: 14 }} className="text-2xl md:text-3xl font-extrabold text-indigo-700">
@@ -211,12 +213,12 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
                   </div>
                 </div>
 
-                {/* Buttons */}
+                {/* Action Buttons */}
                 <div className="flex flex-col gap-3">
                   <button onClick={() => navigate("/")} className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">🔄 Play Again</button>
                   <button onClick={handleShare} className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">📤 Share Result</button>
-                  <button onClick={() => navigate("/leaderboard")} className="w-full px-4 py-3 rounded-xl border border-white/30 bg-white/70 text-slate-800 font-medium hover:bg-white transition shadow-sm">View Full Leaderboard</button>
-                  <button onClick={() => navigate("/review", { state: { chapter, phone } })} className="w-full px-4 py-3 rounded-xl border border-white/30 bg-white/70 text-slate-800 font-medium hover:bg-white transition shadow-sm">📘 Review Answers</button>
+                  <button onClick={() => navigate("/leaderboard", { state: { phone, chapter, name, score, total, place } })} className="w-full px-4 py-3 rounded-xl border border-white/30 bg-white/70 text-slate-800 font-medium hover:bg-white transition shadow-sm">View Full Leaderboard</button>
+                  <button onClick={() => navigate("/review", { state: { phone, chapter } })} className="w-full px-4 py-3 rounded-xl border border-white/30 bg-white/70 text-slate-800 font-medium hover:bg-white transition shadow-sm">📘 Review Answers</button>
                 </div>
               </div>
 
@@ -225,14 +227,13 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
             </div>
           </div>
 
-          {/* Leaderboard */}
+          {/* Leaderboard Sidebar */}
           <aside className="space-y-4">
             <div className="rounded-2xl p-5 bg-gradient-to-b from-white/70 to-white/50 backdrop-blur-md border border-white/30 shadow">
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36 }}>
                 <h3 className="text-lg font-semibold text-slate-800">Top Scorers</h3>
                 <p className="text-sm text-slate-500 mt-1">Leaderboard — {chapter || "—"}</p>
               </motion.div>
-
               <motion.ul variants={listVariant} initial="hidden" animate="show" className="mt-4 space-y-3">
                 {topPlayers.length === 0 && <li className="text-sm text-slate-500">No players for this chapter yet.</li>}
                 {topPlayers.map((p, i) => {

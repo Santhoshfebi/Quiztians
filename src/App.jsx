@@ -12,6 +12,7 @@ import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
 import AlreadyAttempted from "./pages/AlreadyAttempted";
 import Review from "./pages/Review";
+import Leaderboard from "./pages/Leaderboard";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/result" element={<Result />} />
         <Route path="/review" element={<Review />} />
+        <Route path="/leaderboard" element={<Leaderboard />} /> 
 
 
         // admin navigation path
