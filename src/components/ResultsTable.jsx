@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 
 export default function ResultsTable({ filteredRows, showDuplicates, onResetIndividual }) {
+  // Duplicate phones scoped to filteredRows (respecting chapter filter)
   const duplicatePhones = getDuplicatePhones(filteredRows);
   const [totalDuplicates, setTotalDuplicates] = useState(duplicatePhones.size);
   const [totalParticipants, setTotalParticipants] = useState(filteredRows.length);
@@ -56,7 +57,7 @@ export default function ResultsTable({ filteredRows, showDuplicates, onResetIndi
     { field: "language", headerName: "Language", width: 110 },
     {
       field: "duplicate",
-      headerName: "Dup?",
+      headerName: "Duplicate",
       width: 90,
       renderCell: (params) => {
         const phone = String(params.row.phone || "").trim();
@@ -157,7 +158,7 @@ export default function ResultsTable({ filteredRows, showDuplicates, onResetIndi
             textAlign: "center",
           }}
         >
-          <Typography color="text.secondary">No duplicate phone numbers found.</Typography>
+          <Typography color="text.secondary">No duplicate phone numbers found in this chapter.</Typography>
         </Box>
       )}
 
@@ -210,6 +211,7 @@ export default function ResultsTable({ filteredRows, showDuplicates, onResetIndi
   );
 }
 
+/* -------- Duplicate Detection Helper -------- */
 function getDuplicatePhones(rows) {
   const count = {};
   rows.forEach((r) => {

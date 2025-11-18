@@ -1,32 +1,37 @@
-import { Box, Button, Stack, Typography, useMediaQuery } from "@mui/material";
-import { ArrowBack, Download, RestartAlt } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  Stack,
+  Typography,
+  useMediaQuery,
+  IconButton,
+} from "@mui/material";
+import { ArrowBack, Download, RestartAlt, Menu } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
 export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Scroll listener for shadow
+  // Scroll shadow listener
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Button entrance animation
-  const buttonVariants = {
-    hidden: { opacity: 0, x: isMobile ? 0 : 50, y: isMobile ? 50 : 0 },
-    visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  };
-
-  // Button hover effect
-  const hoverEffect = {
-    scale: 1.05,
-    boxShadow: "0px 6px 18px rgba(0,0,0,0.15)",
-    transition: { type: "spring", stiffness: 300 },
+  // Animation for slide-down menu
+  const menuVariants = {
+    hidden: { height: 0, opacity: 0 },
+    visible: {
+      height: "auto",
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
   };
 
   return (
@@ -36,113 +41,133 @@ export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
       zIndex={1200}
       bgcolor="background.paper"
       sx={{
-        py: 3,
+        py: 2,
         px: { xs: 2, md: 3 },
-        borderBottomRadius: 2,
         boxShadow: scrolled
           ? "0 4px 12px rgba(0,0,0,0.15)"
-          : "0 2px 6px rgba(0,0,0,0.05)",
+          : "0 1px 4px rgba(0,0,0,0.05)",
         transition: "box-shadow 0.3s ease",
       }}
     >
+      {/* Top Row */}
       <Box
         display="flex"
-        flexDirection={isMobile ? "column" : "row"}
         justifyContent="space-between"
-        alignItems={isMobile ? "flex-start" : "center"}
-        gap={isMobile ? 2 : 0}
+        alignItems="center"
+        width="100%"
       >
-        {/* Title + description */}
-        <Box width={isMobile ? "100%" : "auto"} mb={isMobile ? 2 : 0}>
-          <Typography
-            variant={isMobile ? "h6" : "h4"}
-            fontWeight={700}
-            textAlign={isMobile ? "left" : "inherit"}
-            color={theme.palette.text.primary}
-          >
+        {/* Title */}
+        <Box>
+          <Typography variant={isMobile ? "h6" : "h4"} fontWeight={700}>
             Results Dashboard
           </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            mt={0.5}
-            textAlign={isMobile ? "left" : "inherit"}
-          >
-            Manage all quiz results, export data, and reset attempts per chapter.
-          </Typography>
+          {!isMobile && (
+            <Typography variant="body2" color="text.secondary" mt={0.3}>
+              Manage quiz results, export data, and reset attempts.
+            </Typography>
+          )}
         </Box>
 
-        {/* Animated button row */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={buttonVariants}
-          style={{ width: isMobile ? "100%" : "auto" }}
-        >
-          <Stack
-            direction={isMobile ? "column" : "row"}
-            spacing={isMobile ? 1.5 : 1}
-            width={isMobile ? "100%" : "auto"}
-          >
-            {/* Back */}
-            <motion.div whileHover={hoverEffect}>
-              <Button
-                fullWidth={isMobile}
-                startIcon={<ArrowBack />}
-                variant="outlined"
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 500,
-                  color: theme.palette.text.primary,
-                }}
-                onClick={onBack}
-              >
-                Back
-              </Button>
-            </motion.div>
+        {/* Desktop Buttons */}
+        {!isMobile && (
+          <Stack direction="row" spacing={1}>
+            <Button
+              startIcon={<ArrowBack />}
+              variant="outlined"
+              sx={{ borderRadius: 2 }}
+              onClick={onBack}
+            >
+              Back
+            </Button>
 
-            {/* Export CSV */}
-            <motion.div whileHover={hoverEffect}>
-              <Button
-                fullWidth={isMobile}
-                startIcon={<Download />}
-                variant="contained"
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 500,
-                  backgroundColor: theme.palette.primary.main,
-                  color: "#fff",
-                  "&:hover": { backgroundColor: theme.palette.primary.dark },
-                }}
-                onClick={onCSV}
-              >
-                Export CSV
-              </Button>
-            </motion.div>
+            <Button
+              startIcon={<Download />}
+              variant="contained"
+              sx={{ borderRadius: 2 }}
+              onClick={onCSV}
+            >
+              Export CSV
+            </Button>
 
-            {/* Reset */}
-            <motion.div whileHover={hoverEffect}>
-              <Button
-                fullWidth={isMobile}
-                startIcon={<RestartAlt />}
-                variant="contained"
-                color="error"
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 500,
-                  "&:hover": { backgroundColor: theme.palette.error.dark },
-                }}
-                onClick={onOpenReset}
-              >
-                Reset by Chapter
-              </Button>
-            </motion.div>
+            <Button
+              startIcon={<RestartAlt />}
+              variant="contained"
+              color="error"
+              sx={{ borderRadius: 2 }}
+              onClick={onOpenReset}
+            >
+              Reset by Chapter
+            </Button>
           </Stack>
-        </motion.div>
+        )}
+
+        {/* Mobile Hamburger */}
+        {isMobile && (
+          <IconButton onClick={() => setMenuOpen(!menuOpen)}>
+            <Menu />
+          </IconButton>
+        )}
       </Box>
+
+      {/* Mobile Description */}
+      {isMobile && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          mt={0.5}
+          sx={{ opacity: 0.8 }}
+        >
+          Manage quiz results and actions.
+        </Typography>
+      )}
+
+      {/* Mobile Sliding Menu */}
+      {isMobile && (
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              variants={menuVariants}
+              style={{ overflow: "hidden", marginTop: 12 }}
+            >
+              <Stack spacing={1.2}>
+                <Button
+                  fullWidth
+                  startIcon={<ArrowBack />}
+                  variant="outlined"
+                  onClick={onBack}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Back
+                </Button>
+
+                <Button
+                  fullWidth
+                  startIcon={<Download />}
+                  variant="contained"
+                  onClick={onCSV}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Export CSV
+                </Button>
+
+                <Button
+                  fullWidth
+                  startIcon={<RestartAlt />}
+                  variant="contained"
+                  color="error"
+                  onClick={onOpenReset}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Reset by Chapter
+                </Button>
+              </Stack>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </Box>
   );
 }
