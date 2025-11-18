@@ -11,6 +11,7 @@ import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
 import AlreadyAttempted from "./pages/AlreadyAttempted";
+import Review from "./pages/Review";
 
 function App() {
   return (
@@ -22,6 +23,8 @@ function App() {
         <Route path="/already-attempted" element={<AlreadyAttempted />} />
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/result" element={<Result />} />
+        <Route path="/review" element={<Review />} />
+
 
         // admin navigation path
         

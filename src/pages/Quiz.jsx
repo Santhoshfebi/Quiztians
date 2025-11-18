@@ -34,10 +34,12 @@ export default function Quiz() {
   const quizSubmittedRef = useRef(false);
 
   const maxWarnings = 5;
-
   const [warningCount, setWarningCount] = useState(
     parseInt(sessionStorage.getItem(`${attemptKey}_warnings`)) || 0
   );
+
+  // ⭐ Store answers for review
+  const answersTracker = useRef([]);
 
   // Restore pending quiz result
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function Quiz() {
     }
   }, []);
 
-  // Anti-cheating & navigation prevention
+  // Anti-cheating logic
   useEffect(() => {
     if (isPreview) return;
 
@@ -82,10 +84,9 @@ export default function Quiz() {
         e.preventDefault();
         e.returnValue = "";
       } else {
-        toast.success(
-          "Quiz auto-submitted due to multiple attempts to leave/refresh.",
-          { duration: 4000 }
-        );
+        toast.success("Quiz auto-submitted due to multiple attempts.", {
+          duration: 4000,
+        });
         handleSubmit(true);
       }
     };
@@ -144,11 +145,6 @@ export default function Quiz() {
         }
       }
 
-      if (!isPreview && !results.phone && localStorage.getItem(attemptKey) === "true") {
-        navigate("/already-attempted", { state: { language } });
-        return;
-      }
-
       const { data, error } = await supabase
         .from("questions")
         .select("*")
@@ -167,7 +163,7 @@ export default function Quiz() {
     fetchQuestions();
   }, [selectedChapter]);
 
-  // Timer logic
+  // Timer
   useEffect(() => {
     if (isPreview) return;
     const timer = setInterval(() => {
@@ -180,10 +176,49 @@ export default function Quiz() {
         return t - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
+  const q = questions[current];
+  const options = useMemo(() => {
+    if (!q) return [];
+    return language === "en"
+      ? [q.option_a_en, q.option_b_en, q.option_c_en, q.option_d_en]
+      : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
+  }, [q, language]);
+
+  const correctAnswer = useMemo(() => {
+    if (!q) return null;
+    return language === "en" ? q.correct_answer : q.correct_answer_ta;
+  }, [q, language]);
+
+  // Handle select
+  const handleSelect = (option) => {
+    if (isPreview || showAnswer) return;
+
+    // ⭐ Track answer
+    answersTracker.current.push({
+      question: language === "en" ? q.question_en : q.question_ta,
+      correct_answer: correctAnswer,
+      user_answer: option,
+      chapter: selectedChapter,
+    });
+
+    setSelected(option);
+    setShowAnswer(true);
+
+    if (option === correctAnswer) setScore((prev) => prev + 1);
+
+    if (current < questions.length - 1) {
+      setTimeout(() => {
+        setSelected(null);
+        setShowAnswer(false);
+        setCurrent((prev) => prev + 1);
+      }, 800);
+    }
+  };
+
+  // Handle submit
   const handleSubmit = async (isAuto = false) => {
     if (hasSubmitted || quizSubmittedRef.current) return;
     quizSubmittedRef.current = true;
@@ -201,16 +236,36 @@ export default function Quiz() {
       created_at: new Date(),
     };
 
+    let resultInsert;
+
     if (!isPreview) {
       if (isAuto) {
         sessionStorage.setItem("pendingQuizResult", JSON.stringify(resultData));
       }
 
       try {
-        await supabase.from("results").insert([resultData]);
+        resultInsert = await supabase.from("results").insert([resultData]).select("id");
         sessionStorage.removeItem("pendingQuizResult");
       } catch (error) {
         console.error("Error submitting quiz:", error);
+      }
+    }
+
+    // ⭐ Save answers to answers_history with result_id
+    if (resultInsert?.data?.[0]?.id) {
+      const result_id = resultInsert.data[0].id;
+      const formattedAnswers = answersTracker.current.map((a) => ({
+        result_id,
+        phone: results.phone,
+        chapter: selectedChapter,
+        question: a.question,
+        correct_answer: a.correct_answer,
+        user_answer: a.user_answer,
+      }));
+      try {
+        await supabase.from("answers_history").insert(formattedAnswers);
+      } catch (err) {
+        console.error("Error saving answers_history:", err);
       }
     }
 
@@ -226,38 +281,8 @@ export default function Quiz() {
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  const q = questions[current];
-  const options = useMemo(() => {
-    if (!q) return [];
-    return language === "en"
-      ? [q.option_a_en, q.option_b_en, q.option_c_en, q.option_d_en]
-      : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
-  }, [q, language]);
-
-  const correctAnswer = useMemo(() => {
-    if (!q) return null;
-    return language === "en" ? q.correct_answer : q.correct_answer_ta;
-  }, [q, language]);
-
   const timePercent = (timeLeft / (quizDuration * 60)) * 100;
   const isWarningTime = timeLeft <= 300;
-
-  const handleSelect = (option) => {
-    if (isPreview || showAnswer) return;
-
-    setSelected(option);
-    setShowAnswer(true);
-
-    if (option === correctAnswer) setScore((prev) => prev + 1);
-
-    if (current < questions.length - 1) {
-      setTimeout(() => {
-        setSelected(null);
-        setShowAnswer(false);
-        setCurrent((prev) => prev + 1);
-      }, 800);
-    }
-  };
 
   if (loading)
     return (
@@ -293,10 +318,10 @@ export default function Quiz() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 text-gray-700 space-y-2 sm:space-y-0">
           <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
-            <PersonIcon fontSize="small" /> {results.name} 
+            <PersonIcon fontSize="small" /> {results.name}
           </p>
           <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
-            <LocationOnIcon fontSize="small" /> {results.place} 
+            <LocationOnIcon fontSize="small" /> {results.place}
           </p>
           <h2 className="text-lg sm:text-xl font-bold text-blue-700 text-center">
             {language === "en" ? "Chapter" : "அதிகாரம்"}:{" "}
@@ -325,10 +350,10 @@ export default function Quiz() {
             <div className="w-full bg-gray-200 h-3 rounded-full mb-2 overflow-hidden">
               <motion.div
                 className={`h-3 rounded-full ${warningCount === maxWarnings - 1
-                    ? "bg-red-800 animate-[pulse_0.5s_infinite]"
-                    : isWarningTime
-                      ? "bg-red-500"
-                      : "bg-green-500"
+                  ? "bg-red-800 animate-[pulse_0.5s_infinite]"
+                  : isWarningTime
+                    ? "bg-red-500"
+                    : "bg-green-500"
                   }`}
                 initial={{ width: "100%" }}
                 animate={{ width: `${timePercent}%` }}
@@ -339,8 +364,8 @@ export default function Quiz() {
             {warningCount > 0 && warningCount < maxWarnings && (
               <p
                 className={`text-xs sm:text-sm font-medium mb-2 text-center ${warningCount === maxWarnings - 1
-                    ? "text-red-800 animate-[pulse_0.5s_infinite]"
-                    : "text-red-600 animate-pulse"
+                  ? "text-red-800 animate-[pulse_0.5s_infinite]"
+                  : "text-red-600 animate-pulse"
                   }`}
               >
                 Warning {warningCount}/{maxWarnings - 1} – Quiz will auto-submit on the {maxWarnings}th attempt with 0 score
@@ -405,11 +430,10 @@ export default function Quiz() {
                 <button
                   onClick={() => setCurrent((prev) => Math.max(prev - 1, 0))}
                   disabled={current === 0}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${
-                    current === 0
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-blue-500 text-white hover:bg-blue-600"
-                  }`}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${current === 0
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                    }`}
                 >
                   Previous
                 </button>
@@ -426,11 +450,10 @@ export default function Quiz() {
                     setCurrent((prev) => Math.min(prev + 1, questions.length - 1))
                   }
                   disabled={current === questions.length - 1}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${
-                    current === questions.length - 1
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-blue-500 text-white hover:bg-blue-600"
-                  }`}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${current === questions.length - 1
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                    }`}
                 >
                   Next
                 </button>
