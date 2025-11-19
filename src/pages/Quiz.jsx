@@ -41,6 +41,12 @@ export default function Quiz() {
   // ⭐ Store answers for review
   const answersTracker = useRef([]);
 
+  // ⭐ Store quiz start time
+  useEffect(() => {
+    const now = new Date().toISOString();
+    localStorage.setItem("quiz_start_time", now);
+  }, []);
+
   // Restore pending quiz result
   useEffect(() => {
     const pending = sessionStorage.getItem("pendingQuizResult");
@@ -218,12 +224,23 @@ export default function Quiz() {
     }
   };
 
-  // Handle submit
+  // ⭐⭐⭐ UPDATED SUBMIT FUNCTION WITH TIME TRACKING
   const handleSubmit = async (isAuto = false) => {
     if (hasSubmitted || quizSubmittedRef.current) return;
     quizSubmittedRef.current = true;
     setHasSubmitted(true);
     localStorage.setItem(attemptKey, "true");
+
+    // ⏱ Get timestamps
+    const start_time = localStorage.getItem("quiz_start_time");
+    const end_time = new Date().toISOString();
+
+    let time_taken = null;
+    if (start_time) {
+      const start = new Date(start_time);
+      const end = new Date(end_time);
+      time_taken = Math.floor((end - start) / 1000); // seconds
+    }
 
     const resultData = {
       name: results.name,
@@ -233,7 +250,11 @@ export default function Quiz() {
       score,
       total: questions.length,
       language: language === "en" ? "English" : "Tamil",
-      created_at: new Date(),
+
+      // ⭐ New fields
+      start_time,
+      end_time,
+      time_taken,
     };
 
     let resultInsert;
@@ -251,9 +272,9 @@ export default function Quiz() {
       }
     }
 
-    // ⭐ Save answers to answers_history with result_id
     if (resultInsert?.data?.[0]?.id) {
       const result_id = resultInsert.data[0].id;
+
       const formattedAnswers = answersTracker.current.map((a) => ({
         result_id,
         phone: results.phone,
@@ -262,6 +283,7 @@ export default function Quiz() {
         correct_answer: a.correct_answer,
         user_answer: a.user_answer,
       }));
+
       try {
         await supabase.from("answers_history").insert(formattedAnswers);
       } catch (err) {
@@ -274,7 +296,13 @@ export default function Quiz() {
     }
 
     navigate(isPreview ? "/admin" : "/result", {
-      state: { ...results, score, total: questions.length, isPreview },
+      state: {
+        ...results,
+        score,
+        total: questions.length,
+        isPreview,
+        time_taken, // ⭐ pass into result page
+      },
     });
   };
 
@@ -306,7 +334,6 @@ export default function Quiz() {
         </h2>
       </div>
     );
-
   return (
     <div className="relative flex items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Toaster position="top-center" />

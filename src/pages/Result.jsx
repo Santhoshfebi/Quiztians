@@ -10,7 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 export default function Result() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { name, phone, place, score, total, chapter } = state || {};
+  const { name, phone, place, score, total, chapter, time_taken } = state || {};
 
   const [topPlayers, setTopPlayers] = useState([]);
   const [rank, setRank] = useState(null);
@@ -23,6 +23,14 @@ export default function Result() {
   const [displayRank, setDisplayRank] = useState(0);
 
   const animRef = useRef(null);
+
+  // Format time
+  const formatTime = (seconds) => {
+    if (!seconds) return "0m 0s";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s < 10 ? "0" + s : s}s`;
+  };
 
   // Fetch leaderboard
   useEffect(() => {
@@ -74,7 +82,7 @@ export default function Result() {
     };
   }, [name, phone, place, score, total, chapter]);
 
-  // Animate rank count-up
+  // Animate rank
   useEffect(() => {
     if (!rank || rank <= 0) {
       setDisplayRank(0);
@@ -82,16 +90,14 @@ export default function Result() {
     }
     let start = null;
     const duration = Math.max(500, Math.min(1200, rank * 80));
-    const from = 0;
-    const to = rank;
     const step = (timestamp) => {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.floor(from + (to - from) * eased);
+      const current = Math.floor(eased * rank);
       setDisplayRank(current);
       if (progress < 1) animRef.current = requestAnimationFrame(step);
-      else setDisplayRank(to);
+      else setDisplayRank(rank);
     };
     animRef.current = requestAnimationFrame(step);
     return () => {
@@ -99,7 +105,7 @@ export default function Result() {
     };
   }, [rank]);
 
-  // Share function
+  // Share
   const handleShare = () => {
     const isTop5 = rank && rank <= 5;
     const message = `🎉 Quiz Result 🎉
@@ -108,25 +114,31 @@ Place: ${place}
 Chapter: ${chapter}
 Score: ${score} / ${total}
 Rank: ${rank ? `#${rank}` : "Unranked"}
+⏱ Time Taken: ${formatTime(time_taken)}
 ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep trying to reach the top!"}`;
 
     if (navigator.share) {
-      navigator.share({
-        title: "My Quiz Result",
-        text: message,
-      }).catch(() => { });
+      navigator
+        .share({
+          title: "My Quiz Result",
+          text: message,
+        })
+        .catch(() => {});
     } else {
-      navigator.clipboard.writeText(message).then(() => {
-        toast.success("Result copied to clipboard! 🎉", {
-          position: "top-center",
-          autoClose: 2000,
+      navigator.clipboard
+        .writeText(message)
+        .then(() => {
+          toast.success("Result copied to clipboard! 🎉", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+        })
+        .catch(() => {
+          toast.error("Sharing not supported 😅", {
+            position: "top-center",
+            autoClose: 2000,
+          });
         });
-      }).catch(() => {
-        toast.error("Sharing not supported 😅", {
-          position: "top-center",
-          autoClose: 2000,
-        });
-      });
     }
   };
 
@@ -139,12 +151,25 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
   };
 
   const listVariant = { hidden: {}, show: { transition: { staggerChildren: 0.12 } } };
-  const itemVariant = { hidden: { opacity: 0, x: -24, scale: 0.98 }, show: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 120, damping: 16 } } };
+  const itemVariant = {
+    hidden: { opacity: 0, x: -24, scale: 0.98 },
+    show: {
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 120, damping: 16 },
+    },
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-6">
-        <DotLottieReact src="/lottie/Animationloading.json" loop autoplay style={{ width: 140, height: 140 }} />
+        <DotLottieReact
+          src="/lottie/Animationloading.json"
+          loop
+          autoplay
+          style={{ width: 140, height: 140 }}
+        />
       </div>
     );
   }
@@ -152,16 +177,25 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
   return (
     <>
       <ToastContainer />
-      {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={220} gravity={0.28} />}
+
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={220}
+          gravity={0.28}
+        />
+      )}
 
       <div className="min-h-screen w-full p-6 md:p-12 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex items-center justify-center">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
           {/* MAIN CARD */}
           <div className="lg:col-span-2 relative">
-            <div className={`relative rounded-3xl pt-10 pb-8 px-8 backdrop-blur-md bg-white/60 border ${getGlowClass()} border-white/30 transition-all flex flex-col items-center`}>
-
-              {/* Lottie Animation inside the card */}
+            <div
+              className={`relative rounded-3xl pt-10 pb-8 px-8 backdrop-blur-md bg-white/60 border ${getGlowClass()} border-white/30 transition-all flex flex-col items-center`}
+            >
               <AnimatePresence>
                 {(perfectScore || showTrophy) && (
                   <motion.div
@@ -172,9 +206,10 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
                   >
                     <div className="absolute w-72 h-72 rounded-3xl bg-gradient-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
                     <DotLottieReact
-                      src={perfectScore
-                        ? "/lottie/Trophy.json"
-                        : "/lottie/TrophyBadge.json"
+                      src={
+                        perfectScore
+                          ? "/lottie/Trophy.json"
+                          : "/lottie/TrophyBadge.json"
                       }
                       autoplay
                       loop={false}
@@ -187,7 +222,9 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
               {/* Header */}
               <div className="text-center mt-2 mb-6">
                 <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900">🎉 Quiz Completed</h1>
-                <p className="text-sm text-slate-600 mt-2">Thanks for participating — May knowledge bless your journey.</p>
+                <p className="text-sm text-slate-600 mt-2">
+                  Thanks for participating — May knowledge bless your journey.
+                </p>
               </div>
 
               {/* User Summary */}
@@ -201,61 +238,128 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
                       <div className="flex items-center gap-3">
                         <h2 className="text-xl font-semibold text-slate-900">{name || "Unknown"}</h2>
                         <span className="text-sm text-slate-500">({place || "—"})</span>
-                        {showChampionBadge && <span className="ml-2 inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold">🏅 Top 5 Champion</span>}
+                        {showChampionBadge && (
+                          <span className="ml-2 inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            🏅 Top 5 Champion
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm text-slate-500 mt-1">Chapter: <span className="font-medium text-slate-700">{chapter || "—"}</span></p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Chapter: <span className="font-medium text-slate-700">{chapter || "—"}</span>
+                      </p>
                     </div>
                   </div>
 
-                  {/* Score & Rank */}
-                  <div className="mt-5 flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm">
+                  {/* Score / Rank / Time */}
+                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                    {/* Score */}
+                    <div className="rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm">
                       <p className="text-sm text-slate-500">Score</p>
-                      <div className="text-3xl md:text-4xl font-extrabold text-emerald-600">{score} <span className="text-lg text-slate-500">/ {total}</span></div>
+                      <div className="text-3xl md:text-4xl font-extrabold text-emerald-600">
+                        {score} <span className="text-lg text-slate-500">/ {total}</span>
+                      </div>
                     </div>
-                    <div className="w-44 rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm flex flex-col justify-center items-start">
+
+                    {/* Rank */}
+                    <div className="rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm flex flex-col justify-center items-start">
                       <p className="text-sm text-slate-500">Rank</p>
-                      <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 160, damping: 14 }} className="text-2xl md:text-3xl font-extrabold text-indigo-700">
+                      <motion.div
+                        initial={{ scale: 0.96 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 160, damping: 14 }}
+                        className="text-2xl md:text-3xl font-extrabold text-indigo-700"
+                      >
                         {rank ? `#${displayRank}` : "Unranked"}
                       </motion.div>
                     </div>
+
+                    {/* Time Taken */}
+                    <div className="rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm flex flex-col justify-center items-start">
+                      <p className="text-sm text-slate-500">Time Taken</p>
+                      <div className="text-xl md:text-2xl font-extrabold text-blue-600">
+                        {formatTime(time_taken)}
+                      </div>
+                    </div>
+
                   </div>
+
                 </div>
 
-                {/* Action Buttons */}
+                {/* Buttons */}
                 <div className="flex flex-col gap-3">
-                  <button onClick={() => navigate("/")} className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">Back To Home</button>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg"
+                  >
+                    Back To Home
+                  </button>
+
                   <button
                     onClick={handleShare}
                     className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-bold hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"
                   >
                     Share Result
                   </button>
-                  <button onClick={() => navigate("/leaderboard", { state: { phone, chapter, name, score, total, place } })} className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">View Full Leaderboard</button>
-                  <button onClick={() => navigate("/review", { state: { phone, chapter } })} className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">Review Answers</button>
+
+                  <button
+                    onClick={() =>
+                      navigate("/leaderboard", {
+                        state: { phone, chapter, name, score, total, place },
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg"
+                  >
+                    View Full Leaderboard
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      navigate("/review", {
+                        state: { phone, chapter, time_taken },
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg"
+                  >
+                    Review Answers
+                  </button>
                 </div>
               </div>
 
               <div className="h-px bg-white/40 my-6 rounded w-full" />
-              <div className="text-sm text-slate-600 text-center">Your result is recorded. Keep learning and try to climb the leaderboard!</div>
-
+              <div className="text-sm text-slate-600 text-center">
+                Your result is recorded. Keep learning and try to climb the leaderboard!
+              </div>
             </div>
           </div>
 
-          {/* Leaderboard Sidebar */}
+          {/* Sidebar Leaderboard */}
           <aside className="space-y-4">
             <div className="rounded-2xl p-5 bg-gradient-to-b from-white/70 to-white/50 backdrop-blur-md border border-white/30 shadow">
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36 }}>
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.36 }}
+              >
                 <h3 className="text-lg font-semibold text-slate-800">Top Scorers</h3>
                 <p className="text-sm text-slate-500 mt-1">Leaderboard — {chapter || "—"}</p>
               </motion.div>
+
               <motion.ul variants={listVariant} initial="hidden" animate="show" className="mt-4 space-y-3">
-                {topPlayers.length === 0 && <li className="text-sm text-slate-500">No players for this chapter yet.</li>}
+                {topPlayers.length === 0 && (
+                  <li className="text-sm text-slate-500">No players for this chapter yet.</li>
+                )}
+
                 {topPlayers.map((p, i) => {
                   const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "🏅";
                   const highlight = rank === i + 1 ? "bg-indigo-50 border-indigo-200" : "bg-white";
+
                   return (
-                    <motion.li key={p.id ?? `${p.name}-${i}`} variants={itemVariant} className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${highlight}`}>
+                    <motion.li
+                      key={p.id ?? `${p.name}-${i}`}
+                      variants={itemVariant}
+                      className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${highlight}`}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">{medal}</div>
                         <div>
