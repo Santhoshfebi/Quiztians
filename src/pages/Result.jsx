@@ -173,8 +173,8 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
                     <div className="absolute w-72 h-72 rounded-3xl bg-gradient-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
                     <DotLottieReact
                       src={perfectScore
-                        ? "/lottie/Trophy.json"
-                        : "/lottie/TrophyBadge.json"
+                        ? "/public/lottie/Trophy.json"
+                        : "/public/lottie/TrophyBadge.json"
                       }
                       autoplay
                       loop={false}
