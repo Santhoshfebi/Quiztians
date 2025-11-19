@@ -91,7 +91,7 @@ export default function Leaderboard() {
           onClick={() => navigate(-1)}
           className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition shadow-md"
         >
-          🔙 Back
+          Back
         </button>
       </div>
 

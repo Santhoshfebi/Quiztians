@@ -4,6 +4,8 @@ import { supabase } from "../supabaseClient";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Confetti from "react-confetti";
 import { motion, AnimatePresence } from "framer-motion";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Result() {
   const { state } = useLocation();
@@ -22,16 +24,14 @@ export default function Result() {
 
   const animRef = useRef(null);
 
-  // Fetch leaderboard for the chapter
+  // Fetch leaderboard
   useEffect(() => {
     let mounted = true;
-
     const fetchLeaderboard = async () => {
       if (!chapter) {
         if (mounted) setLoading(false);
         return;
       }
-
       try {
         const { data, error } = await supabase
           .from("results")
@@ -43,7 +43,6 @@ export default function Result() {
         if (error) throw error;
         if (!mounted) return;
 
-        // Find the current user's rank
         const index = data.findIndex(
           (p) =>
             (phone && p.phone && p.phone === phone) ||
@@ -69,7 +68,6 @@ export default function Result() {
     };
 
     fetchLeaderboard();
-
     return () => {
       mounted = false;
       if (animRef.current) cancelAnimationFrame(animRef.current);
@@ -82,12 +80,10 @@ export default function Result() {
       setDisplayRank(0);
       return;
     }
-
     let start = null;
     const duration = Math.max(500, Math.min(1200, rank * 80));
     const from = 0;
     const to = rank;
-
     const step = (timestamp) => {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
@@ -97,40 +93,48 @@ export default function Result() {
       if (progress < 1) animRef.current = requestAnimationFrame(step);
       else setDisplayRank(to);
     };
-
     animRef.current = requestAnimationFrame(step);
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
   }, [rank]);
 
-  // Handle share
-  const handleShare = async () => {
-    const text = `🎉 Quiz Result 🎉
+  // Share function
+  const handleShare = () => {
+    const isTop5 = rank && rank <= 5;
+    const message = `🎉 Quiz Result 🎉
 Name: ${name}
 Place: ${place}
 Chapter: ${chapter}
 Score: ${score} / ${total}
-Rank: ${rank ? `#${rank}` : "Unranked"}`;
+Rank: ${rank ? `#${rank}` : "Unranked"}
+${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep trying to reach the top!"}`;
+
     if (navigator.share) {
-      try {
-        await navigator.share({ title: "My Quiz Result", text });
-      } catch {}
+      navigator.share({
+        title: "My Quiz Result",
+        text: message,
+      }).catch(() => { });
     } else {
-      try {
-        await navigator.clipboard.writeText(text);
-        alert("Result copied to clipboard.");
-      } catch {
-        alert("Sharing not supported.");
-      }
+      navigator.clipboard.writeText(message).then(() => {
+        toast.success("Result copied to clipboard! 🎉", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+      }).catch(() => {
+        toast.error("Sharing not supported 😅", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+      });
     }
   };
 
   const getGlowClass = () => {
-    if (rank === 1) return "border-yellow-400 shadow-[0_20px_50px_rgba(250,204,21,0.12)]";
-    if (rank === 2) return "border-slate-300 shadow-[0_20px_40px_rgba(148,163,184,0.08)]";
-    if (rank === 3) return "border-amber-600 shadow-[0_18px_40px_rgba(245,166,35,0.08)]";
-    if (rank > 3 && rank <= 5) return "border-blue-300 shadow-[0_16px_36px_rgba(59,130,246,0.06)]";
+    if (rank === 1) return "shadow-[0px_40px_80px_rgba(250,204,21,0.12)]";
+    if (rank === 2) return "shadow-[0px_10px_40px_rgba(255,210,76,1)]";
+    if (rank === 3) return "shadow-[0px_10px_40px_rgba(111,101,68,1)]";
+    if (rank > 3 && rank <= 5) return "shadow-[5px_16px_36px_rgba(59,130,246,6)]";
     return "border-transparent shadow-sm";
   };
 
@@ -140,36 +144,42 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-6">
-        <DotLottieReact src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie" loop autoplay style={{ width: 140, height: 140 }} />
+        <DotLottieReact src="/lottie/Animationloading.json" loop autoplay style={{ width: 140, height: 140 }} />
       </div>
     );
   }
 
   return (
     <>
+      <ToastContainer />
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={220} gravity={0.28} />}
 
       <div className="min-h-screen w-full p-6 md:p-12 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex items-center justify-center">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
           {/* MAIN CARD */}
-          <div className="lg:col-span-2">
-            <div className={`relative rounded-3xl p-8 backdrop-blur-md bg-white/60 border ${getGlowClass()} border-white/30 transition-all`}>
-              
-              {/* Perfect score */}
-              <AnimatePresence>
-                {perfectScore && (
-                  <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute left-1/2 -top-16 transform -translate-x-1/2">
-                    <DotLottieReact src="https://lottie.host/190c889f-c3d3-4f5c-8bcd-cd8e6f5e3ef0/SgZBAxJMAe.lottie" autoplay loop={false} style={{ width: 180, height: 180 }} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          <div className="lg:col-span-2 relative">
+            <div className={`relative rounded-3xl pt-10 pb-8 px-8 backdrop-blur-md bg-white/60 border ${getGlowClass()} border-white/30 transition-all flex flex-col items-center`}>
 
-              {/* Trophy */}
+              {/* Lottie Animation inside the card */}
               <AnimatePresence>
-                {showTrophy && !perfectScore && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex justify-center mb-4">
-                    <DotLottieReact src="https://lottie.host/3162ac9a-aa2f-4af4-a0d9-d2acf49074b6/HcTlc8K1iB.lottie" autoplay loop={false} style={{ width: 120, height: 120 }} />
+                {(perfectScore || showTrophy) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="w-56 h-56 rounded-3xl bg-white/40 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center mb-6 relative"
+                  >
+                    <div className="absolute w-72 h-72 rounded-3xl bg-gradient-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
+                    <DotLottieReact
+                      src={perfectScore
+                        ? "/lottie/Trophy.json"
+                        : "/lottie/TrophyBadge.json"
+                      }
+                      autoplay
+                      loop={false}
+                      style={{ width: 200, height: 200 }}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -177,11 +187,11 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
               {/* Header */}
               <div className="text-center mt-2 mb-6">
                 <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900">🎉 Quiz Completed</h1>
-                <p className="text-sm text-slate-600 mt-2">Thanks for participating — may knowledge bless your journey.</p>
+                <p className="text-sm text-slate-600 mt-2">Thanks for participating — May knowledge bless your journey.</p>
               </div>
 
               {/* User Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start w-full">
                 <div className="md:col-span-2">
                   <div className="flex items-start gap-4">
                     <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-300 to-purple-300 flex items-center justify-center text-white font-bold text-xl shadow-md">
@@ -203,7 +213,6 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
                       <p className="text-sm text-slate-500">Score</p>
                       <div className="text-3xl md:text-4xl font-extrabold text-emerald-600">{score} <span className="text-lg text-slate-500">/ {total}</span></div>
                     </div>
-
                     <div className="w-44 rounded-xl bg-white/80 border border-white/30 p-4 shadow-sm flex flex-col justify-center items-start">
                       <p className="text-sm text-slate-500">Rank</p>
                       <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 160, damping: 14 }} className="text-2xl md:text-3xl font-extrabold text-indigo-700">
@@ -215,15 +224,21 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
 
                 {/* Action Buttons */}
                 <div className="flex flex-col gap-3">
-                  <button onClick={() => navigate("/")} className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">🔄 Play Again</button>
-                  <button onClick={handleShare} className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">📤 Share Result</button>
-                  <button onClick={() => navigate("/leaderboard", { state: { phone, chapter, name, score, total, place } })} className="w-full px-4 py-3 rounded-xl border border-white/30 bg-white/70 text-slate-800 font-medium hover:bg-white transition shadow-sm">View Full Leaderboard</button>
-                  <button onClick={() => navigate("/review", { state: { phone, chapter } })} className="w-full px-4 py-3 rounded-xl border border-white/30 bg-white/70 text-slate-800 font-medium hover:bg-white transition shadow-sm">📘 Review Answers</button>
+                  <button onClick={() => navigate("/")} className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">Back To Home</button>
+                  <button
+                    onClick={handleShare}
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-bold hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"
+                  >
+                    Share Result
+                  </button>
+                  <button onClick={() => navigate("/leaderboard", { state: { phone, chapter, name, score, total, place } })} className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">View Full Leaderboard</button>
+                  <button onClick={() => navigate("/review", { state: { phone, chapter } })} className="w-full px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg">Review Answers</button>
                 </div>
               </div>
 
-              <div className="h-px bg-white/40 my-6 rounded" />
-              <div className="text-sm text-slate-600">Your result is recorded. Keep learning and try to climb the leaderboard!</div>
+              <div className="h-px bg-white/40 my-6 rounded w-full" />
+              <div className="text-sm text-slate-600 text-center">Your result is recorded. Keep learning and try to climb the leaderboard!</div>
+
             </div>
           </div>
 
@@ -265,6 +280,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}`;
               </ul>
             </div>
           </aside>
+
         </div>
       </div>
     </>
