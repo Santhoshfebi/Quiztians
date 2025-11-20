@@ -17,6 +17,7 @@ import {
   Card,
   CardContent,
   useMediaQuery,
+  Autocomplete,
 } from "@mui/material";
 
 export default function AddQuestions() {
@@ -27,6 +28,9 @@ export default function AddQuestions() {
   const [loading, setLoading] = useState(false);
 
   const [chapter, setChapter] = useState("");
+  const [allChapters, setAllChapters] = useState([]);
+  const [newChapters, setNewChapters] = useState([]); // Tracks recently added chapters
+
   const [question_en, setQuestionEn] = useState("");
   const [question_ta, setQuestionTa] = useState("");
   const [optionA_en, setOptionAEn] = useState("");
@@ -41,6 +45,7 @@ export default function AddQuestions() {
   const [correct_ta, setCorrectTa] = useState("");
   const [tabIndex, setTabIndex] = useState(0);
 
+  // Check admin access
   useEffect(() => {
     const checkAdmin = async () => {
       const { data } = await supabase.auth.getSession();
@@ -61,6 +66,21 @@ export default function AddQuestions() {
     checkAdmin();
   }, [navigate]);
 
+  // Fetch existing chapters
+  useEffect(() => {
+    const fetchChapters = async () => {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("chapter")
+        .not("chapter", "is", null);
+      if (!error && data) {
+        const uniqueChapters = [...new Set(data.map((q) => q.chapter))];
+        setAllChapters(uniqueChapters);
+      }
+    };
+    fetchChapters();
+  }, []);
+
   const allFieldsFilled =
     chapter &&
     question_en &&
@@ -76,6 +96,7 @@ export default function AddQuestions() {
     correct_en &&
     correct_ta;
 
+  // Add question handler
   const handleAddQuestion = async () => {
     if (!allFieldsFilled) {
       toast.error("Please fill all fields and select correct answers");
@@ -100,12 +121,26 @@ export default function AddQuestions() {
         created_at: new Date(),
       }]);
       if (error) throw error;
+
       toast.success("Question added successfully!");
+
+      // Dynamically add new chapter
+      if (chapter && !allChapters.includes(chapter)) {
+        setAllChapters((prev) => [...prev, chapter]);
+        setNewChapters((prev) => [...prev, chapter]);
+
+        // Remove "NEW" label automatically after 10 seconds
+        setTimeout(() => {
+          setNewChapters((prev) => prev.filter((ch) => ch !== chapter));
+        }, 10000);
+      }
+
       // Reset all fields
       setChapter(""); setQuestionEn(""); setQuestionTa("");
       setOptionAEn(""); setOptionBEn(""); setOptionCEn(""); setOptionDEn("");
       setOptionATa(""); setOptionBTa(""); setOptionCTa(""); setOptionDTa("");
       setCorrectEn(""); setCorrectTa("");
+
     } catch (err) {
       console.error(err);
       toast.error("Failed to add question");
@@ -148,15 +183,39 @@ export default function AddQuestions() {
           </Typography>
 
           <Stack spacing={4}>
-            {/* Chapter */}
-            <TextField
-              label="Chapter"
+            {/* Chapter Autocomplete with auto-fading "NEW" label */}
+            <Autocomplete
+              freeSolo
+              options={allChapters}
               value={chapter}
-              onChange={(e) => setChapter(e.target.value)}
-              fullWidth
+              onChange={(event, newValue) => setChapter(newValue || "")}
+              onInputChange={(event, newInputValue) => setChapter(newInputValue)}
+              renderOption={(props, option) => (
+                <Box
+                  component="li"
+                  {...props}
+                  sx={{
+                    fontWeight: newChapters.includes(option) ? "bold" : "normal",
+                    backgroundColor: newChapters.includes(option) ? "#e3f2fd" : "inherit",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  {option}
+                  {newChapters.includes(option) && (
+                    <Typography variant="caption" color="primary" sx={{ ml: 1, fontWeight: "bold" }}>
+                      NEW
+                    </Typography>
+                  )}
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField {...params} label="Chapter" fullWidth />
+              )}
             />
 
-            {/* Question */}
+            {/* Question Tabs */}
             <Tabs value={tabIndex} onChange={(e, val) => setTabIndex(val)} textColor="primary" indicatorColor="primary">
               <Tab label="English" />
               <Tab label="Tamil" />

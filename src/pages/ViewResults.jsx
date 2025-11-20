@@ -71,7 +71,11 @@ export default function ViewResults() {
     fetchResults();
     const channel = supabase
       .channel("results_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "results" }, fetchResults)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "results" },
+        fetchResults
+      )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -85,7 +89,9 @@ export default function ViewResults() {
     if (chapter && chapter !== "All") target = `Chapter "${chapter}"`;
     if (phone) target = `Phone "${phone}"`;
 
-    const confirmReset = window.confirm(`Are you sure you want to reset results for ${target}?`);
+    const confirmReset = window.confirm(
+      `Are you sure you want to reset results for ${target}?`
+    );
     if (!confirmReset) return;
 
     try {
@@ -107,7 +113,7 @@ export default function ViewResults() {
   };
 
   /* -------------------------
-     FILTERED DATA
+     FILTERED DATA (with showHighestScore)
   ------------------------- */
   const filteredRows = useMemo(() => {
     let rows = [...allRows];
@@ -127,8 +133,40 @@ export default function ViewResults() {
     if (placeFilter)
       rows = rows.filter((r) => r.place === placeFilter);
 
+    // Show highest score per phone + chapter
+    if (showHighestScore) {
+      const best = {};
+      rows.forEach((r) => {
+        const key = `${r.phone}-${r.chapter}`;
+        if (!best[key] || r.score > best[key].score) best[key] = r;
+      });
+      rows = Object.values(best);
+    }
+
     return rows;
-  }, [allRows, search, chapterFilter, languageFilter, placeFilter]);
+  }, [allRows, search, chapterFilter, languageFilter, placeFilter, showHighestScore]);
+
+  /* -------------------------
+     CSV EXPORT
+  ------------------------- */
+  const handleCSVExport = () => {
+    if (!filteredRows.length) return;
+    const headers = Object.keys(filteredRows[0]);
+    const csvRows = [
+      headers.join(","),
+      ...filteredRows.map((row) =>
+        headers.map((field) => `"${row[field] ?? ""}"`).join(",")
+      ),
+    ];
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "results.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   /* -------------------------
      LOADING
@@ -149,8 +187,9 @@ export default function ViewResults() {
 
       <HeaderBar
         onBack={() => navigate("/admin")}
-        onCSV={() => { }}
+        onCSV={handleCSVExport}
         onOpenReset={() => setResetDialogOpen(true)}
+        filteredRows={filteredRows} // optional for reference
       />
 
       <StatsCards allRows={allRows} />
@@ -176,7 +215,7 @@ export default function ViewResults() {
       <ResultsTable
         filteredRows={filteredRows}
         showDuplicates={showDuplicates}
-        onResetIndividual={handleResetAttempt} // pass individual reset
+        onResetIndividual={handleResetAttempt} 
       />
 
       <ResetDialog
@@ -185,7 +224,7 @@ export default function ViewResults() {
         selectedChapter={selectedResetChapter}
         setSelectedChapter={setSelectedResetChapter}
         onConfirm={(chapter) => handleResetAttempt(null, chapter)}
-        chapters={[...new Set(allRows.map(r => r.chapter).filter(Boolean))]} // dynamic chapter list
+        chapters={[...new Set(allRows.map(r => r.chapter).filter(Boolean))]}
       />
     </Container>
   );

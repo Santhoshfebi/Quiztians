@@ -11,7 +11,7 @@ import { useTheme } from "@mui/material/styles";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
-export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
+export default function HeaderBar({ onBack, onOpenReset, filteredRows }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [scrolled, setScrolled] = useState(false);
@@ -34,6 +34,26 @@ export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
     },
   };
 
+  // CSV Export function
+  const exportToCSV = (data, filename = "results.csv") => {
+    if (!data || !data.length) return;
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+      headers.join(","), // header row
+      ...data.map((row) =>
+        headers.map((field) => `"${row[field] ?? ""}"`).join(",")
+      ),
+    ];
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box
       position="sticky"
@@ -50,12 +70,7 @@ export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
       }}
     >
       {/* Top Row */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        width="100%"
-      >
+      <Box display="flex" justifyContent="space-between" alignItems="center">
         {/* Title */}
         <Box>
           <Typography variant={isMobile ? "h6" : "h4"} fontWeight={700}>
@@ -84,7 +99,7 @@ export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
               startIcon={<Download />}
               variant="contained"
               sx={{ borderRadius: 2 }}
-              onClick={onCSV}
+              onClick={() => exportToCSV(filteredRows)}
             >
               Export CSV
             </Button>
@@ -103,7 +118,10 @@ export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
 
         {/* Mobile Hamburger */}
         {isMobile && (
-          <IconButton onClick={() => setMenuOpen(!menuOpen)}>
+          <IconButton
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Open menu"
+          >
             <Menu />
           </IconButton>
         )}
@@ -147,7 +165,7 @@ export default function HeaderBar({ onBack, onCSV, onOpenReset }) {
                   fullWidth
                   startIcon={<Download />}
                   variant="contained"
-                  onClick={onCSV}
+                  onClick={() => exportToCSV(filteredRows)}
                   sx={{ borderRadius: 2 }}
                 >
                   Export CSV

@@ -7,18 +7,19 @@ import {
   Select,
   MenuItem,
   Button,
-  Divider,
   Chip,
   FormControlLabel,
   Switch,
   IconButton,
+  Checkbox,
+  Box,
   useMediaQuery,
   useTheme,
   Collapse,
-  Slide,
+  Typography,
   Fade,
 } from "@mui/material";
-import { Search, ClearAll, ExpandMore, ExpandLess } from "@mui/icons-material";
+import { Search, ClearAll, ExpandMore } from "@mui/icons-material";
 import { useState } from "react";
 
 export default function FiltersPanel({
@@ -53,238 +54,139 @@ export default function FiltersPanel({
     setShowHighestScore(false);
   };
 
+  const filterChips = [
+    ...chapterFilter.map((c) => ({ label: c, color: "primary", onDelete: () => setChapterFilter(chapterFilter.filter((x) => x !== c)) })),
+    languageFilter && { label: languageFilter, color: "success", onDelete: () => setLanguageFilter("") },
+    placeFilter && { label: placeFilter, color: "warning", onDelete: () => setPlaceFilter("") },
+    showDuplicates && { label: "Duplicates", color: "secondary", onDelete: () => setShowDuplicates(false) },
+    showHighestScore && { label: "Highest Score", color: "secondary", onDelete: () => setShowHighestScore(false) },
+  ].filter(Boolean);
+
+  const ChapterDropdown = () => (
+    <FormControl size="small" sx={{ minWidth: 200, flex: isMobile ? "1 1 100%" : 1 }}>
+      <InputLabel>Chapter</InputLabel>
+      <Select
+        multiple
+        value={chapterFilter}
+        onChange={(e) => setChapterFilter(e.target.value)}
+        label="Chapter"
+        renderValue={(selected) => (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+            {selected.map((value) => (
+              <Chip key={value} label={value} size="small" color="primary" sx={{ borderRadius: 8 }} />
+            ))}
+          </Box>
+        )}
+        sx={{
+          "& .MuiSelect-select": {
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 4,
+          },
+        }}
+      >
+        {chapterOptions.map((chapter) => (
+          <MenuItem key={chapter} value={chapter} sx={{ "&:hover": { backgroundColor: theme.palette.action.hover } }}>
+            <Checkbox checked={chapterFilter.includes(chapter)} color="primary" />
+            <Typography variant="body2" sx={{ ml: 1 }}>{chapter}</Typography>
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+
   return (
     <Paper
       sx={{
-        p: 3,
+        p: isMobile ? 2 : 3,
         mb: 4,
-        borderRadius: 3,
-        boxShadow: 3,
+        borderRadius: 4,
+        boxShadow: "0px 10px 30px rgba(0,0,0,0.08)",
         backgroundColor: theme.palette.background.paper,
-        transition: "all 0.3s ease",
       }}
     >
-      {/* Top Row: Search + Clear + Toggle */}
-      <Stack
-        direction={isMobile ? "column" : "row"}
-        spacing={2}
-        alignItems={isMobile ? "stretch" : "center"}
-      >
+      {/* Active Filters */}
+      {filterChips.length > 0 && (
+        <Stack direction="row" spacing={1.5} flexWrap="wrap" mb={2.5} alignItems="center">
+          {filterChips.map((chip) => (
+            <Fade key={chip.label} in timeout={200}>
+              <Chip
+                label={chip.label}
+                color={chip.color}
+                size="small"
+                onDelete={chip.onDelete}
+                sx={{
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": { transform: "scale(1.05)", boxShadow: theme.shadows[3] },
+                }}
+              />
+            </Fade>
+          ))}
+          <Button variant="text" size="small" onClick={clearFilters} startIcon={<ClearAll />} sx={{ ml: 1 }}>
+            Clear All
+          </Button>
+        </Stack>
+      )}
+
+      {/* Search + Mobile toggle */}
+      <Stack direction={isMobile ? "column" : "row"} spacing={isMobile ? 2.5 : 2} alignItems={isMobile ? "stretch" : "center"}>
         <TextField
-          placeholder="Search name / phone / chapter..."
+          placeholder="Search name, phone, chapter..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           size="small"
           fullWidth
-          InputProps={{
-            startAdornment: <Search sx={{ mr: 1, color: "text.secondary" }} />,
-          }}
+          InputProps={{ startAdornment: <Search sx={{ mr: 1, color: "text.secondary" }} /> }}
           sx={{
-            borderRadius: 2,
             "& .MuiOutlinedInput-root": {
+              borderRadius: 3,
               "&:hover fieldset": { borderColor: theme.palette.primary.light },
-              "&.Mui-focused fieldset": {
-                borderColor: theme.palette.primary.main,
-                boxShadow: `0 0 5px ${theme.palette.primary.light}`,
-              },
-              transition: "all 0.3s ease",
+              "&.Mui-focused fieldset": { borderColor: theme.palette.primary.main, boxShadow: `0 0 5px ${theme.palette.primary.light}` },
             },
           }}
         />
 
-        <Stack direction="row" spacing={1} justifyContent={isMobile ? "space-between" : "flex-end"}>
-          <Button
-            variant="outlined"
-            startIcon={<ClearAll />}
-            onClick={clearFilters}
-            sx={{
-              textTransform: "none",
-              fontWeight: 500,
-              transition: "all 0.2s",
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              },
-            }}
-          >
-            Clear
-          </Button>
-
-          {isMobile && (
-            <IconButton
-              onClick={() => setAdvancedOpen(!advancedOpen)}
-              sx={{
-                transition: "transform 0.3s",
-                transform: advancedOpen ? "rotate(180deg)" : "rotate(0deg)",
-              }}
-            >
-              <ExpandMore />
-            </IconButton>
-          )}
-        </Stack>
+        {isMobile && (
+          <IconButton onClick={() => setAdvancedOpen(!advancedOpen)}>
+            <ExpandMore sx={{ transition: "transform 0.3s", transform: advancedOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+          </IconButton>
+        )}
       </Stack>
 
-      {/* Advanced Filters with Slide+Fade */}
-      {isMobile ? (
-        <Slide direction="down" in={advancedOpen} mountOnEnter unmountOnExit>
-          <Fade in={advancedOpen}>
-            <Stack spacing={2} mt={2}>
-              <Dropdown
-                label="Chapter"
-                value={chapterFilter}
-                onChange={setChapterFilter}
-                multiple
-                options={chapterOptions}
-                fullWidth
-              />
-              <Dropdown
-                label="Language"
-                value={languageFilter}
-                onChange={setLanguageFilter}
-                options={languageOptions}
-                allOption
-                fullWidth
-              />
-              <Dropdown
-                label="Place"
-                value={placeFilter}
-                onChange={setPlaceFilter}
-                options={placeOptions}
-                allOption
-                fullWidth
-              />
-              <Divider sx={{ my: 1 }} />
-              <Stack direction="column" spacing={1}>
-                <Chip
-                  label={`Active Filters`}
-                  color="primary"
-                  size="small"
-                  sx={{
-                    fontWeight: 500,
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    "&:hover": { transform: "scale(1.05)", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" },
-                  }}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showDuplicates}
-                      onChange={(e) => setShowDuplicates(e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label="Show Duplicates"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showHighestScore}
-                      onChange={(e) => setShowHighestScore(e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label="Highest Score Only"
-                />
-              </Stack>
-            </Stack>
-          </Fade>
-        </Slide>
-      ) : (
-        <Collapse in={advancedOpen} timeout={300}>
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            mt={2}
-            flexWrap="wrap"
-          >
-            <Dropdown
-              label="Chapter"
-              value={chapterFilter}
-              onChange={setChapterFilter}
-              multiple
-              options={chapterOptions}
+      {/* Advanced Filters */}
+      <Collapse in={advancedOpen} timeout={300}>
+        <Stack direction="column" spacing={2.5} mt={2}>
+          <ChapterDropdown />
+          <Dropdown label="Language" value={languageFilter} onChange={setLanguageFilter} options={languageOptions} allOption fullWidth />
+          <Dropdown label="Place" value={placeFilter} onChange={setPlaceFilter} options={placeOptions} allOption fullWidth />
+          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+            <FormControlLabel
+              control={<Switch checked={showDuplicates} onChange={(e) => setShowDuplicates(e.target.checked)} color="secondary" />}
+              label="Show Duplicates"
             />
-            <Dropdown
-              label="Language"
-              value={languageFilter}
-              onChange={setLanguageFilter}
-              options={languageOptions}
-              allOption
+            <FormControlLabel
+              control={<Switch checked={showHighestScore} onChange={(e) => setShowHighestScore(e.target.checked)} color="secondary" />}
+              label="Highest Score Only"
             />
-            <Dropdown
-              label="Place"
-              value={placeFilter}
-              onChange={setPlaceFilter}
-              options={placeOptions}
-              allOption
-            />
-            <Stack direction="row" spacing={2} alignItems="center" justifyContent="flex-end" ml="auto">
-              <Chip
-                label={`Active Filters`}
-                color="primary"
-                size="small"
-                sx={{
-                  fontWeight: 500,
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                  "&:hover": { transform: "scale(1.05)", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" },
-                }}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showDuplicates}
-                    onChange={(e) => setShowDuplicates(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="Show Duplicates"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showHighestScore}
-                    onChange={(e) => setShowHighestScore(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="Highest Score Only"
-              />
-            </Stack>
           </Stack>
-        </Collapse>
-      )}
+        </Stack>
+      </Collapse>
     </Paper>
   );
 }
 
-/* ---------------- Dropdown Component ---------------- */
-function Dropdown({ label, value, onChange, options, multiple, allOption, fullWidth }) {
+function Dropdown({ label, value, onChange, options, allOption, fullWidth, color = "default" }) {
   return (
-    <FormControl
-      size="small"
-      sx={{
-        minWidth: fullWidth ? "100%" : 180,
-        flex: fullWidth ? "1 1 100%" : "0 1 180px",
-        transition: "all 0.3s ease",
-        "& .MuiOutlinedInput-root": {
-          borderRadius: 2,
-          "&:hover fieldset": { borderColor: "#1976d2", boxShadow: "0 0 5px rgba(25,118,210,0.2)" },
-          "&.Mui-focused fieldset": { borderColor: "#1976d2", boxShadow: "0 0 8px rgba(25,118,210,0.3)" },
-        },
-      }}
-    >
+    <FormControl size="small" sx={{ minWidth: fullWidth ? "100%" : 180, flex: fullWidth ? "1 1 100%" : "0 1 180px" }}>
       <InputLabel>{label}</InputLabel>
-      <Select
-        multiple={multiple}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        label={label}
-        renderValue={(selected) => Array.isArray(selected) ? selected.join(", ") : selected}
-      >
+      <Select value={value} onChange={(e) => onChange(e.target.value)} label={label}>
         {allOption && <MenuItem value="">All</MenuItem>}
         {options.map((opt) => (
-          <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+          <MenuItem key={opt} value={opt}>
+            {opt}
+          </MenuItem>
         ))}
       </Select>
     </FormControl>

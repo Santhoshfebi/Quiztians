@@ -132,7 +132,7 @@ export default function ChaptersPreview() {
         {/* Total Chapters Summary */}
         <div className="flex justify-center mb-8">
           <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center">
-            <p className="text-gray-500 text-sm">Total Bilingual Chapters</p>
+            <p className="text-gray-500 text-sm">Total Chapters</p>
             <p className="text-4xl font-bold text-blue-700">{chapters.length}</p>
           </div>
         </div>
