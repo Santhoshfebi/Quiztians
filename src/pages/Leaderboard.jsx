@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { motion } from "framer-motion";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 export default function Leaderboard() {
   const { state } = useLocation();
@@ -73,14 +74,19 @@ export default function Leaderboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-6">
-        <div className="text-indigo-700 font-bold text-xl animate-pulse">Loading leaderboard...</div>
+        <DotLottieReact
+          src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
+          loop
+          autoplay
+          style={{ width: 140, height: 140 }}
+        />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen w-full p-4 md:p-10 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex flex-col items-center">
-      
+
       {/* Header */}
       <div className="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-extrabold text-slate-900">🏆 Leaderboard</h1>
@@ -91,7 +97,7 @@ export default function Leaderboard() {
           onClick={() => navigate(-1)}
           className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition shadow-md"
         >
-          Back
+          ← Back
         </button>
       </div>
 

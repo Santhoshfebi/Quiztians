@@ -107,15 +107,23 @@ export default function Result() {
 
   // Share
   const handleShare = () => {
-    const isTop5 = rank && rank <= 5;
-    const message = `🎉 Quiz Result 🎉
+    let message = `🎉 Quiz Result 🎉
 Name: ${name}
 Place: ${place}
 Chapter: ${chapter}
 Score: ${score} / ${total}
 Rank: ${rank ? `#${rank}` : "Unranked"}
 ⏱ Time Taken: ${formatTime(time_taken)}
-${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep trying to reach the top!"}`;
+`;
+
+    if (score === 0 && total === 0) {
+      message += "Try to follow the rules next time :)";
+    } else {
+      const isTop5 = rank && rank <= 5;
+      message += isTop5
+        ? "🏆 Congratulations! You are among the top 5! For now"
+        : "Keep trying to reach the top!";
+    }
 
     if (navigator.share) {
       navigator
@@ -123,7 +131,7 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
           title: "My Quiz Result",
           text: message,
         })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       navigator.clipboard
         .writeText(message)
@@ -178,7 +186,7 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
     <>
       <ToastContainer />
 
-      {showConfetti && (
+      {showConfetti && !(score === 0 && total === 0) && (
         <Confetti
           width={window.innerWidth}
           height={window.innerHeight}
@@ -197,23 +205,44 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
               className={`relative rounded-3xl pt-10 pb-8 px-8 backdrop-blur-md bg-white/60 border ${getGlowClass()} border-white/30 transition-all flex flex-col items-center`}
             >
               <AnimatePresence>
-                {(perfectScore || showTrophy) && (
+                {score === 0 && total === 0 ? (
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="w-56 h-56 rounded-3xl bg-white/40 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center mb-6 relative"
+                    className="w-40 sm:w-52 md:w-56 h-40 sm:h-52 md:h-56 rounded-3xl bg-white/40 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center mb-6 relative"
                   >
-                    <div className="absolute w-72 h-72 rounded-3xl bg-gradient-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
+                    <div className="absolute w-64 sm:w-72 h-64 sm:h-72 rounded-3xl bg-gradient-to-tr from-gray-300 via-gray-400 to-gray-500 opacity-20 blur-3xl -z-10" />
                     <DotLottieReact
-                      src={
-                        perfectScore
-                          ? "/lottie/Trophy.json"
-                          : "/lottie/TrophyBadge.json"
-                      }
+                      src="/lottie/Lowscore.json"
                       autoplay
                       loop={false}
-                      style={{ width: 200, height: 200 }}
+                      style={{
+                        width: "70%",   // scales with container
+                        height: "70%",
+                        maxWidth: 200,  // max size
+                        maxHeight: 200,
+                      }}
+                    />
+                  </motion.div>
+                ) : (perfectScore || showTrophy) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="w-40 sm:w-52 md:w-56 h-40 sm:h-52 md:h-56 rounded-3xl bg-white/40 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center mb-6 relative"
+                  >
+                    <div className="absolute w-64 sm:w-72 h-64 sm:h-72 rounded-3xl bg-gradient-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
+                    <DotLottieReact
+                      src={perfectScore ? "/lottie/Trophy.json" : "/lottie/TrophyBadge.json"}
+                      autoplay
+                      loop={false}
+                      style={{
+                        width: "70%",
+                        height: "70%",
+                        maxWidth: 200,
+                        maxHeight: 200,
+                      }}
                     />
                   </motion.div>
                 )}
@@ -222,9 +251,25 @@ ${isTop5 ? "🏆 Congratulations! You are among the top 5! For now" : "Keep tryi
               {/* Header */}
               <div className="text-center mt-2 mb-6">
                 <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900">🎉 Quiz Completed</h1>
-                <p className="text-sm text-slate-600 mt-2">
-                  Thanks for participating — May knowledge bless your journey.
-                </p>
+                <div className="text-center mt-2 mb-6">
+                  {/* Dynamic message */}
+                  <p className="text-sm text-slate-600 mt-2">
+                    Thanks for participating — May knowledge bless your journey.
+                  </p>
+                  {/* Dynamic message */}
+                  <p
+                    className={`text-sm mt-2 ${score === 0 && total === 0
+                        ? "text-red-600 font-semibold"
+                        : "text-slate-600"
+                      }`}
+                  >
+                    {score === 0 && total === 0
+                      ? "Try to follow the rules next time :)"
+                      : perfectScore
+                        ? "🏆 Congratulations! Perfect Score!"
+                        : ""}
+                  </p>
+                </div>
               </div>
 
               {/* User Summary */}
