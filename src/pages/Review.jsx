@@ -7,7 +7,7 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 export default function ReviewPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { phone, chapter } = state || {};
+  const { phone, chapter, language: initialLanguage = "ta" } = state || {}; // default Tamil
 
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
@@ -15,7 +15,22 @@ export default function ReviewPage() {
   const [merged, setMerged] = useState([]);
   const [filter, setFilter] = useState("all");
   const [totalTime, setTotalTime] = useState(0);
+  const [language, setLanguage] = useState(initialLanguage);
 
+  // Supported languages
+  const languages = [
+    { code: "ta", label: "Tamil" },
+    { code: "en", label: "English" },
+    // add more languages if available
+  ];
+
+  // Helper to get field by language
+  const getFieldByLanguage = (item, field) => {
+    const key = `${field}_${language}`;
+    return item[key] || item[field] || "N/A";
+  };
+
+  // Load data from Supabase
   useEffect(() => {
     if (!phone || !chapter) {
       navigate("/");
@@ -23,7 +38,9 @@ export default function ReviewPage() {
     }
 
     const loadReviewData = async () => {
+      setLoading(true);
       try {
+        // Total time
         const { data: resultRow } = await supabase
           .from("results")
           .select("time_taken")
@@ -32,6 +49,7 @@ export default function ReviewPage() {
           .single();
         if (resultRow) setTotalTime(resultRow.time_taken || 0);
 
+        // Questions
         const { data: qData, error: qError } = await supabase
           .from("questions")
           .select("*")
@@ -40,6 +58,7 @@ export default function ReviewPage() {
         if (qError) throw qError;
         setQuestions(qData || []);
 
+        // User answers
         const { data: aData, error: aError } = await supabase
           .from("answers_history")
           .select("*")
@@ -48,18 +67,22 @@ export default function ReviewPage() {
         if (aError) throw aError;
         setAnswers(aData || []);
 
+        // Merge questions & answers
         const mergedData = (qData || []).map((q) => {
-          const userAns = (aData || []).find((a) => a.question === q.question_en);
+          const userAns = (aData || []).find(
+            (a) => a.question === getFieldByLanguage(q, "question")
+          );
           return {
             id: q.id,
-            question: q.question_en,
-            correct_answer: q.correct_answer,
-            explanation: q.explanation || "",
+            question: getFieldByLanguage(q, "question"),
+            correct_answer: getFieldByLanguage(q, "correct_answer"),
+            explanation: getFieldByLanguage(q, "explanation") || "",
             user_answer: userAns ? userAns.user_answer : "Not Answered",
             is_correct: userAns ? userAns.is_correct : false,
             attempted: !!userAns,
           };
         });
+
         setMerged(mergedData);
       } catch (err) {
         console.error("Error loading review:", err);
@@ -69,8 +92,9 @@ export default function ReviewPage() {
     };
 
     loadReviewData();
-  }, [phone, chapter, navigate]);
+  }, [phone, chapter, navigate, language]);
 
+  // Filtered list
   const filtered = merged.filter((item) => {
     if (filter === "all") return true;
     if (filter === "correct") return item.is_correct;
@@ -80,6 +104,7 @@ export default function ReviewPage() {
     return true;
   });
 
+  // Counts
   const totalQuestions = merged.length;
   const correctCount = merged.filter((m) => m.is_correct).length;
   const incorrectCount = merged.filter(
@@ -116,6 +141,25 @@ export default function ReviewPage() {
         <p className="text-sm sm:text-base text-slate-600 mt-2">
           Chapter: <span className="font-medium text-slate-700">{chapter}</span> | Total Questions: <span className="font-medium text-slate-700">{totalQuestions}</span> | Time Taken: <span className="font-medium text-slate-700">{formatTime(totalTime)}</span>
         </p>
+        <p className="text-lg font-semibold text-indigo-600 animate-pulse">
+          Choose your language if you attend in English to see the questions and answers!
+        </p>
+
+        {/* Language Selector */}
+        <div className="mt-4 flex justify-center items-center gap-2">
+          <span className="text-slate-700 font-medium">Language:</span>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="px-3 py-1 rounded-md border border-gray-300 bg-white shadow-sm"
+          >
+            {languages.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -140,11 +184,10 @@ export default function ReviewPage() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 sm:px-4 py-2 rounded-full font-semibold text-sm sm:text-base transition-colors ${
-              filter === f
-                ? "bg-indigo-600 text-white"
-                : "bg-white/60 text-slate-700 hover:bg-white/80"
-            } border border-white/30 shadow`}
+            className={`px-3 sm:px-4 py-2 rounded-full font-semibold text-sm sm:text-base transition-colors ${filter === f
+              ? "bg-indigo-600 text-white"
+              : "bg-white/60 text-slate-700 hover:bg-white/80"
+              } border border-white/30 shadow`}
           >
             {f === "not_attempted" ? "Not Attempted" : f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
@@ -161,30 +204,28 @@ export default function ReviewPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: idx * 0.04 }}
-              className={`p-4 sm:p-5 rounded-2xl shadow-md border border-white/30 bg-white/60 backdrop-blur-md ${
-                a.user_answer === "Not Answered"
-                  ? "border-gray-300"
-                  : a.is_correct
+              className={`p-4 sm:p-5 rounded-2xl shadow-md border border-white/30 bg-white/60 backdrop-blur-md ${a.user_answer === "Not Answered"
+                ? "border-gray-300"
+                : a.is_correct
                   ? "border-green-500 bg-green-50/50"
                   : "border-red-500 bg-red-50/50"
-              }`}
+                }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
                 <p className="font-semibold text-slate-900 break-words">{a.question}</p>
                 <span
-                  className={`mt-1 sm:mt-0 px-2 py-1 rounded-full text-xs sm:text-sm font-semibold ${
-                    a.user_answer === "Not Answered"
-                      ? "bg-gray-300 text-slate-800"
-                      : a.is_correct
+                  className={`mt-1 sm:mt-0 px-2 py-1 rounded-full text-xs sm:text-sm font-semibold ${a.user_answer === "Not Answered"
+                    ? "bg-gray-300 text-slate-800"
+                    : a.is_correct
                       ? "bg-green-200 text-green-800"
                       : "bg-red-200 text-red-800"
-                  }`}
+                    }`}
                 >
                   {a.user_answer === "Not Answered"
                     ? "Not Answered"
                     : a.is_correct
-                    ? "Correct"
-                    : "Incorrect"}
+                      ? "Correct"
+                      : "Incorrect"}
                 </span>
               </div>
 
@@ -195,10 +236,6 @@ export default function ReviewPage() {
               <p className="text-sm sm:text-base text-slate-700 mt-1">
                 Correct Answer: <span className="font-medium">{a.correct_answer}</span>
               </p>
-
-              {a.explanation && (
-                <p className="text-xs sm:text-sm text-slate-500 mt-1 italic">{a.explanation}</p>
-              )}
             </motion.div>
           ))}
         </AnimatePresence>

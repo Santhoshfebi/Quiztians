@@ -15,7 +15,7 @@ export default function Quiz() {
   const { state } = useLocation();
   const results = state || {};
 
-  const language = results.language || "en";
+  const language = results.language || "en"; // 'en' or 'ta'
   const selectedChapter =
     results.chapter || localStorage.getItem("selectedChapter");
   const isPreview = results.isPreview || false;
@@ -186,6 +186,8 @@ export default function Quiz() {
   }, []);
 
   const q = questions[current];
+
+  // ⭐ Multilingual options
   const options = useMemo(() => {
     if (!q) return [];
     return language === "en"
@@ -193,6 +195,7 @@ export default function Quiz() {
       : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
   }, [q, language]);
 
+  // ⭐ Correct answer based on language
   const correctAnswer = useMemo(() => {
     if (!q) return null;
     return language === "en" ? q.correct_answer : q.correct_answer_ta;
@@ -202,12 +205,13 @@ export default function Quiz() {
   const handleSelect = (option) => {
     if (isPreview || showAnswer) return;
 
-    // ⭐ Track answer
+    // ⭐ Track answer with language
     answersTracker.current.push({
       question: language === "en" ? q.question_en : q.question_ta,
       correct_answer: correctAnswer,
       user_answer: option,
       chapter: selectedChapter,
+      lang: language, // ✅ store language for review
     });
 
     setSelected(option);
@@ -224,22 +228,20 @@ export default function Quiz() {
     }
   };
 
-  // ⭐⭐⭐ UPDATED SUBMIT FUNCTION WITH TIME TRACKING
+  // ⭐ Submit function with language-aware answers
   const handleSubmit = async (isAuto = false) => {
     if (hasSubmitted || quizSubmittedRef.current) return;
     quizSubmittedRef.current = true;
     setHasSubmitted(true);
     localStorage.setItem(attemptKey, "true");
 
-    // ⏱ Get timestamps
     const start_time = localStorage.getItem("quiz_start_time");
     const end_time = new Date().toISOString();
-
     let time_taken = null;
     if (start_time) {
       const start = new Date(start_time);
       const end = new Date(end_time);
-      time_taken = Math.floor((end - start) / 1000); // seconds
+      time_taken = Math.floor((end - start) / 1000);
     }
 
     const resultData = {
@@ -250,8 +252,6 @@ export default function Quiz() {
       score,
       total: questions.length,
       language: language === "en" ? "English" : "Tamil",
-
-      // ⭐ New fields
       start_time,
       end_time,
       time_taken,
@@ -275,6 +275,7 @@ export default function Quiz() {
     if (resultInsert?.data?.[0]?.id) {
       const result_id = resultInsert.data[0].id;
 
+      // ⭐ Save answers with language
       const formattedAnswers = answersTracker.current.map((a) => ({
         result_id,
         phone: results.phone,
@@ -282,6 +283,7 @@ export default function Quiz() {
         question: a.question,
         correct_answer: a.correct_answer,
         user_answer: a.user_answer,
+        lang: a.lang, // ✅ store language
       }));
 
       try {
@@ -301,7 +303,7 @@ export default function Quiz() {
         score,
         total: questions.length,
         isPreview,
-        time_taken, // ⭐ pass into result page
+        time_taken,
       },
     });
   };
@@ -334,6 +336,7 @@ export default function Quiz() {
         </h2>
       </div>
     );
+    
   return (
     <div className="relative flex items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Toaster position="top-center" />
