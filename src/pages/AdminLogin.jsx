@@ -37,7 +37,7 @@ export default function AdminLogin() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Neumorphic Card */}
-      <div className="w-full max-w-md p-8 rounded-3xl bg-gray-50 shadow-neu border border-gray-100 relative overflow-hidden">
+      <div className="relative w-full max-w-md p-8 rounded-3xl bg-gray-50 border border-gray-100 shadow-[8px_8px_15px_#d1d9e6,-8px_-8px_15px_#ffffff] overflow-hidden">
         <h1 className="text-3xl font-extrabold text-center text-gray-900 mb-8">
           Admin Portal
         </h1>
@@ -58,17 +58,14 @@ export default function AdminLogin() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder=" "
               required
-              className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-gray-200 bg-gray-50 shadow-input focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-gray-200 bg-gray-50 shadow-[inset_3px_3px_6px_#d1d9e6,inset_-3px_-3px_6px_#ffffff] focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             />
-            <label
-              htmlFor="email"
-              className="absolute left-4 top-2 text-gray-500 text-sm transition-all peer-placeholder-shown:top-6 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-gray-700 peer-focus:text-sm"
-            >
+            <label className="absolute left-4 top-2 text-gray-500 text-sm transition-all peer-placeholder-shown:top-6 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-gray-700 peer-focus:text-sm">
               Email
             </label>
           </div>
 
-          {/* Password Input with Show/Hide */}
+          {/* Password Input */}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -77,19 +74,17 @@ export default function AdminLogin() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder=" "
               required
-              className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-gray-200 bg-gray-50 shadow-input focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+              className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-gray-200 bg-gray-50 shadow-[inset_3px_3px_6px_#d1d9e6,inset_-3px_-3px_6px_#ffffff] focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             />
-            <label
-              htmlFor="password"
-              className="absolute left-4 top-2 text-gray-500 text-sm transition-all peer-placeholder-shown:top-6 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-gray-700 peer-focus:text-sm"
-            >
+            <label className="absolute left-4 top-2 text-gray-500 text-sm transition-all peer-placeholder-shown:top-6 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base peer-focus:top-2 peer-focus:text-gray-700 peer-focus:text-sm">
               Password
             </label>
-            {/* Show/Hide Button */}
+
+            {/* Show/Hide Text */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm font-semibold"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 font-semibold text-sm"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -119,7 +114,7 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 mt-2 rounded-xl text-white font-semibold transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 shadow-lg animate-gradient`}
+            className={`w-full py-3 mt-2 rounded-xl text-white font-semibold transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 shadow-lg bg-[length:200%_200%] animate-[gradientMove_3s_ease_infinite]`}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -135,30 +130,16 @@ export default function AdminLogin() {
         </form>
       </div>
 
-      {/* Tailwind Custom Shadows & Animations */}
-      <style jsx>{`
-        .shadow-neu {
-          box-shadow: 8px 8px 15px #d1d9e6, -8px -8px 15px #ffffff;
-        }
-        .shadow-input {
-          box-shadow: inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff;
-        }
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradientMove 3s ease infinite;
-        }
-        @keyframes gradientMove {
-          0% {
-            background-position: 0% 50%;
+      {/* Tailwind Keyframe Animation */}
+      <style>
+        {`
+          @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
           }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 }
