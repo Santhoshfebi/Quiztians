@@ -43,9 +43,10 @@ export default function Result() {
       try {
         const { data, error } = await supabase
           .from("results")
-          .select("id, name, place, phone, score, created_at")
+          .select("id, name, place, phone, score, time_taken, created_at")
           .eq("chapter", chapter)
           .order("score", { ascending: false })
+          .order("time_taken", { ascending: true })
           .order("created_at", { ascending: true });
 
         if (error) throw error;
@@ -80,7 +81,7 @@ export default function Result() {
       mounted = false;
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [name, phone, place, score, total, chapter]);
+  }, [name, phone, place, score, total, time_taken, chapter]);
 
   // Animate rank
   useEffect(() => {
@@ -259,8 +260,8 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                   {/* Dynamic message */}
                   <p
                     className={`text-sm mt-2 ${score === 0 && total === 0
-                        ? "text-red-600 font-semibold"
-                        : "text-slate-600"
+                      ? "text-red-600 font-semibold"
+                      : "text-slate-600"
                       }`}
                   >
                     {score === 0 && total === 0
@@ -412,7 +413,11 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                           <div className="text-xs text-slate-500">{p.place}</div>
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-slate-700">{p.score}</div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-slate-700">{p.score}</div>
+                        <div className="text-xs text-slate-500">{formatTime(p.time_taken)}</div>
+                      </div>
+
                     </motion.li>
                   );
                 })}
