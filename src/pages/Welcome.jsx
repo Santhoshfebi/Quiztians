@@ -19,7 +19,6 @@ export default function Welcome() {
 
   const navigate = useNavigate();
 
-  // 🔹 Fetch quiz config & subscribe for updates
   useEffect(() => {
     const fetchConfig = async () => {
       const { data, error } = await supabase
@@ -41,7 +40,6 @@ export default function Welcome() {
 
     fetchConfig();
 
-    // 🔁 Real-time subscription
     const channel = supabase
       .channel("public:quiz_config")
       .on(
@@ -58,7 +56,6 @@ export default function Welcome() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  // 🕒 Countdown Timer
   useEffect(() => {
     if (!config?.start_time) return;
 
@@ -75,7 +72,6 @@ export default function Welcome() {
     return () => clearInterval(interval);
   }, [config]);
 
-  // 💡 Auto-cycle quiz tips
   useEffect(() => {
     const totalTips = 6;
     const interval = setInterval(
@@ -113,9 +109,8 @@ export default function Welcome() {
       : "🥇 முடிவில் முன்னணி பட்டியல் காணலாம்.",
   ];
 
-  // 🚦 Start quiz handler
   const handleStart = async () => {
-    if (starting) return; // Prevent multiple clicks
+    if (starting) return;
     setStarting(true);
 
     const phoneRegex = /^[0-9]{10}$/;
@@ -183,94 +178,92 @@ export default function Welcome() {
     );
   }
 
+  // Animation variants
+  const fieldVariant = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * 0.1 } }),
+  };
+
+  const buttonVariant = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.4 } },
+  };
+
   return (
-    <div className="flex flex-col-reverse md:flex-row items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="flex flex-col-reverse md:flex-row items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 gap-8">
       {/* Left: Form */}
-      <div className="mt-20 w-full md:w-96 bg-white p-6 rounded-2xl shadow-2xl space-y-4 border border-gray-100">
-        <h1 className="text-3xl font-extrabold text-center text-blue-600 drop-shadow-sm">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        className="relative w-full md:w-96 bg-white rounded-3xl shadow-2xl p-8 flex flex-col gap-6 border border-gray-200"
+      >
+        <motion.h1 variants={fieldVariant} custom={0} className="text-3xl font-extrabold text-center text-indigo-700 drop-shadow-sm">
           {language === "en" ? "Welcome to the Quiz!" : "வினாவிற்கு வருக!"}
-        </h1>
+        </motion.h1>
 
         {/* Countdown */}
         {!isQuizAvailable && (
-          <div className="mt-6 text-center">
+          <motion.div variants={fieldVariant} custom={1} className="bg-indigo-50 p-4 rounded-xl text-center shadow-inner flex flex-col gap-3">
             <p className="text-gray-600 font-medium mb-2">
               {language === "en" ? "Quiz starts in:" : "வினா தொடங்கும் நேரம்:"}
             </p>
             <div className="flex justify-center gap-3">
               {timeUnits.map((unit, idx) => (
-                <div
+                <motion.div
                   key={idx}
-                  className="bg-blue-600 text-white rounded-lg px-3 py-2 w-16 shadow-lg"
+                  initial={{ y: -10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-indigo-600 text-white rounded-xl w-16 h-16 flex flex-col justify-center items-center shadow-lg font-mono"
                 >
-                  <motion.div
-                    key={unit.value}
-                    initial={{ y: -10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-2xl font-mono font-bold"
-                  >
-                    {String(unit.value).padStart(2, "0")}
-                  </motion.div>
-                  <div className="text-xs uppercase tracking-wide">
-                    {unit.label}
-                  </div>
-                </div>
+                  <span className="text-2xl font-bold">{String(unit.value).padStart(2, "0")}</span>
+                  <span className="text-xs uppercase tracking-wide">{unit.label}</span>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Chapter */}
-        <div className="mt-4 bg-gray-50 p-4 rounded-lg shadow-inner">
-          <label className="font-medium text-sm text-gray-700">
-            {language === "en"
-              ? "Select Chapter"
-              : "அதிகாரத்தைத் தேர்ந்தெடுக்கவும்"}
-          </label>
-          <select
-            value={chapter}
-            onChange={(e) => setChapter(e.target.value)}
-            disabled={chapters.length === 0 || !isQuizAvailable}
-            className="w-full border border-gray-300 mt-2 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 bg-white"
-          >
-            <option value="">
-              {chapters.length === 0
-                ? language === "en"
-                  ? "Loading chapters..."
-                  : "அதிகாரங்கள் ஏற்றப்படுகிறது..."
-                : "-- Choose Chapter | அதிகாரம் --"}
-            </option>
-            {chapters.map((ch) => (
-              <option key={ch} value={ch}>
-                {ch}
+        {/* Chapter & Language */}
+        <motion.div variants={fieldVariant} custom={2} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 relative">
+            <label className="absolute -top-3 left-3 bg-white px-1 text-indigo-700 text-sm font-semibold">📚 {language === "en" ? "Select Chapter" : "அதிகாரம்"}</label>
+            <select
+              value={chapter}
+              onChange={(e) => setChapter(e.target.value)}
+              disabled={chapters.length === 0 || !isQuizAvailable}
+              className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-indigo-400 bg-white pl-8"
+            >
+              <option value="">
+                {chapters.length === 0 ? (language === "en" ? "Loading chapters..." : "அதிகாரங்கள் ஏற்றப்படுகிறது...") : "-- Choose Chapter --"}
               </option>
-            ))}
-          </select>
-        </div>
+              {chapters.map((ch) => (
+                <option key={ch} value={ch}>{ch}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Language + Inputs */}
-        <div className="mt-4 bg-gray-50 p-4 rounded-lg shadow-inner space-y-3">
-          <label className="block text-center text-gray-700 font-medium">
-            {language === "en"
-              ? "Choose your preferred language"
-              : "விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்"}
-          </label>
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 bg-white"
-          >
-            <option value="en">English</option>
-            <option value="ta">தமிழ்</option>
-          </select>
+          <div className="flex flex-col gap-2 relative">
+            <label className="absolute -top-3 left-3 bg-white px-1 text-indigo-700 text-sm font-semibold">🌐 {language === "en" ? "Select Language" : "மொழி"}</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-indigo-400 bg-white pl-8"
+            >
+              <option value="en">English</option>
+              <option value="ta">தமிழ்</option>
+            </select>
+          </div>
+        </motion.div>
 
+        {/* Inputs */}
+        <motion.div variants={fieldVariant} custom={3} className="flex flex-col gap-4">
           <input
             type="text"
             placeholder={language === "en" ? "Your Name" : "உங்கள் பெயர்"}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-3 border rounded-2xl focus:ring-2 focus:ring-indigo-400"
           />
           <input
             type="tel"
@@ -278,51 +271,50 @@ export default function Welcome() {
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
             maxLength={10}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-3 border rounded-2xl focus:ring-2 focus:ring-indigo-400"
           />
           <input
             type="text"
-            placeholder={
-              language === "en" ? "Division / Place" : "வகுப்பு / இடம்"
-            }
+            placeholder={language === "en" ? "Division / Place" : "இடம்"}
             value={place}
             onChange={(e) => setPlace(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-3 border rounded-2xl focus:ring-2 focus:ring-indigo-400"
           />
-        </div>
+        </motion.div>
 
         {/* Buttons */}
-        <button
-          onClick={handleStart}
-          disabled={!isQuizAvailable || starting}
-          className={`w-full py-2 rounded-lg text-white font-semibold transition-all shadow-md ${
-            isQuizAvailable
-              ? "bg-blue-500 hover:bg-blue-600"
-              : "bg-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {isQuizAvailable
-            ? language === "en"
-              ? starting
-                ? "Starting..."
-                : "Start Quiz"
-              : "வினாவை தொடங்கு"
-            : language === "en"
-            ? "Quiz Not Started Yet"
-            : "வினா இன்னும் தொடங்கவில்லை"}
-        </button>
+        <motion.div variants={fieldVariant} custom={4} className="flex flex-col gap-4">
+          <motion.button
+            variants={buttonVariant}
+            onClick={handleStart}
+            disabled={!isQuizAvailable || starting}
+            className={`w-full py-3 rounded-2xl font-semibold text-white shadow-md transition-all ${
+              isQuizAvailable ? "bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600" : "bg-gray-400 cursor-not-allowed"
+            }`}
+          >
+            {isQuizAvailable
+              ? language === "en" ? (starting ? "Starting..." : "Start Quiz →") : "வினாவை தொடங்கு →"
+              : language === "en" ? "Quiz Not Started Yet" : "வினா இன்னும் தொடங்கவில்லை"}
+          </motion.button>
 
-        <button
-          onClick={() => navigate("/admin-login")}
-          className="w-full mt-4 py-2 rounded-lg text-white font-semibold bg-gray-800 hover:bg-black transition-all shadow-md"
-        >
-          {language === "en" ? "Admin" : "அட்மின்"}
-        </button>
-      </div>
+          <motion.button
+            variants={buttonVariant}
+            onClick={() => navigate("/admin-login")}
+            className="w-full py-3 rounded-2xl bg-gray-800 text-white font-semibold shadow-md hover:bg-black transition-all"
+          >
+            {language === "en" ? "Admin" : "அட்மின்"}
+          </motion.button>
+        </motion.div>
+      </motion.div>
 
       {/* Right: Tips */}
-      <div className="md:ml-8 mt-20 bg-white p-6 rounded-2xl shadow-md w-full md:w-1/3 border border-gray-100">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+        className="md:ml-8 mt-8 md:mt-0 bg-white p-6 rounded-3xl shadow-md w-full md:w-1/3 border border-gray-200 flex flex-col gap-4"
+      >
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">
           {language === "en" ? "💡 Quiz Tips" : "💡 வினா குறிப்புகள்"}
         </h2>
         <ul className="list-disc pl-5 space-y-2 text-gray-700 text-sm leading-relaxed">
@@ -340,7 +332,7 @@ export default function Welcome() {
             </motion.li>
           ))}
         </ul>
-      </div>
+      </motion.div>
     </div>
   );
 }
