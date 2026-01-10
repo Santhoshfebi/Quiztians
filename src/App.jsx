@@ -13,6 +13,7 @@ import EditQuestion from "./pages/EditQuestions";
 import AlreadyAttempted from "./pages/AlreadyAttempted";
 import Review from "./pages/Review";
 import Leaderboard from "./pages/Leaderboard";
+import Scores from "./pages/Scores";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/result" element={<Result />} />
         <Route path="/review" element={<Review />} />
         <Route path="/leaderboard" element={<Leaderboard />} /> 
+        <Route path="/scores" element={<Scores />} />
 
 
         // admin navigation path

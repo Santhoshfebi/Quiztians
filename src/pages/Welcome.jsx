@@ -26,12 +26,10 @@ export default function Welcome() {
         .select("*")
         .limit(1)
         .single();
-
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching quiz config:", error.message);
         return;
       }
-
       if (data) {
         setConfig(data);
         setChapters(data.active_chapters || []);
@@ -101,8 +99,8 @@ export default function Welcome() {
     language === "en"
       ? "Try to answer all questions."
       : "அனைத்து கேள்விகளுக்கும் பதில் சொல்ல முயலுங்கள்.",
-      language === "en"
-      ? "Review your  responses at the end of Quiz for correct answers."
+    language === "en"
+      ? "Review your responses at the end of Quiz for correct answers."
       : "வினாடி வினா முடிவில் உங்கள் பதில்களைச் சரிபார்க்கவும்.",
     language === "en"
       ? "🏅 Correct answers are rewarded."
@@ -193,7 +191,8 @@ export default function Welcome() {
   };
 
   return (
-    <div className="flex flex-col-reverse md:flex-row items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 gap-8">
+    <div className="flex flex-col md:flex-row items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 gap-8">
+      
       {/* Left: Form */}
       <motion.div
         initial="hidden"
@@ -206,8 +205,8 @@ export default function Welcome() {
 
         {/* Countdown */}
         {!isQuizAvailable && (
-          <motion.div variants={fieldVariant} custom={1} className="bg-indigo-50 p-4 rounded-xl text-center shadow-inner flex flex-col gap-3">
-            <p className="text-gray-600 font-medium mb-2">
+          <motion.div variants={fieldVariant} custom={1} className="bg-gradient-to-r from-indigo-200 to-blue-200 p-4 rounded-xl text-center shadow-inner flex flex-col gap-3">
+            <p className="text-gray-800 font-medium mb-2">
               {language === "en" ? "Quiz starts in:" : "வினா தொடங்கும் நேரம்:"}
             </p>
             <div className="flex justify-center gap-3">
@@ -217,7 +216,7 @@ export default function Welcome() {
                   initial={{ y: -10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-indigo-600 text-white rounded-xl w-16 h-16 flex flex-col justify-center items-center shadow-lg font-mono"
+                  className="bg-indigo-600 text-white rounded-xl w-16 h-16 flex flex-col justify-center items-center shadow-lg font-mono transform transition-transform hover:scale-105"
                 >
                   <span className="text-2xl font-bold">{String(unit.value).padStart(2, "0")}</span>
                   <span className="text-xs uppercase tracking-wide">{unit.label}</span>
@@ -229,13 +228,15 @@ export default function Welcome() {
 
         {/* Chapter & Language */}
         <motion.div variants={fieldVariant} custom={2} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2 relative">
-            <label className="absolute -top-3 left-3 bg-white px-1 text-indigo-700 text-sm font-semibold">📚 {language === "en" ? "Select Chapter" : "அதிகாரம்"}</label>
+          <div className="flex flex-col gap-1 relative">
+            <label className="absolute -top-2 left-3 bg-white px-1 text-indigo-700 text-sm font-semibold">
+              📚 {language === "en" ? "Select Chapter" : "அதிகாரம்"}
+            </label>
             <select
               value={chapter}
               onChange={(e) => setChapter(e.target.value)}
               disabled={chapters.length === 0 || !isQuizAvailable}
-              className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-indigo-400 bg-white pl-8"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 bg-white"
             >
               <option value="">
                 {chapters.length === 0 ? (language === "en" ? "Loading chapters..." : "அதிகாரங்கள் ஏற்றப்படுகிறது...") : "-- Choose Chapter --"}
@@ -246,12 +247,14 @@ export default function Welcome() {
             </select>
           </div>
 
-          <div className="flex flex-col gap-2 relative">
-            <label className="absolute -top-3 left-3 bg-white px-1 text-indigo-700 text-sm font-semibold">🌐 {language === "en" ? "Select Language" : "மொழி"}</label>
+          <div className="flex flex-col gap-1 relative">
+            <label className="absolute -top-2 left-3 bg-white px-1 text-indigo-700 text-sm font-semibold">
+              🌐 {language === "en" ? "Select Language" : "மொழி"}
+            </label>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-indigo-400 bg-white pl-8"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 bg-white"
             >
               <option value="en">English</option>
               <option value="ta">தமிழ்</option>
@@ -261,28 +264,25 @@ export default function Welcome() {
 
         {/* Inputs */}
         <motion.div variants={fieldVariant} custom={3} className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder={language === "en" ? "Your Name" : "உங்கள் பெயர்"}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 border rounded-2xl focus:ring-2 focus:ring-indigo-400"
-          />
-          <input
-            type="tel"
-            placeholder={language === "en" ? "Phone Number" : "தொலைபேசி எண்"}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
-            maxLength={10}
-            className="w-full px-4 py-3 border rounded-2xl focus:ring-2 focus:ring-indigo-400"
-          />
-          <input
-            type="text"
-            placeholder={language === "en" ? "Division / Place" : "இடம்"}
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            className="w-full px-4 py-3 border rounded-2xl focus:ring-2 focus:ring-indigo-400"
-          />
+          {["Name", "Phone Number", "Division / Place"].map((field, idx) => {
+            const valueMap = { Name: name, "Phone Number": phone, "Division / Place": place };
+            const setterMap = { Name: setName, "Phone Number": setPhone, "Division / Place": setPlace };
+            return (
+              <input
+                key={idx}
+                type={field === "Phone Number" ? "tel" : "text"}
+                placeholder={language === "en" ? field : field === "Name" ? "உங்கள் பெயர்" : field === "Phone Number" ? "தொலைபேசி எண்" : "இடம்"}
+                value={valueMap[field]}
+                onChange={(e) =>
+                  field === "Phone Number"
+                    ? setterMap[field](e.target.value.replace(/[^0-9]/g, ""))
+                    : setterMap[field](e.target.value)
+                }
+                maxLength={field === "Phone Number" ? 10 : undefined}
+                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-400 placeholder-gray-400"
+              />
+            );
+          })}
         </motion.div>
 
         {/* Buttons */}
@@ -291,7 +291,7 @@ export default function Welcome() {
             variants={buttonVariant}
             onClick={handleStart}
             disabled={!isQuizAvailable || starting}
-            className={`w-full py-3 rounded-2xl font-semibold text-white shadow-md transition-all ${
+            className={`w-full py-3 rounded-xl font-semibold text-white shadow-md transition-all ${
               isQuizAvailable ? "bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600" : "bg-gray-400 cursor-not-allowed"
             }`}
           >
@@ -299,42 +299,57 @@ export default function Welcome() {
               ? language === "en" ? (starting ? "Starting..." : "Start Quiz →") : "வினாவை தொடங்கு →"
               : language === "en" ? "Quiz Not Started Yet" : "வினா இன்னும் தொடங்கவில்லை"}
           </motion.button>
-
-          <motion.button
-            variants={buttonVariant}
-            onClick={() => navigate("/admin-login")}
-            className="w-full py-3 rounded-2xl bg-gray-800 text-white font-semibold shadow-md hover:bg-black transition-all"
-          >
-            {language === "en" ? "Admin" : "அட்மின்"}
-          </motion.button>
         </motion.div>
       </motion.div>
 
-      {/* Right: Tips */}
+      {/* Right: Leaderboard + Tips */}
       <motion.div
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="md:ml-8 mt-8 md:mt-0 bg-white p-6 rounded-3xl shadow-md w-full md:w-1/3 border border-gray-200 flex flex-col gap-4"
+        className="md:ml-8 mt-8 md:mt-0 flex flex-col gap-4 w-full md:w-1/3"
       >
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">
-          {language === "en" ? "💡 Quiz Tips" : "💡 வினா குறிப்புகள்"}
-        </h2>
-        <ul className="list-disc pl-5 space-y-2 text-gray-700 text-sm leading-relaxed">
-          {tips.map((tip, idx) => (
-            <motion.li
-              key={idx}
-              initial={{ opacity: 0.4 }}
-              animate={{
-                opacity: idx === activeTip ? 1 : 0.5,
-                scale: idx === activeTip ? 1.05 : 1,
-              }}
-              transition={{ duration: 0.5 }}
-            >
-              {tip}
-            </motion.li>
-          ))}
-        </ul>
+        <div className="flex gap-10">
+          {/* Leaderboard Card */}
+        <button
+          onClick={() => navigate("/scores")}
+          className="h-40 w-1/2 bg-gradient-to-r from-indigo-100 to-blue-100 p-6 rounded-3xl shadow-lg border border-gray-200 font-semibold
+           text-indigo-700 hover:from-indigo-200 hover:to-blue-200 transition-all"
+        >
+          {language === "en" ? "View Leaderboard" : "முன்னணி பட்டியல்"}
+        </button>
+
+        <button
+            variants={buttonVariant}
+            onClick={() => navigate("/admin-login")}
+            className="h-40 w-1/2 bg-gradient-to-r from-indigo-100 to-blue-100 p-6 rounded-3xl shadow-lg border border-gray-200 font-semibold
+           text-indigo-700 hover:from-indigo-200 hover:to-blue-200 transition-all"
+          >
+            {language === "en" ? "Admin Login" : "அட்மின்"}
+          </button>
+        </div>
+
+        {/* Tips Card */}
+        <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-200 flex flex-col gap-4">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            {language === "en" ? "💡 Quiz Tips" : "💡 வினா குறிப்புகள்"}
+          </h2>
+          <ul className="list-disc pl-5 space-y-2 text-gray-700 text-sm leading-relaxed">
+            {tips.map((tip, idx) => (
+              <motion.li
+                key={idx}
+                initial={{ opacity: 0.4 }}
+                animate={{
+                  opacity: idx === activeTip ? 1 : 0.5,
+                  scale: idx === activeTip ? 1.05 : 1,
+                }}
+                transition={{ duration: 0.5 }}
+              >
+                {tip}
+              </motion.li>
+            ))}
+          </ul>
+        </div>
       </motion.div>
     </div>
   );

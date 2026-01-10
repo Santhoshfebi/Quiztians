@@ -219,9 +219,9 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                       autoplay
                       loop={false}
                       style={{
-                        width: "70%",   // scales with container
+                        width: "70%",  
                         height: "70%",
-                        maxWidth: 200,  // max size
+                        maxWidth: 200,  
                         maxHeight: 200,
                       }}
                     />
@@ -265,7 +265,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                       }`}
                   >
                     {score === 0 && total === 0
-                      ? "Try to follow the rules next time :)"
+                      ? "Try to follow the rules next time :) Contact admin to Reattempt"
                       : perfectScore
                         ? "🏆 Congratulations! Perfect Score!"
                         : ""}
