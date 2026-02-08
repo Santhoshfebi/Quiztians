@@ -309,15 +309,15 @@ export default function Welcome() {
         transition={{ duration: 0.6 }}
         className="md:ml-8 mt-8 md:mt-0 flex flex-col gap-4 w-full md:w-1/3"
       >
-        <div className="flex gap-10">
+        <div className="flex gap-10 justify-center">
           {/* Leaderboard Card */}
-        <button
+        {/* <button
           onClick={() => navigate("/scores")}
           className="h-40 w-1/2 bg-gradient-to-r from-indigo-100 to-blue-100 p-6 rounded-3xl shadow-lg border border-gray-200 font-semibold
            text-indigo-700 hover:from-indigo-200 hover:to-blue-200 transition-all"
         >
           {language === "en" ? "View Leaderboard" : "முன்னணி பட்டியல்"}
-        </button>
+        </button> */}
 
         <button
             variants={buttonVariant}
