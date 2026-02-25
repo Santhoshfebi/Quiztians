@@ -1,4 +1,11 @@
-import { Paper, Box, Stack, Typography, useTheme, useMediaQuery } from "@mui/material";
+import {
+  Paper,
+  Box,
+  Stack,
+  Typography,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import {
   BarChart,
   Bar,
@@ -35,16 +42,39 @@ export default function ChartsSection({ allRows }) {
       mb={4}
     >
       {/* Average Score Bar */}
-      <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2, backgroundColor: "background.paper" }}>
-        <ChartTitle title="Average Score per Chapter" subtitle="Based on all participants" />
+      <Paper
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          boxShadow: 2,
+          backgroundColor: "background.paper",
+        }}
+      >
+        <ChartTitle
+          title="Average Score per Chapter"
+          subtitle="Based on all participants"
+        />
         <ChartContainer height={isMobile ? 220 : 280}>
-          <ResponsiveBar data={chapterStats} barColor={theme.palette.primary.main} />
+          <ResponsiveBar
+            data={chapterStats}
+            barColor={theme.palette.primary.main}
+          />
         </ChartContainer>
       </Paper>
 
       {/* Participants Pie */}
-      <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2, backgroundColor: "background.paper" }}>
-        <ChartTitle title="Participants by Chapter" subtitle="Distribution overview" />
+      <Paper
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          boxShadow: 2,
+          backgroundColor: "background.paper",
+        }}
+      >
+        <ChartTitle
+          title="Participants by Chapter"
+          subtitle="Distribution overview"
+        />
         <ChartContainer height={isMobile ? 220 : 280}>
           <ResponsivePie data={chapterStats} COLORS={COLORS} />
         </ChartContainer>
@@ -75,7 +105,10 @@ function ChartContainer({ children, height = 280 }) {
 function ResponsiveBar({ data, barColor }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+      <BarChart
+        data={data}
+        margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+      >
         <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
         <XAxis dataKey="chapter" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} />
@@ -105,7 +138,6 @@ function ResponsivePie({ data, COLORS }) {
           nameKey="chapter"
           outerRadius="80%"
           innerRadius="40%"
-          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
           isAnimationActive={true}
           animationDuration={1200}
           onMouseEnter={(_, index) => setActiveIndex(index)}
@@ -124,7 +156,11 @@ function ResponsivePie({ data, COLORS }) {
           ))}
         </Pie>
         <Tooltip formatter={(value) => [`${value}`, "Participants"]} />
-        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 12 }} />
+        {/* <Legend
+          verticalAlign="bottom"
+          height={36}
+          wrapperStyle={{ fontSize: 12 }}
+        /> */}
       </PieChart>
     </ResponsiveContainer>
   );
