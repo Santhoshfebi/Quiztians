@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { useMemo } from "react";
 
 export default function Welcome() {
   const [name, setName] = useState("");
@@ -75,6 +76,15 @@ export default function Welcome() {
     { label: "Min", value: Math.floor((timeLeft / (1000 * 60)) % 60) },
     { label: "Sec", value: Math.floor((timeLeft / 1000) % 60) },
   ];
+
+  const formattedTime = useMemo(() => {
+    return {
+      days: Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24))),
+      hours: Math.max(0, Math.floor((timeLeft / (1000 * 60 * 60)) % 24)),
+      minutes: Math.max(0, Math.floor((timeLeft / (1000 * 60)) % 60)),
+      seconds: Math.max(0, Math.floor((timeLeft / 1000) % 60)),
+    };
+  }, [timeLeft]);
 
   const handleStart = async () => {
     if (starting) return;
@@ -202,8 +212,32 @@ export default function Welcome() {
                 disabled={!isQuizAvailable || starting}
                 className="px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition w-full sm:w-auto"
               >
-                {isQuizAvailable ? "Start Quiz →" : "Quiz Not Started"}
+                {!isQuizAvailable
+                  ? "Quiz Starts In..."
+                  : starting
+                    ? "Starting..."
+                    : "Start Quiz →"}
               </button>
+
+              {/* TIMER DISPLAY */}
+              {!isQuizAvailable && timeLeft > 0 && (
+                <div className="flex flex-wrap justify-center md:justify-start gap-3 text-center">
+                  {[
+                    { label: "Days", value: formattedTime.days },
+                    { label: "Hrs", value: formattedTime.hours },
+                    { label: "Min", value: formattedTime.minutes },
+                    { label: "Sec", value: formattedTime.seconds },
+                  ].map((t, i) => (
+                    <div
+                      key={i}
+                      className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl px-4 py-2 min-w-17.5"
+                    >
+                      <div className="text-xl font-bold">{t.value}</div>
+                      <div className="text-xs text-gray-300">{t.label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
                 onClick={() => navigate("/scores")}
