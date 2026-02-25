@@ -127,30 +127,30 @@ export default function QuestionPreviewPage() {
 
   if (loading)
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <p className="text-xl font-bold animate-pulse text-blue-700">
+      <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
+        <p className="text-xl animate-pulse font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent">
           Loading questions...
         </p>
       </div>
     );
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50 relative">
+    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 relative">
       <Toaster position="top-right" />
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h1
-            className="text-3xl font-bold text-blue-700 text-center cursor-pointer hover:underline transition-all flex items-center gap-2"
+            className="text-3xl font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent text-center cursor-pointer hover:underline transition-all flex items-center gap-2"
             onClick={() => window.location.reload()}
           >
-            <MenuBookIcon /> Admin Question Preview
+             Admin Question Preview
           </h1>
 
           <button
             onClick={() => navigate("/admin")}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-red-700 transition-all shadow flex items-center gap-2"
+            className="px-8 py-4 rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition"
           >
             <ArrowBackIcon /> Back to Admin Panel
           </button>
@@ -159,8 +159,8 @@ export default function QuestionPreviewPage() {
         {/* Total Questions */}
         <div className="flex justify-center mb-6">
           <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center">
-            <p className="text-gray-500 text-sm">Total Questions</p>
-            <p className="text-4xl font-bold text-blue-700">{totalQuestionsForChapter}</p>
+            <p className="text-gray-500 text-l">Total Questions</p>
+            <p className="text-4xl font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent">{totalQuestionsForChapter}</p>
           </div>
         </div>
 
@@ -171,13 +171,13 @@ export default function QuestionPreviewPage() {
               <MenuBookIcon /> {selectedChapter ? `Chapter: ${selectedChapter}` : "Select Chapter"}
             </Menu.Button>
             <Menu.Items className="absolute z-50 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto focus:outline-none">
-              <div className="px-2 py-2">
+              <div className="px-2 py-2 ">
                 <input
                   type="text"
-                  placeholder="🔍 Search chapter..."
+                  placeholder="Search chapter..."
                   value={chapterSearchTerm}
                   onChange={(e) => setChapterSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full px-3 py-2 mb-2 border  border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-white"
                 />
                 {chapters
                   .filter((ch) =>

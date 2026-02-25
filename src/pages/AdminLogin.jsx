@@ -35,7 +35,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
       {/* Neumorphic Card */}
       <div className="relative w-full max-w-md p-8 rounded-3xl bg-gray-50 border border-gray-100 shadow-[8px_8px_15px_#d1d9e6,-8px_-8px_15px_#ffffff] overflow-hidden">
         <h1 className="text-3xl font-extrabold text-center text-gray-900 mb-8">
@@ -114,7 +114,7 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 mt-2 rounded-xl text-white font-semibold transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 shadow-lg bg-[length:200%_200%] animate-[gradientMove_3s_ease_infinite]`}
+            className={`w-full py-3 mt-2 rounded-xl text-white font-semibold transition-all bg-linear-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 shadow-lg bg-size-[200%_200%] animate-[gradientMove_3s_ease_infinite]`}
           >
             {loading ? "Logging in..." : "Login"}
           </button>

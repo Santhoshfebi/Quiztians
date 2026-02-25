@@ -138,24 +138,24 @@ export default function QuizConfig() {
   if (!activeChapters || activeChapters.length === 0) missingFields.push("Active Chapters");
 
   if (fetching) return (
-    <div className="flex flex-col items-center justify-center mt-20">
-      <p className="text-lg font-semibold text-blue-700">Checking admin credentials...</p>
+    <div className=" min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 flex flex-col items-center justify-center">
+      <p className="text-lg font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent">Checking admin credentials...</p>
       <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mt-4"></div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 space-y-6">
+    <div className="min-h-screen flex flex-col items-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4 space-y-6">
       <Toaster position="top-right" />
 
       {/* Header */}
       <div className="w-full max-w-3xl flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-700 flex items-center gap-2 text-center sm:text-left">
+        <h1 className="text-2xl sm:text-3xl font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent  flex items-center gap-2 text-center sm:text-left">
           Quiz Configuration
         </h1>
         <button
           onClick={() => window.location.reload()}
-          className="flex items-center gap-1 py-1 px-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
+          className="flex items-center gap-1 px-8 py-4 rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition"
         >
           <Refresh fontSize="small" /> Refresh
         </button>

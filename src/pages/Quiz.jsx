@@ -316,7 +316,7 @@ export default function Quiz() {
 
   if (loading)
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-4">
         <h2 className="text-center text-lg font-semibold text-gray-600 animate-pulse">
           Loading questions...
         </h2>
@@ -330,7 +330,7 @@ export default function Quiz() {
 
   if (!questions?.length)
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+      <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-4">
         <h2 className="text-xl font-bold text-red-600 text-center">
           No questions found for this chapter.
         </h2>
@@ -338,7 +338,7 @@ export default function Quiz() {
     );
     
   return (
-    <div className="relative flex items-start justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="relative flex items-start justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4">
       <Toaster position="top-center" />
       <motion.div
         className="w-full md:w-3/4 max-w-3xl mx-auto mt-16 bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-gray-100 flex flex-col"
@@ -353,9 +353,9 @@ export default function Quiz() {
           <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
             <LocationOnIcon fontSize="small" /> {results.place}
           </p>
-          <h2 className="text-lg sm:text-xl font-bold text-blue-700 text-center">
+          <h2 className="text-lg sm:text-xl font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent text-center">
             {language === "en" ? "Chapter" : "அதிகாரம்"}:{" "}
-            <span className="text-indigo-700">{selectedChapter}</span>
+            <span className="font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">{selectedChapter}</span>
           </h2>
           <p className="font-medium text-sm sm:text-base text-center sm:text-right">
             {language === "en" ? "Question" : "கேள்வி"} {current + 1} / {questions.length}
@@ -414,7 +414,7 @@ export default function Quiz() {
             transition={{ duration: 0.4 }}
             className="flex flex-col"
           >
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 leading-relaxed break-words">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 leading-relaxed wrap-break-word">
               {language === "en" ? q.question_en : q.question_ta}
             </h3>
 

@@ -29,8 +29,7 @@ export default function AddQuestions() {
 
   const [chapter, setChapter] = useState("");
   const [allChapters, setAllChapters] = useState([]);
-  const [newChapters, setNewChapters] = useState([]); // Tracks recently added chapters
-
+  const [newChapters, setNewChapters] = useState([]); 
   const [question_en, setQuestionEn] = useState("");
   const [question_ta, setQuestionTa] = useState("");
   const [optionA_en, setOptionAEn] = useState("");

@@ -174,15 +174,15 @@ export default function AdminPanel() {
   ];
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
       <Toaster position="top-right" />
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+          <h1 className="text-3xl font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">Admin Dashboard</h1>
           <div className="flex items-center gap-4">
-            <span className="font-medium text-gray-600">{user.email}</span>
+            <span className="font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">{user.email}</span>
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow flex items-center gap-2"
@@ -211,7 +211,7 @@ export default function AdminPanel() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
               <div
                 id="participantsChart"
-                className="relative h-[300px] sm:h-[400px] w-full sm:w-2/3"
+                className="relative h-75 sm:h-100 w-full sm:w-2/3"
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>

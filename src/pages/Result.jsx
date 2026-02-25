@@ -172,7 +172,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-6">
         <DotLottieReact
           src="/lottie/Animationloading.json"
           loop
@@ -197,7 +197,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
         />
       )}
 
-      <div className="min-h-screen w-full p-6 md:p-12 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen w-full p-6 md:p-12 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 flex items-center justify-center">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
           {/* MAIN CARD */}
@@ -213,7 +213,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                     exit={{ opacity: 0, y: -20 }}
                     className="w-40 sm:w-52 md:w-56 h-40 sm:h-52 md:h-56 rounded-3xl bg-white/40 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center mb-6 relative"
                   >
-                    <div className="absolute w-64 sm:w-72 h-64 sm:h-72 rounded-3xl bg-gradient-to-tr from-gray-300 via-gray-400 to-gray-500 opacity-20 blur-3xl -z-10" />
+                    <div className="absolute w-64 sm:w-72 h-64 sm:h-72 rounded-3xl bg-linear-to-tr from-gray-300 via-gray-400 to-gray-500 opacity-20 blur-3xl -z-10" />
                     <DotLottieReact
                       src="/lottie/Lowscore.json"
                       autoplay
@@ -233,7 +233,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                     exit={{ opacity: 0, y: -20 }}
                     className="w-40 sm:w-52 md:w-56 h-40 sm:h-52 md:h-56 rounded-3xl bg-white/40 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center mb-6 relative"
                   >
-                    <div className="absolute w-64 sm:w-72 h-64 sm:h-72 rounded-3xl bg-gradient-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
+                    <div className="absolute w-64 sm:w-72 h-64 sm:h-72 rounded-3xl bg-linear-to-tr from-indigo-300 via-purple-300 to-pink-300 opacity-30 blur-3xl -z-10" />
                     <DotLottieReact
                       src={perfectScore ? "/lottie/Trophy.json" : "/lottie/TrophyBadge.json"}
                       autoplay
@@ -277,7 +277,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start w-full">
                 <div className="md:col-span-2">
                   <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-300 to-purple-300 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    <div className="w-16 h-16 rounded-full bg-linear-to-br from-indigo-300 to-purple-300 flex items-center justify-center text-white font-bold text-xl shadow-md">
                       {name ? name.charAt(0).toUpperCase() : "U"}
                     </div>
                     <div className="flex-1">
@@ -343,7 +343,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
 
                   <button
                     onClick={handleShare}
-                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-bold hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 rounded-xl bg-linear-to-br from-purple-600 to-pink-500 text-white font-bold hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"
                   >
                     Share Result
                   </button>
@@ -354,7 +354,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                         state: { phone, chapter, name, score, total, place },
                       })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg"
+                    className="w-full px-4 py-3 rounded-xl bg-linear-to-br from-purple-600 to-pink-500 text-white font-medium hover:scale-[1.01] transition-transform shadow-lg"
                   >
                     View Full Leaderboard
                   </button>
@@ -381,7 +381,7 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
 
           {/* Sidebar Leaderboard */}
           <aside className="space-y-4">
-            <div className="rounded-2xl p-5 bg-gradient-to-b from-white/70 to-white/50 backdrop-blur-md border border-white/30 shadow">
+            <div className="rounded-2xl p-5 bg-linear-to-b from-white/70 to-white/50 backdrop-blur-md border border-white/30 shadow">
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}

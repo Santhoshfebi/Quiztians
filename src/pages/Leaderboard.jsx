@@ -80,7 +80,7 @@ export default function Leaderboard() {
     }
 
     return (
-      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold text-sm bg-gradient-to-r ${color} shadow`}>
+      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold text-sm bg-linear-to-r ${color} shadow`}>
         <span>{icon}</span>
         <span>{label}</span>
       </div>
@@ -110,11 +110,6 @@ export default function Leaderboard() {
 
     fetchTotalQuestions();
   }, [chapter]);
-
-  // -------------------------------
-  // Leaderboard fetch logic (unchanged)
-  // -------------------------------
-
   useEffect(() => {
     if (!state) navigate(-1);
   }, [state, navigate]);
@@ -263,7 +258,7 @@ export default function Leaderboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-50 to-blue-50 p-6">
         <DotLottieReact
           src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
           loop
@@ -290,7 +285,7 @@ players.forEach((p) => {
 
 
   return (
-    <div className="min-h-screen w-full p-6 md:p-10 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex flex-col items-center">
+    <div className="min-h-screen w-full p-6 md:p-10 bg-linear-to-br from-indigo-100 via-sky-50 to-blue-100 flex flex-col items-center">
       {/* Header */}
       <div className="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
         <div>
@@ -486,7 +481,7 @@ players.forEach((p) => {
           </div>
 
           {/* Rest of leaderboard (4..15) */}
-          <motion.ul initial="hidden" animate="show" className="bg-white/80 backdrop-blur-md border border-white/30 rounded-2xl shadow p-4 space-y-2 max-h-[520px] overflow-auto">
+          <motion.ul initial="hidden" animate="show" className="bg-white/80 backdrop-blur-md border border-white/30 rounded-2xl shadow p-4 space-y-2 max-h-130 overflow-auto">
             {nextPlayers.length === 0 && <li className="text-sm text-slate-500 p-4 text-center">No other players yet.</li>}
 
             {nextPlayers.map((p, idx) => {

@@ -74,7 +74,7 @@ export default function ViewResults() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "results" },
-        fetchResults
+        fetchResults,
       )
       .subscribe();
 
@@ -90,7 +90,7 @@ export default function ViewResults() {
     if (phone) target = `Phone "${phone}"`;
 
     const confirmReset = window.confirm(
-      `Are you sure you want to reset results for ${target}?`
+      `Are you sure you want to reset results for ${target}?`,
     );
     if (!confirmReset) return;
 
@@ -120,8 +120,11 @@ export default function ViewResults() {
 
     if (search)
       rows = rows.filter((r) =>
-        [r.name, r.phone, r.chapter, r.language, r.place]
-          .some((x) => String(x || "").toLowerCase().includes(search.toLowerCase()))
+        [r.name, r.phone, r.chapter, r.language, r.place].some((x) =>
+          String(x || "")
+            .toLowerCase()
+            .includes(search.toLowerCase()),
+        ),
       );
 
     if (chapterFilter.length)
@@ -130,8 +133,7 @@ export default function ViewResults() {
     if (languageFilter)
       rows = rows.filter((r) => r.language === languageFilter);
 
-    if (placeFilter)
-      rows = rows.filter((r) => r.place === placeFilter);
+    if (placeFilter) rows = rows.filter((r) => r.place === placeFilter);
 
     // Show highest score per phone + chapter
     if (showHighestScore) {
@@ -144,7 +146,14 @@ export default function ViewResults() {
     }
 
     return rows;
-  }, [allRows, search, chapterFilter, languageFilter, placeFilter, showHighestScore]);
+  }, [
+    allRows,
+    search,
+    chapterFilter,
+    languageFilter,
+    placeFilter,
+    showHighestScore,
+  ]);
 
   /* -------------------------
      CSV EXPORT
@@ -155,7 +164,7 @@ export default function ViewResults() {
     const csvRows = [
       headers.join(","),
       ...filteredRows.map((row) =>
-        headers.map((field) => `"${row[field] ?? ""}"`).join(",")
+        headers.map((field) => `"${row[field] ?? ""}"`).join(","),
       ),
     ];
     const csvString = csvRows.join("\n");
@@ -172,17 +181,39 @@ export default function ViewResults() {
      LOADING
   ------------------------- */
   if (!user)
-    return <Box textAlign="center" mt={10}>Checking Access...</Box>;
+    return (
+      <Box textAlign="center" mt={10} sx={{
+        py: 3,
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
+      }}>
+        Checking Access...
+      </Box>
+    );
 
   if (loading)
     return (
-      <Box display="flex" justifyContent="center" mt={10}>
+      <Box display="flex" justifyContent="center" mt={10} sx={{
+        py: 3,
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
+      }}>
         <CircularProgress />
       </Box>
     );
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container
+      maxWidth="xl"
+      sx={{
+        py: 3,
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
+      }}
+    >
       <Toaster />
 
       <HeaderBar
@@ -215,7 +246,7 @@ export default function ViewResults() {
       <ResultsTable
         filteredRows={filteredRows}
         showDuplicates={showDuplicates}
-        onResetIndividual={handleResetAttempt} 
+        onResetIndividual={handleResetAttempt}
       />
 
       <ResetDialog
@@ -224,7 +255,7 @@ export default function ViewResults() {
         selectedChapter={selectedResetChapter}
         setSelectedChapter={setSelectedResetChapter}
         onConfirm={(chapter) => handleResetAttempt(null, chapter)}
-        chapters={[...new Set(allRows.map(r => r.chapter).filter(Boolean))]}
+        chapters={[...new Set(allRows.map((r) => r.chapter).filter(Boolean))]}
       />
     </Container>
   );

@@ -132,169 +132,174 @@ export default function Scores() {
   };
 
   /* -------------------------------- render -------------------------------- */
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-white px-6 py-10 flex justify-center">
-      <div className="w-full max-w-7xl space-y-10">
-
-        {/* Header */}
-        <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <button
-              onClick={() => navigate("/")}
-              className="mb-3 inline-flex items-center gap-2 text-sm font-medium
-        text-indigo-600 hover:text-indigo-800 transition"
-            >
-              ← Back to Home
-            </button>
-
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-700 to-sky-600 bg-clip-text text-transparent">
-              Chapter Leaderboard
-            </h1>
-            <p className="text-slate-500 mt-1">
-              Public performance overview
-            </p>
-          </div>
-
-          <select
-            value={chapter}
-            onChange={(e) => setChapter(e.target.value)}
-            className="w-full md:w-72 px-4 py-3 border border-indigo-200 rounded-xl bg-white
-      focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {chapters.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </header>
-
-
-        {/* Stats */}
-        {players.length > 0 && (
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <Stat label="Participants" value={stats.attempts} tone="indigo" />
-            <Stat label="Highest Score" value={stats.highest} tone="emerald" />
-            <Stat label="Average Score" value={stats.avg} tone="sky" />
-            <Stat label="Fastest Time" value={stats.fastest} tone="amber" />
-          </section>
-        )}
-
-        {/* Podium */}
-        {podium.length > 0 && (
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {podium.map((p, i) => (
-              <motion.div
-                key={p.id}
-                initial={{ y: 24, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: i * 0.12 }}
-                className={`rounded-2xl border bg-white p-6 text-center shadow-md ${i === 0
-                    ? "border-amber-300 bg-gradient-to-br from-amber-50 to-white scale-105"
-                    : i === 1
-                      ? "border-slate-300"
-                      : "border-orange-300"
-                  }`}
-              >
-                <div className="text-4xl mb-2">
-                  {["🥇", "🥈", "🥉"][i]}
-                </div>
-                <div className="font-semibold text-slate-900">
-                  {p.name}
-                </div>
-                <div className="text-emerald-600 font-extrabold text-lg mt-1">
-                  {p.score}
-                </div>
-                <div className="text-sm text-slate-500 mt-1">
-                  ⏱ {formatTime(p.time_taken)}
-                </div>
-              </motion.div>
-            ))}
-          </section>
-        )}
-
-        {/* Table */}
-        <section className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden">
-          <header className="px-6 py-4 border-b border-slate-200 flex justify-evenly bg-slate-50">
-            <h2 className="font-semibold text-slate-900">
-              All Participants
-            </h2>
-            <span className="text-sm text-slate-500">
-              {players.length} records
-            </span>
-          </header>
-
-          {loading && (
-            <div className="p-8 text-center text-slate-500">
-              Loading leaderboard…
-            </div>
-          )}
-
-          {!loading && paginated.length === 0 && (
-            <div className="p-8 text-center text-slate-500">
-              No attempts yet for this chapter.
-            </div>
-          )}
-
-          {paginated.length > 0 && (
-            <>
-              <table className="w-full text-sm">
-                <thead className="bg-indigo-50 text-indigo-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left">Rank</th>
-                    <th className="px-6 py-3 text-left">Name</th>
-                    <th className="px-6 py-3 text-center">Score</th>
-                    <th className="px-6 py-3 text-center">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((p, i) => (
-                    <tr key={p.id} className="border-t hover:bg-indigo-50/40">
-                      <td className="px-6 py-3 font-medium">
-                        #{(page - 1) * PAGE_SIZE + i + 1}
-                      </td>
-                      <td className="px-6 py-3">{p.name}</td>
-                      <td className="px-6 py-3 text-center font-bold text-emerald-600">
-                        {p.score}
-                      </td>
-                      <td className="px-6 py-3 text-center">
-                        {formatTime(p.time_taken)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t bg-slate-50">
-                  <button
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => p - 1)}
-                    className="px-4 py-2 rounded-lg border border-slate-300
-                      disabled:opacity-50 hover:bg-indigo-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-slate-600">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="px-4 py-2 rounded-lg border border-slate-300
-                      disabled:opacity-50 hover:bg-indigo-50"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </section>
-      </div>
+ return (
+    <div className="min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-6 py-10 flex justify-center">
+      <h1 className="font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">Comming soon ... !</h1>
     </div>
-  );
-}
+    );
+  }
+//   return (
+//     <div className="min-h-screen bg-linear-to-br from-indigo-50 via-sky-50 to-white px-6 py-10 flex justify-center">
+//       <div className="w-full max-w-7xl space-y-10">
+
+//         {/* Header */}
+//         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+//           <div>
+//             <button
+//               onClick={() => navigate("/")}
+//               className="mb-3 inline-flex items-center gap-2 text-sm font-medium
+//         text-indigo-600 hover:text-indigo-800 transition"
+//             >
+//               ← Back to Home
+//             </button>
+
+//             <h1 className="text-4xl font-extrabold bg-linear-to-r from-indigo-700 to-sky-600 bg-clip-text text-transparent">
+//               Chapter Leaderboard
+//             </h1>
+//             <p className="text-slate-500 mt-1">
+//               Public performance overview
+//             </p>
+//           </div>
+
+//           <select
+//             value={chapter}
+//             onChange={(e) => setChapter(e.target.value)}
+//             className="w-full md:w-72 px-4 py-3 border border-indigo-200 rounded-xl bg-white
+//       focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+//           >
+//             {chapters.map((c) => (
+//               <option key={c} value={c}>{c}</option>
+//             ))}
+//           </select>
+//         </header>
+
+
+//         {/* Stats */}
+//         {players.length > 0 && (
+//           <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
+//             <Stat label="Participants" value={stats.attempts} tone="indigo" />
+//             <Stat label="Highest Score" value={stats.highest} tone="emerald" />
+//             <Stat label="Average Score" value={stats.avg} tone="sky" />
+//             <Stat label="Fastest Time" value={stats.fastest} tone="amber" />
+//           </section>
+//         )}
+
+//         {/* Podium */}
+//         {podium.length > 0 && (
+//           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+//             {podium.map((p, i) => (
+//               <motion.div
+//                 key={p.id}
+//                 initial={{ y: 24, opacity: 0 }}
+//                 animate={{ y: 0, opacity: 1 }}
+//                 transition={{ delay: i * 0.12 }}
+//                 className={`rounded-2xl border bg-white p-6 text-center shadow-md ${i === 0
+//                     ? "border-amber-300 bg-linear-to-br from-amber-50 to-white scale-105"
+//                     : i === 1
+//                       ? "border-slate-300"
+//                       : "border-orange-300"
+//                   }`}
+//               >
+//                 <div className="text-4xl mb-2">
+//                   {["🥇", "🥈", "🥉"][i]}
+//                 </div>
+//                 <div className="font-semibold text-slate-900">
+//                   {p.name}
+//                 </div>
+//                 <div className="text-emerald-600 font-extrabold text-lg mt-1">
+//                   {p.score}
+//                 </div>
+//                 <div className="text-sm text-slate-500 mt-1">
+//                   ⏱ {formatTime(p.time_taken)}
+//                 </div>
+//               </motion.div>
+//             ))}
+//           </section>
+//         )}
+
+//         {/* Table */}
+//         <section className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden">
+//           <header className="px-6 py-4 border-b border-slate-200 flex justify-evenly bg-slate-50">
+//             <h2 className="font-semibold text-slate-900">
+//               All Participants
+//             </h2>
+//             <span className="text-sm text-slate-500">
+//               {players.length} records
+//             </span>
+//           </header>
+
+//           {loading && (
+//             <div className="p-8 text-center text-slate-500">
+//               Loading leaderboard…
+//             </div>
+//           )}
+
+//           {!loading && paginated.length === 0 && (
+//             <div className="p-8 text-center text-slate-500">
+//               No attempts yet for this chapter.
+//             </div>
+//           )}
+
+//           {paginated.length > 0 && (
+//             <>
+//               <table className="w-full text-sm">
+//                 <thead className="bg-indigo-50 text-indigo-700">
+//                   <tr>
+//                     <th className="px-6 py-3 text-left">Rank</th>
+//                     <th className="px-6 py-3 text-left">Name</th>
+//                     <th className="px-6 py-3 text-center">Score</th>
+//                     <th className="px-6 py-3 text-center">Time</th>
+//                   </tr>
+//                 </thead>
+//                 <tbody>
+//                   {paginated.map((p, i) => (
+//                     <tr key={p.id} className="border-t hover:bg-indigo-50/40">
+//                       <td className="px-6 py-3 font-medium">
+//                         #{(page - 1) * PAGE_SIZE + i + 1}
+//                       </td>
+//                       <td className="px-6 py-3">{p.name}</td>
+//                       <td className="px-6 py-3 text-center font-bold text-emerald-600">
+//                         {p.score}
+//                       </td>
+//                       <td className="px-6 py-3 text-center">
+//                         {formatTime(p.time_taken)}
+//                       </td>
+//                     </tr>
+//                   ))}
+//                 </tbody>
+//               </table>
+
+//               {/* Pagination */}
+//               {totalPages > 1 && (
+//                 <div className="flex items-center justify-between px-6 py-4 border-t bg-slate-50">
+//                   <button
+//                     disabled={page === 1}
+//                     onClick={() => setPage((p) => p - 1)}
+//                     className="px-4 py-2 rounded-lg border border-slate-300
+//                       disabled:opacity-50 hover:bg-indigo-50"
+//                   >
+//                     Previous
+//                   </button>
+//                   <span className="text-sm text-slate-600">
+//                     Page {page} of {totalPages}
+//                   </span>
+//                   <button
+//                     disabled={page === totalPages}
+//                     onClick={() => setPage((p) => p + 1)}
+//                     className="px-4 py-2 rounded-lg border border-slate-300
+//                       disabled:opacity-50 hover:bg-indigo-50"
+//                   >
+//                     Next
+//                   </button>
+//                 </div>
+//               )}
+//             </>
+//           )}
+//         </section>
+//       </div>
+//     </div>
+//   );
+// }
 
 /* -------------------- stat card -------------------- */
 

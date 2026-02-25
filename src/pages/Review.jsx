@@ -120,7 +120,7 @@ export default function ReviewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-6">
         <DotLottieReact
           src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
           loop
@@ -132,22 +132,22 @@ export default function ReviewPage() {
   }
 
   return (
-    <div className="min-h-screen w-full p-4 sm:p-6 md:p-12 bg-gradient-to-br from-indigo-100 via-sky-50 to-blue-100 flex flex-col items-center">
+    <div className="min-h-screen w-full p-4 sm:p-6 md:p-12 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 flex flex-col items-center">
       {/* Header */}
       <div className="w-full max-w-4xl text-center mb-6 px-2 sm:px-0">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent mb-2">
           Review Your Answers
         </h1>
-        <p className="text-sm sm:text-base text-slate-600 mt-2">
-          Chapter: <span className="font-medium text-slate-700">{chapter}</span> | Total Questions: <span className="font-medium text-slate-700">{totalQuestions}</span> | Time Taken: <span className="font-medium text-slate-700">{formatTime(totalTime)}</span>
+        <p className="text-sm sm:text-base text-white mt-2">
+          Chapter: <span className="font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">{chapter}</span> | Total Questions: <span className="font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">{totalQuestions}</span> | Time Taken: <span className="font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">{formatTime(totalTime)}</span>
         </p>
-        <p className="text-lg font-semibold text-indigo-600 animate-pulse">
+        <p className="text-lg font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent animate-pulse">
           Choose your language if you attend in English to see the questions and answers!
         </p>
 
         {/* Language Selector */}
         <div className="mt-4 flex justify-center items-center gap-2">
-          <span className="text-slate-700 font-medium">Language:</span>
+          <span className="text-white font-medium">Language:</span>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -212,7 +212,7 @@ export default function ReviewPage() {
                 }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
-                <p className="font-semibold text-slate-900 break-words">{a.question}</p>
+                <p className="font-semibold text-slate-900 wrap-break-word">{a.question}</p>
                 <span
                   className={`mt-1 sm:mt-0 px-2 py-1 rounded-full text-xs sm:text-sm font-semibold ${a.user_answer === "Not Answered"
                     ? "bg-gray-300 text-slate-800"

@@ -9,7 +9,7 @@ export default function AlreadyAttempted({ chapter }) {
     <Box
       sx={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #dbeafe, #e9d5ff, #ffe4e6)",
+        background: "linear-gradient(135deg, #1e1b4b, #3b0764, #0f172a)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",

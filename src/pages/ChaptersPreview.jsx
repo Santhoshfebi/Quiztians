@@ -82,8 +82,8 @@ export default function ChaptersPreview() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <p className="text-xl font-bold animate-pulse text-blue-700">
+      <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
+        <p className="text-xl animate-pulse font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">
           Loading chapters...
         </p>
       </div>
@@ -92,7 +92,7 @@ export default function ChaptersPreview() {
 
   if (filteredChapters.length === 0) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+      <div className="flex flex-col justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4">
         <p className="text-xl font-bold text-red-600 mb-4">
           No bilingual chapters found.
         </p>
@@ -109,13 +109,13 @@ export default function ChaptersPreview() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mt-8 mb-8 gap-4">
           <h1
-            className="text-3xl font-bold text-blue-700 text-center cursor-pointer hover:underline transition-all"
+            className="text-3xl font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent text-center cursor-pointer hover:underline transition-all"
             onClick={() => window.location.reload()}
           >
             Admin Chapter Preview
@@ -123,7 +123,7 @@ export default function ChaptersPreview() {
 
           <button
             onClick={() => navigate("/admin")}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-red-700 transition-all shadow flex items-center gap-2"
+            className="px-8 py-4 rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition"
           >
             <ArrowBackIcon /> Back to Admin Panel
           </button>
@@ -133,13 +133,13 @@ export default function ChaptersPreview() {
         <div className="flex justify-center mb-8">
           <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center">
             <p className="text-gray-500 text-sm">Total Chapters</p>
-            <p className="text-4xl font-bold text-blue-700">{chapters.length}</p>
+            <p className="text-4xl font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">{chapters.length}</p>
           </div>
         </div>
 
         {/* Search bar */}
         <div className="flex justify-center mb-10 mt-4">
-          <div className="relative w-full md:w-1/2">
+          <div className="relative w-full md:w-1/2 font-black bg-linear-to-r from-pink-200 to-indigo-800 bg-clip-text text-transparent">
             <input
               type="text"
               placeholder="Search chapter..."
@@ -162,7 +162,7 @@ export default function ChaptersPreview() {
               className="bg-white rounded-2xl p-6 flex flex-col items-center justify-between shadow-xl hover:shadow-2xl transition-shadow transform hover:scale-105 border-t-4 border-blue-400"
             >
               <QuizIcon className="text-blue-500 text-5xl mb-4" />
-              <h2 className="text-2xl font-bold text-blue-800 mb-3 text-center">
+              <h2 className="text-2xl font-bold text-pink-800 mb-3 text-center">
                 {chapter}
               </h2>
               <p className="text-gray-600 text-center mb-4">

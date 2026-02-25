@@ -41,7 +41,7 @@ export default function HeaderBar({ onBack, onOpenReset, filteredRows }) {
     const csvRows = [
       headers.join(","), // header row
       ...data.map((row) =>
-        headers.map((field) => `"${row[field] ?? ""}"`).join(",")
+        headers.map((field) => `"${row[field] ?? ""}"`).join(","),
       ),
     ];
     const csvString = csvRows.join("\n");
@@ -61,7 +61,7 @@ export default function HeaderBar({ onBack, onOpenReset, filteredRows }) {
       zIndex={1200}
       bgcolor="background.paper"
       sx={{
-        py: 2,
+        py: 3,
         px: { xs: 2, md: 3 },
         boxShadow: scrolled
           ? "0 4px 12px rgba(0,0,0,0.15)"
@@ -73,7 +73,15 @@ export default function HeaderBar({ onBack, onOpenReset, filteredRows }) {
       <Box display="flex" justifyContent="space-between" alignItems="center">
         {/* Title */}
         <Box>
-          <Typography variant={isMobile ? "h6" : "h4"} fontWeight={700}>
+          <Typography
+            variant={isMobile ? "h6" : "h4"}
+            fontWeight={700}
+            sx={{
+              background: "linear-gradient(to right, #db2777, #3730a3)", 
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             Results Dashboard
           </Typography>
           {!isMobile && (

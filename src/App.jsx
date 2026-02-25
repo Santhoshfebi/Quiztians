@@ -13,7 +13,8 @@ import EditQuestion from "./pages/EditQuestions";
 import AlreadyAttempted from "./pages/AlreadyAttempted";
 import Review from "./pages/Review";
 import Leaderboard from "./pages/Leaderboard";
-// import Scores from "./pages/Scores"; 
+import StartQuizConfirm from "./pages/StartQuizConfirm";
+import Scores from "./pages/Scores";
 
 function App() {
   return (
@@ -27,7 +28,8 @@ function App() {
         <Route path="/result" element={<Result />} />
         <Route path="/review" element={<Review />} />
         <Route path="/leaderboard" element={<Leaderboard />} /> 
-        {/* <Route path="/scores" element={<Scores />} /> */}
+        <Route path="/scores" element={<Scores />} />
+        <Route path="/start-confirm" element={<StartQuizConfirm />} />
 
 
         // admin navigation path
