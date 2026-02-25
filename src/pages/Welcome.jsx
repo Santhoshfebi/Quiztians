@@ -232,7 +232,7 @@ export default function Welcome() {
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
-          className="w-full bg-white/10 border border-white/20 rounded-xl p-3"
+          className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-black"
         >
           <option value="en">English</option>
           <option value="ta">தமிழ்</option>
@@ -242,7 +242,7 @@ export default function Welcome() {
           value={chapter}
           onChange={(e) => setChapter(e.target.value)}
           disabled={chapters.length === 0 || !isQuizAvailable}
-          className="w-full bg-white/10 border border-white/20 rounded-xl p-3"
+          className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-black"
         >
           <option value="">
             {language === "en" ? "Select Chapter" : "அதிகாரம்"}
