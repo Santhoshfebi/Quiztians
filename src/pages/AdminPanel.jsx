@@ -1,46 +1,44 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router-dom";
-import { Toaster, toast } from "react-hot-toast";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
-// Material UI Icons
+import { roleThemes } from "../theme/roleTheme";
+
 import LogoutIcon from "@mui/icons-material/Logout";
-import DownloadIcon from "@mui/icons-material/Download";
-import QuizIcon from "@mui/icons-material/Quiz";
-import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import SettingsIcon from "@mui/icons-material/Settings";
 import BarChartIcon from "@mui/icons-material/BarChart";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [chapterStats, setChapterStats] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(null);
+  const location = useLocation();
 
-  // Access control
+  const [user, setUser] = useState(null);
+  const [chapterStats, setChapterStats] = useState([]);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // SESSION CHECK
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user;
 
       if (!currentUser) {
-        toast.error("You must login first");
         navigate("/admin-login");
         return;
       }
 
       const role = currentUser.user_metadata?.role;
       if (role !== "admin" && role !== "superadmin") {
-        toast.error("Access denied: admin only");
         await supabase.auth.signOut();
         navigate("/admin-login");
         return;
@@ -48,254 +46,366 @@ export default function AdminPanel() {
 
       setUser(currentUser);
       setLoading(false);
-
-      if (!sessionStorage.getItem("adminWelcomeToast")) {
-        toast.success("Welcome to Admin Dashboard!");
-        sessionStorage.setItem("adminWelcomeToast", "true");
-      }
     };
 
     checkSession();
   }, [navigate]);
 
-  // Fetch participant stats
+  // FETCH STATS
   useEffect(() => {
     const fetchStats = async () => {
-      try {
-        const { data, error } = await supabase.from("results").select("chapter");
-        if (error) throw error;
+      const { data } = await supabase.from("results").select("chapter");
 
-        const counts = {};
-        data.forEach((row) => {
-          if (row.chapter) counts[row.chapter] = (counts[row.chapter] || 0) + 1;
-        });
+      const counts = {};
+      data?.forEach((row) => {
+        if (row.chapter) {
+          counts[row.chapter] = (counts[row.chapter] || 0) + 1;
+        }
+      });
 
-        const formatted = Object.entries(counts).map(([chapter, participants]) => ({
+      setChapterStats(
+        Object.entries(counts).map(([chapter, participants]) => ({
           chapter,
           participants,
-        }));
-
-        setChapterStats(formatted);
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load chapter stats.");
-      }
+        })),
+      );
     };
 
     fetchStats();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    sessionStorage.removeItem("adminWelcomeToast");
-    navigate("/admin-login");
-  };
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-4">
+        <h2 className="text-center text-lg font-semibold text-gray-600 animate-pulse">
+          Loading questions...
+        </h2>
+        <DotLottieReact
+          src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
+          loop
+          autoplay
+        />
+      </div>
+    );
+  }
+
+  const role = user.user_metadata.role;
+  const theme = roleThemes[role];
+  const isDark = role === "superadmin"; // ✅ ADD THIS
 
   const totalParticipants = chapterStats.reduce(
     (sum, c) => sum + c.participants,
-    0
+    0,
   );
 
   const COLORS = chapterStats.map(
-    (_, i) => `hsl(${(i * 360) / chapterStats.length}, 60%, 55%)`
+    (_, i) => `hsl(${(i * 360) / chapterStats.length}, 60%, 55%)`,
   );
 
-  const handleDownloadChart = () => {
-    const svg = document.querySelector("#participantsChart svg");
-    if (!svg) return toast.error("Chart not found!");
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-
-    img.onload = () => {
-      canvas.width = img.width * 2;
-      canvas.height = img.height * 2;
-      ctx.scale(2, 2);
-      ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-
-      const pngUrl = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = "participants_per_chapter.png";
-      link.href = pngUrl;
-      link.click();
-    };
-
-    img.src = url;
-  };
-
-  if (loading)
-    return (
-      <p className="text-center mt-20 text-lg font-semibold text-gray-600">
-        Loading admin dashboard...
-      </p>
-    );
-
-  const quickActions = [
+  const navItems = [
+    { label: "Dashboard", icon: <DashboardIcon />, route: "/admin" },
     {
-      title: "Preview Quiz",
-      desc: "View quiz for a selected chapter",
-      icon: <QuizIcon fontSize="large" />,
-      color: "bg-gradient-to-br from-yellow-400 to-yellow-500",
-      route: "/admin/preview-quiz",
-    },
-    {
-      title: "Preview Questions",
-      desc: "View all questions",
-      icon: <QuestionAnswerIcon fontSize="large" />,
-      color: "bg-gradient-to-br from-orange-400 to-orange-500",
-      route: "/admin/preview-questions",
-    },
-    {
-      title: "Add Questions",
-      desc: "Create new questions",
-      icon: <AddCircleIcon fontSize="large" />,
-      color: "bg-gradient-to-br from-blue-400 to-blue-500",
+      label: "Add Questions",
+      icon: <AddCircleIcon />,
       route: "/admin/add-questions",
     },
     {
-      title: "Quiz Configuration",
-      desc: "Set quiz duration",
-      icon: <SettingsIcon fontSize="large" />,
-      color: "bg-gradient-to-br from-green-400 to-green-500",
+      label: "Preview Questions",
+      icon: <QuestionAnswerIcon />,
+      route: "/admin/preview-questions",
+    },
+    {
+      label: "Quiz Config",
+      icon: <SettingsIcon />,
       route: "/admin/quiz-config",
     },
     {
-      title: "View Results",
-      desc: "Preview and export CSV",
-      icon: <BarChartIcon fontSize="large" />,
-      color: "bg-gradient-to-br from-purple-400 to-purple-500",
+      label: "View Results",
+      icon: <BarChartIcon />,
       route: "/admin/view-results",
     },
   ];
 
   return (
-    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
-      <Toaster position="top-right" />
-      <div className="max-w-7xl mx-auto">
+    <div
+      className={`flex min-h-screen ${theme.appBg} relative overflow-hidden`}
+    >
+      <Toaster />
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
-          <h1 className="text-3xl font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">Admin Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">{user.email}</span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow flex items-center gap-2"
+      {/* Ambient Glow */}
+      <div
+        className={`absolute w-175 h-175 rounded-full blur-[180px] -top-60 -right-60 ${theme.glow}`}
+      />
+
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed md:static z-50 top-0 left-0 h-full
+          ${theme.sidebarBg}
+          transition-all duration-300 flex flex-col
+          ${collapsed ? "w-20" : "w-64"}
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
+      >
+        {/* SuperAdmin Accent Strip */}
+        {role === "superadmin" && (
+          <div className="absolute top-0 right-0 h-full w-0.5g-gradient-to-b from-amber-400 to-orange-600 opacity-40" />
+        )}
+
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          {!collapsed && (
+            <h2
+              className={`font-black text-lg bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
             >
-              <LogoutIcon className="transform hover:rotate-12 transition-transform duration-300" /> Logout
-            </button>
-          </div>
-        </div>
-
-        {/* Participants Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg mb-12">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-800 mb-3 sm:mb-0 text-center sm:text-left">
-              Participants per Chapter
+              Admin Panel
             </h2>
-
-            <button
-              onClick={handleDownloadChart}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow flex items-center gap-2"
-            >
-              <DownloadIcon className="transform hover:rotate-12 transition-transform duration-300" /> Download PNG
-            </button>
-          </div>
-
-          {chapterStats.length > 0 ? (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div
-                id="participantsChart"
-                className="relative h-75 sm:h-100 w-full sm:w-2/3"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chapterStats}
-                      dataKey="participants"
-                      nameKey="chapter"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={120}
-                      paddingAngle={3}
-                      activeIndex={activeIndex}
-                      onClick={(_, i) => setActiveIndex(i === activeIndex ? null : i)}
-                      labelLine={false}
-                      label={({ chapter }) => chapter}
-                    >
-                      {chapterStats.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index]}
-                          stroke={index === activeIndex ? "#2563EB" : "#fff"}
-                          strokeWidth={index === activeIndex ? 3 : 1}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v) => `${v} participants`} />
-                  </PieChart>
-                </ResponsiveContainer>
-
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-gray-400 text-sm">Total</p>
-                  <p className="text-3xl sm:text-4xl font-bold text-gray-800">
-                    {totalParticipants}
-                  </p>
-                </div>
-              </div>
-
-              <div className="w-full sm:w-1/3 flex flex-col items-start justify-center">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center sm:text-left">
-                  Chapter Stats
-                </h3>
-                <ul className="w-full space-y-2 text-sm sm:text-base">
-                  {chapterStats.map((ch, index) => (
-                    <li
-                      key={index}
-                      onClick={() =>
-                        setActiveIndex(activeIndex === index ? null : index)
-                      }
-                      className={`flex justify-between items-center px-4 py-2 rounded-lg shadow-sm cursor-pointer transition-all duration-300 transform ${
-                        activeIndex === index
-                          ? "bg-blue-50 border border-blue-400 text-blue-700 font-semibold scale-105"
-                          : "bg-gray-50 hover:bg-gray-100 hover:scale-105"
-                      }`}
-                    >
-                      <span>{ch.chapter}</span>
-                      <span className="font-bold">{ch.participants}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <p className="text-center text-gray-500">
-              No results yet to display chart.
-            </p>
           )}
+
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className={`hidden md:block ${theme.textPrimary}`}
+          >
+            {collapsed ? <MenuIcon /> : <CloseIcon />}
+          </button>
+
+          <button
+            onClick={() => setMobileOpen(false)}
+            className={`md:hidden ${theme.textPrimary}`}
+          >
+            <CloseIcon />
+          </button>
         </div>
 
-        {/* Quick Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quickActions.map((card, idx) => (
-            <div
-              key={idx}
-              onClick={() => navigate(card.route)}
-              className={`${card.color} text-white rounded-2xl p-8 flex flex-col items-center justify-center shadow-lg hover:shadow-2xl transform hover:scale-105 transition-transform duration-300 cursor-pointer`}
+        <nav className="flex-1 p-3 space-y-2">
+          {navItems.map((item, idx) => {
+            const active = location.pathname === item.route;
+
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  navigate(item.route);
+                  setMobileOpen(false);
+                }}
+                className={`
+                  flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-300
+                  ${
+                    active
+                      ? `bg-linear-to-r ${theme.accentGradient} text-white shadow-lg`
+                      : `hover:bg-white/10 ${theme.textPrimary}`
+                  }
+                  hover:-translate-y-0.5
+                `}
+              >
+                {item.icon}
+                {!collapsed && (
+                  <span className={active ? "text-white" : theme.textPrimary}>
+                    {item.label}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate("/admin-login");
+          }}
+          className="flex items-center gap-3 p-4 text-red-500 hover:bg-red-500/10 transition"
+        >
+          <LogoutIcon />
+          {!collapsed && <span>Logout</span>}
+        </button>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-10">
+          <button onClick={() => setMobileOpen(true)} className="md:hidden">
+            <MenuIcon />
+          </button>
+
+          <div>
+            <h1
+              className={`text-3xl font-black bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
             >
-              <div className="text-4xl mb-3 transform hover:scale-110 transition-transform duration-300">
-                {card.icon}
-              </div>
-              <h2 className="text-2xl font-bold mb-2 text-center">{card.title}</h2>
-              <p className="text-center">{card.desc}</p>
+              Dashboard
+            </h1>
+            <p className={`text-sm ${theme.textSecondary}`}>{user.email}</p>
+          </div>
+
+          <span
+            className={`px-3 py-1 text-xs rounded-full border ${theme.badge}`}
+          >
+            {role.toUpperCase()}
+          </span>
+        </div>
+
+        {/* KPI Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div
+            className={`p-6 rounded-2xl shadow-xl bg-linear-to-br ${theme.premiumCard} text-white hover:-translate-y-1 transition`}
+          >
+            <p className="text-sm opacity-80 uppercase tracking-wider">
+              Participants
+            </p>
+            <h2 className="text-4xl font-extrabold mt-2">
+              {totalParticipants}
+            </h2>
+          </div>
+
+          <div
+            className={`${theme.surface} p-6 rounded-2xl shadow-xl hover:-translate-y-1 transition`}
+          >
+            <p
+              className={`text-sm uppercase tracking-wider ${theme.textSecondary}`}
+            >
+              Chapters
+            </p>
+            <h2 className={`text-4xl font-bold mt-2 ${theme.textPrimary}`}>
+              {chapterStats.length}
+            </h2>
+          </div>
+
+          <div
+            className={`${theme.surface} p-6 rounded-2xl shadow-xl hover:-translate-y-1 transition`}
+          >
+            <p
+              className={`text-sm uppercase tracking-wider ${theme.textSecondary}`}
+            >
+              Role
+            </p>
+            <h2
+              className={`text-4xl font-bold mt-2 capitalize ${theme.textPrimary}`}
+            >
+              {role}
+            </h2>
+          </div>
+        </div>
+
+        {/* Chart Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          {/* LEFT — PIE CHART */}
+          <div className="h-105 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chapterStats}
+                  dataKey="participants"
+                  nameKey="chapter"
+                  innerRadius={90}
+                  outerRadius={150}
+                  paddingAngle={3}
+                  label={{
+                    fill: isDark ? "#ffffff" : "#1f2937",
+                    fontSize: 12,
+                  }}
+                >
+                  {chapterStats.map((entry, index) => (
+                    <Cell key={index} fill={COLORS[index]} />
+                  ))}
+                </Pie>
+
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                    border: "1px solid",
+                    borderColor: isDark ? "#374151" : "#e5e7eb",
+                    borderRadius: "8px",
+                  }}
+                  itemStyle={{
+                    color: isDark ? "#ffffff" : "#111827",
+                  }}
+                  labelStyle={{
+                    color: isDark ? "#ffffff" : "#111827",
+                  }}
+                  formatter={(v) => [`${v}`, "Participants"]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+
+            {/* Center Total */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <p
+                className={
+                  isDark ? "text-gray-400 text-sm" : "text-gray-500 text-sm"
+                }
+              >
+                Total
+              </p>
+              <h2
+                className={
+                  isDark
+                    ? "text-4xl font-bold text-white"
+                    : "text-4xl font-bold text-gray-900"
+                }
+              >
+                {chapterStats.reduce((sum, c) => sum + c.participants, 0)}
+              </h2>
             </div>
-          ))}
+          </div>
+
+          {/* RIGHT — CHAPTER STATS */}
+          <div className="max-h-105 overflow-y-auto pr-2">
+            <h3
+              className={
+                isDark
+                  ? "text-xl font-semibold mb-6 text-white"
+                  : "text-xl font-semibold mb-6 text-gray-900"
+              }
+            >
+              Chapter Stats
+            </h3>
+
+            <div className="space-y-3">
+              {chapterStats
+                .sort((a, b) => b.participants - a.participants)
+                .map((item, index) => (
+                  <div
+                    key={index}
+                    className={`
+              flex justify-between items-center px-4 py-3 rounded-xl transition
+              ${
+                isDark
+                  ? "bg-white/5 border border-white/10 hover:bg-white/10"
+                  : "bg-gray-100 border border-gray-200 hover:bg-gray-200"
+              }
+            `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: COLORS[index] }}
+                      ></span>
+                      <span className={isDark ? "text-white" : "text-gray-900"}>
+                        {item.chapter}
+                      </span>
+                    </div>
+
+                    <span
+                      className={
+                        isDark
+                          ? "font-semibold text-white"
+                          : "font-semibold text-gray-900"
+                      }
+                    >
+                      {item.participants}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
