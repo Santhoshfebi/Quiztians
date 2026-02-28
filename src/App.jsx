@@ -4,6 +4,8 @@ import Quiz from "./pages/Quiz";
 import Result from "./pages/Result";
 import AdminPanel from "./pages/AdminPanel";
 import AdminLogin from "./pages/AdminLogin";
+import SetPassword from "./pages/SetPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AddQuestions from "./pages/AddQuestions";
 import QuizConfig from "./pages/QuizConfig";
 import ViewResults from "./pages/ViewResults";
@@ -35,6 +37,8 @@ function App() {
         // admin navigation path
         
         <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/add-questions" element={<AddQuestions />} />  
         <Route path="/admin/preview-questions" element={<QuestionPreviewPage />} />

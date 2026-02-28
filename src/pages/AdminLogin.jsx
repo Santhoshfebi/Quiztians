@@ -8,20 +8,34 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
   const navigate = useNavigate();
 
   const handleAdminLogin = async () => {
+    if (!email || !password) {
+      alert("Please enter email and password");
+      return;
+    }
+
     setLoading(true);
+
     try {
+      // Optional: set persistence
+      await supabase.auth.setSession({
+        persistSession: rememberMe,
+      });
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
       if (error) throw error;
 
-      const role = data.user.user_metadata?.role;
+      const role = data.user?.user_metadata?.role;
+
       if (role !== "admin" && role !== "superadmin") {
-        alert("Access denied: not an admin");
+        alert("Access denied: Not an admin account");
         await supabase.auth.signOut();
         return;
       }
@@ -34,10 +48,27 @@ export default function AdminLogin() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("Please enter your email first");
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("Password reset link sent to your email");
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
-      {/* Neumorphic Card */}
       <div className="relative w-full max-w-md p-8 rounded-3xl bg-gray-50 border border-gray-100 shadow-[8px_8px_15px_#d1d9e6,-8px_-8px_15px_#ffffff] overflow-hidden">
+        
         <h1 className="text-3xl font-extrabold text-center text-gray-900 mb-8">
           Admin Portal
         </h1>
@@ -49,11 +80,10 @@ export default function AdminLogin() {
             handleAdminLogin();
           }}
         >
-          {/* Email Input */}
+          {/* Email */}
           <div className="relative">
             <input
               type="email"
-              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder=" "
@@ -65,11 +95,10 @@ export default function AdminLogin() {
             </label>
           </div>
 
-          {/* Password Input */}
+          {/* Password */}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
-              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder=" "
@@ -80,7 +109,6 @@ export default function AdminLogin() {
               Password
             </label>
 
-            {/* Show/Hide Text */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -90,7 +118,7 @@ export default function AdminLogin() {
             </button>
           </div>
 
-          {/* Remember Me & Forgot Password */}
+          {/* Remember + Forgot */}
           <div className="flex items-center justify-between text-sm text-gray-600">
             <label className="flex items-center space-x-2">
               <input
@@ -101,25 +129,26 @@ export default function AdminLogin() {
               />
               <span>Remember me</span>
             </label>
+
             <button
               type="button"
-              onClick={() => alert("Redirect to password reset")}
+              onClick={handleForgotPassword}
               className="hover:underline text-blue-600"
             >
               Forgot password?
             </button>
           </div>
 
-          {/* Animated Gradient Login Button */}
+          {/* Login Button */}
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 mt-2 rounded-xl text-white font-semibold transition-all bg-linear-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 shadow-lg bg-size-[200%_200%] animate-[gradientMove_3s_ease_infinite]`}
+            className="w-full py-3 mt-2 rounded-xl text-white font-semibold transition-all bg-linear-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 shadow-lg bg-size-[200%_200%] animate-[gradientMove_3s_ease_infinite]"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
 
-          {/* Back Button */}
+          {/* Back */}
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -130,7 +159,7 @@ export default function AdminLogin() {
         </form>
       </div>
 
-      {/* Tailwind Keyframe Animation */}
+      {/* Gradient Animation */}
       <style>
         {`
           @keyframes gradientMove {
