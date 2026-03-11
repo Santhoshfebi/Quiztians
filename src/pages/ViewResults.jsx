@@ -4,13 +4,13 @@ import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 
-// COMPONENTS
 import HeaderBar from "../components/HeaderBar";
 import StatsCards from "../components/StatsCards";
 import ChartsSection from "../components/ChartsSection";
 import FiltersPanel from "../components/FiltersPanel";
 import ResultsTable from "../components/ResultsTable";
 import ResetDialog from "../components/ResetDialog";
+import AdminBottomDock from "../components/AdminBottomDock";
 
 export default function ViewResults() {
   const navigate = useNavigate();
@@ -209,6 +209,7 @@ export default function ViewResults() {
       maxWidth="xl"
       sx={{
         py: 3,
+        pb: 12,
         minHeight: "100vh",
         background:
           "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
@@ -257,6 +258,9 @@ export default function ViewResults() {
         onConfirm={(chapter) => handleResetAttempt(null, chapter)}
         chapters={[...new Set(allRows.map((r) => r.chapter).filter(Boolean))]}
       />
+
+      <AdminBottomDock role={user?.user_metadata?.role} />
+
     </Container>
   );
 }

@@ -5,6 +5,7 @@ import { Toaster, toast } from "react-hot-toast";
 import dayjs from "dayjs";
 import { ArrowBack, Refresh, AccessTime, Schedule, Layers, MenuBookRounded } from "@mui/icons-material";
 import { Menu, Switch, Tooltip } from "@mui/material";
+import AdminBottomDock from "../components/AdminBottomDock";
 
 export default function QuizConfig() {
   const navigate = useNavigate();
@@ -145,7 +146,8 @@ export default function QuizConfig() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4 space-y-6">
+    <>
+  <div className="min-h-screen flex flex-col items-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4 pb-28">
       <Toaster position="top-right" />
 
       {/* Header */}
@@ -269,5 +271,9 @@ export default function QuizConfig() {
         </div>
       </div>
     </div>
+
+    <AdminBottomDock role={user?.user_metadata?.role} />
+
+    </>
   );
 }

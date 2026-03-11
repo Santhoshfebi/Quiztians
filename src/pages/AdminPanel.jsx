@@ -1,248 +1,175 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { roleThemes } from "../theme/roleTheme";
 
-import LogoutIcon from "@mui/icons-material/Logout";
-import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import SettingsIcon from "@mui/icons-material/Settings";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import LogoutIcon from "@mui/icons-material/Logout";
+import PeopleIcon from "@mui/icons-material/People";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [user, setUser] = useState(null);
-  const [chapterStats, setChapterStats] = useState([]);
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // SESSION CHECK
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
-      const currentUser = data.session?.user;
+      const current = data.session?.user;
 
-      if (!currentUser) {
+      if (!current) {
         navigate("/admin-login");
         return;
       }
 
-      const role = currentUser.user_metadata?.role;
-      if (role !== "admin" && role !== "superadmin") {
-        await supabase.auth.signOut();
-        navigate("/admin-login");
-        return;
-      }
-
-      setUser(currentUser);
+      setUser(current);
       setLoading(false);
     };
 
     checkSession();
   }, [navigate]);
 
-  // FETCH STATS
   useEffect(() => {
-    const fetchStats = async () => {
-      const { data } = await supabase.from("results").select("chapter");
+    fetchResults();
 
-      const counts = {};
-      data?.forEach((row) => {
-        if (row.chapter) {
-          counts[row.chapter] = (counts[row.chapter] || 0) + 1;
-        }
-      });
+    const channel = supabase
+      .channel("results-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "results" },
+        (payload) => {
+          setActivity((prev) => [payload.new, ...prev.slice(0, 8)]);
+        },
+      )
+      .subscribe();
 
-      setChapterStats(
-        Object.entries(counts).map(([chapter, participants]) => ({
-          chapter,
-          participants,
-        })),
-      );
-    };
-
-    fetchStats();
+    return () => supabase.removeChannel(channel);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-4">
-        <h2 className="text-center text-lg font-semibold text-gray-600 animate-pulse">
-          Loading questions...
-        </h2>
-        <DotLottieReact
-          src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
-          loop
-          autoplay
-        />
-      </div>
-    );
-  }
+  const fetchResults = async () => {
+    const { data } = await supabase.from("results").select("*");
+    if (data) setRows(data);
+  };
 
-  const role = user.user_metadata.role;
+  const role = user?.user_metadata?.role || "admin";
   const theme = roleThemes[role];
-  const isDark = role === "superadmin"; // ✅ ADD THIS
 
-  const totalParticipants = chapterStats.reduce(
-    (sum, c) => sum + c.participants,
-    0,
+  const chapterStats = useMemo(() => {
+    const map = {};
+
+    rows.forEach((r) => {
+      if (!r.chapter) return;
+      map[r.chapter] = (map[r.chapter] || 0) + 1;
+    });
+
+    return Object.entries(map).map(([chapter, count]) => ({
+      chapter,
+      participants: count,
+    }));
+  }, [rows]);
+
+  const totalParticipants = rows.length;
+
+  const avgScore = Math.round(
+    rows.reduce((sum, r) => sum + (r.score || 0), 0) / (rows.length || 1),
   );
 
+  const scoreDistribution = useMemo(() => {
+    const buckets = {
+      "0-20": 0,
+      "21-40": 0,
+      "41-60": 0,
+      "61-80": 0,
+      "81-100": 0,
+    };
+
+    rows.forEach((r) => {
+      const s = r.score || 0;
+
+      if (s <= 20) buckets["0-20"]++;
+      else if (s <= 40) buckets["21-40"]++;
+      else if (s <= 60) buckets["41-60"]++;
+      else if (s <= 80) buckets["61-80"]++;
+      else buckets["81-100"]++;
+    });
+
+    return Object.entries(buckets).map(([range, count]) => ({
+      range,
+      count,
+    }));
+  }, [rows]);
+
   const COLORS = chapterStats.map(
-    (_, i) => `hsl(${(i * 360) / chapterStats.length}, 60%, 55%)`,
+    (_, i) => `hsl(${(i * 360) / chapterStats.length},60%,55%)`,
   );
 
   const navItems = [
     { label: "Dashboard", icon: <DashboardIcon />, route: "/admin" },
+    { label: "Add", icon: <AddCircleIcon />, route: "/admin/add-questions" },
     {
-      label: "Add Questions",
-      icon: <AddCircleIcon />,
-      route: "/admin/add-questions",
-    },
-    {
-      label: "Preview Questions",
+      label: "Preview",
       icon: <QuestionAnswerIcon />,
       route: "/admin/preview-questions",
     },
-    {
-      label: "Quiz Config",
-      icon: <SettingsIcon />,
-      route: "/admin/quiz-config",
-    },
-    {
-      label: "View Results",
-      icon: <BarChartIcon />,
-      route: "/admin/view-results",
-    },
+    { label: "Quiz", icon: <PlayArrowIcon />, route: "/admin/preview-quiz" },
+    { label: "Config", icon: <SettingsIcon />, route: "/admin/quiz-config" },
+    { label: "Results", icon: <BarChartIcon />, route: "/admin/view-results" },
   ];
+
+  if (loading) return <div className="p-20 text-center">Loading...</div>;
 
   return (
     <div
-      className={`flex min-h-screen ${theme.appBg} relative overflow-hidden`}
+      className={`relative min-h-screen ${theme.appBg} px-4 sm:px-6 lg:px-8 py-6 pb-32 overflow-hidden`}
     >
-      <Toaster />
+      {/* Background glow */}
 
-      {/* Ambient Glow */}
-      <div
-        className={`absolute w-175 h-175 rounded-full blur-[180px] -top-60 -right-60 ${theme.glow}`}
-      />
+      <div className="absolute -top-40 -left-40 w-[400px] sm:w-[500px] h-[400px] sm:h-[500px] bg-purple-500/20 blur-[150px] rounded-full"></div>
+      <div className="absolute top-60 -right-40 w-[400px] sm:w-[500px] h-[400px] sm:h-[500px] bg-indigo-500/20 blur-[150px] rounded-full"></div>
 
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed md:static z-50 top-0 left-0 h-full
-          ${theme.sidebarBg}
-          transition-all duration-300 flex flex-col
-          ${collapsed ? "w-20" : "w-64"}
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-        `}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
       >
-        {/* SuperAdmin Accent Strip */}
-        {role === "superadmin" && (
-          <div className="absolute top-0 right-0 h-full w-0.5g-gradient-to-b from-amber-400 to-orange-600 opacity-40" />
-        )}
-
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          {!collapsed && (
-            <h2
-              className={`font-black text-lg bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
-            >
-              Admin Panel
-            </h2>
-          )}
-
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className={`hidden md:block ${theme.textPrimary}`}
-          >
-            {collapsed ? <MenuIcon /> : <CloseIcon />}
-          </button>
-
-          <button
-            onClick={() => setMobileOpen(false)}
-            className={`md:hidden ${theme.textPrimary}`}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <nav className="flex-1 p-3 space-y-2">
-          {navItems.map((item, idx) => {
-            const active = location.pathname === item.route;
-
-            return (
-              <button
-                key={idx}
-                onClick={() => {
-                  navigate(item.route);
-                  setMobileOpen(false);
-                }}
-                className={`
-                  flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-300
-                  ${
-                    active
-                      ? `bg-linear-to-r ${theme.accentGradient} text-white shadow-lg`
-                      : `hover:bg-white/10 ${theme.textPrimary}`
-                  }
-                  hover:-translate-y-0.5
-                `}
-              >
-                {item.icon}
-                {!collapsed && (
-                  <span className={active ? "text-white" : theme.textPrimary}>
-                    {item.label}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate("/admin-login");
-          }}
-          className="flex items-center gap-3 p-4 text-red-500 hover:bg-red-500/10 transition"
-        >
-          <LogoutIcon />
-          {!collapsed && <span>Logout</span>}
-        </button>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-10">
-          <button onClick={() => setMobileOpen(true)} className="md:hidden">
-            <MenuIcon />
-          </button>
 
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
           <div>
             <h1
-              className={`text-3xl font-black bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
+              className={`text-2xl sm:text-3xl font-black bg-gradient-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
             >
               Dashboard
             </h1>
-            <p className={`text-sm ${theme.textSecondary}`}>{user.email}</p>
+
+            <p className={`text-xs sm:text-sm ${theme.textSecondary}`}>
+              {user.email}
+            </p>
           </div>
 
           <span
@@ -252,162 +179,210 @@ export default function AdminPanel() {
           </span>
         </div>
 
-        {/* KPI Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div
-            className={`p-6 rounded-2xl shadow-xl bg-linear-to-br ${theme.premiumCard} text-white hover:-translate-y-1 transition`}
-          >
-            <p className="text-sm opacity-80 uppercase tracking-wider">
-              Participants
-            </p>
-            <h2 className="text-4xl font-extrabold mt-2">
-              {totalParticipants}
-            </h2>
+        {/* Welcome */}
+
+        <div className="p-5 sm:p-6 mb-10 rounded-2xl bg-gradient-to-r from-purple-600/30 via-indigo-600/20 to-blue-600/20 border border-white/10 backdrop-blur-xl">
+          <h2 className="text-lg sm:text-xl font-semibold text-white">
+            Welcome back 👋
+          </h2>
+
+          <p className="text-xs sm:text-sm text-gray-300">
+            Your quiz analytics look great today.
+          </p>
+        </div>
+
+        {/* KPI Cards */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+          <MetricCard
+            title="Participants"
+            value={totalParticipants}
+            icon={<PeopleIcon />}
+            theme={theme}
+            role={role}
+          />
+          <MetricCard
+            title="Chapters"
+            value={chapterStats.length}
+            icon={<BarChartIcon />}
+            theme={theme}
+            role={role}
+          />
+          <MetricCard
+            title="Average Score"
+            value={avgScore}
+            icon={<DashboardIcon />}
+            theme={theme}
+            role={role}
+          />
+        </div>
+
+        {/* Charts */}
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl">
+            <h3 className={`${theme.textPrimary} mb-4 text-sm sm:text-base`}>
+              Chapter Distribution
+            </h3>
+
+            <div className="h-60 sm:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chapterStats}
+                    dataKey="participants"
+                    nameKey="chapter"
+                    innerRadius={40}
+                    outerRadius={80}
+                  >
+                    {chapterStats.map((e, i) => (
+                      <Cell key={i} fill={COLORS[i]} />
+                    ))}
+                  </Pie>
+
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          <div
-            className={`${theme.surface} p-6 rounded-2xl shadow-xl hover:-translate-y-1 transition`}
-          >
-            <p
-              className={`text-sm uppercase tracking-wider ${theme.textSecondary}`}
-            >
-              Chapters
-            </p>
-            <h2 className={`text-4xl font-bold mt-2 ${theme.textPrimary}`}>
-              {chapterStats.length}
-            </h2>
-          </div>
+          <div className="p-5 sm:p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl xl:col-span-2">
+            <h3 className={`${theme.textPrimary} mb-4 text-sm sm:text-base`}>
+              Score Distribution
+            </h3>
 
-          <div
-            className={`${theme.surface} p-6 rounded-2xl shadow-xl hover:-translate-y-1 transition`}
-          >
-            <p
-              className={`text-sm uppercase tracking-wider ${theme.textSecondary}`}
-            >
-              Role
-            </p>
-            <h2
-              className={`text-4xl font-bold mt-2 capitalize ${theme.textPrimary}`}
-            >
-              {role}
-            </h2>
+            <div className="h-60 sm:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={scoreDistribution}>
+                  <XAxis dataKey="range" />
+                  <YAxis />
+                  <Tooltip />
+
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
-        {/* Chart Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          {/* LEFT — PIE CHART */}
-          <div className="h-105 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chapterStats}
-                  dataKey="participants"
-                  nameKey="chapter"
-                  innerRadius={90}
-                  outerRadius={150}
-                  paddingAngle={3}
-                  label={{
-                    fill: isDark ? "#ffffff" : "#1f2937",
-                    fontSize: 12,
-                  }}
-                >
-                  {chapterStats.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index]} />
-                  ))}
-                </Pie>
+        {/* Activity */}
 
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                    border: "1px solid",
-                    borderColor: isDark ? "#374151" : "#e5e7eb",
-                    borderRadius: "8px",
-                  }}
-                  itemStyle={{
-                    color: isDark ? "#ffffff" : "#111827",
-                  }}
-                  labelStyle={{
-                    color: isDark ? "#ffffff" : "#111827",
-                  }}
-                  formatter={(v) => [`${v}`, "Participants"]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+        <div className="mt-10 p-5 sm:p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10">
+          <h3 className={`${theme.textPrimary} mb-4 text-sm sm:text-base`}>
+            Live Activity
+          </h3>
 
-            {/* Center Total */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p
-                className={
-                  isDark ? "text-gray-400 text-sm" : "text-gray-500 text-sm"
-                }
+          <div className="space-y-3">
+            {activity.length === 0 && (
+              <p className={theme.textSecondary}>No activity yet</p>
+            )}
+
+            {activity.map((e, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
               >
-                Total
-              </p>
-              <h2
-                className={
-                  isDark
-                    ? "text-4xl font-bold text-white"
-                    : "text-4xl font-bold text-gray-900"
-                }
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+
+                <div className="flex-1">
+                  <p className="text-sm text-white">{e.name}</p>
+
+                  <p className="text-xs text-gray-400">{e.chapter}</p>
+                </div>
+
+                <span className="text-xs text-gray-500">now</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Floating Dock */}
+
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md sm:max-w-xl">
+        <div
+          className={`
+      flex items-center justify-between
+      px-2 sm:px-4 py-2
+      rounded-2xl
+      backdrop-blur-xl
+      border border-white/10
+      shadow-2xl
+      ${theme.sidebarBg}
+    `}
+        >
+          {navItems.map((item, i) => {
+            const active = location.pathname === item.route;
+
+            return (
+              <button
+                key={i}
+                onClick={() => navigate(item.route)}
+                className={`
+            flex flex-col items-center justify-center
+            flex-1
+            py-1.5
+            rounded-xl
+            transition-all
+            group
+            ${
+              active
+                ? `bg-gradient-to-r ${theme.accentGradient} text-white`
+                : `${theme.textPrimary} hover:bg-white/10`
+            }
+          `}
               >
-                {chapterStats.reduce((sum, c) => sum + c.participants, 0)}
-              </h2>
-            </div>
-          </div>
+                <div className="text-lg sm:text-xl transition-transform group-hover:scale-110">
+                  {item.icon}
+                </div>
 
-          {/* RIGHT — CHAPTER STATS */}
-          <div className="max-h-105 overflow-y-auto pr-2">
-            <h3
-              className={
-                isDark
-                  ? "text-xl font-semibold mb-6 text-white"
-                  : "text-xl font-semibold mb-6 text-gray-900"
-              }
-            >
-              Chapter Stats
-            </h3>
+                <span className="text-[9px] sm:text-[11px] mt-0.5">
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
 
-            <div className="space-y-3">
-              {chapterStats
-                .sort((a, b) => b.participants - a.participants)
-                .map((item, index) => (
-                  <div
-                    key={index}
-                    className={`
-              flex justify-between items-center px-4 py-3 rounded-xl transition
-              ${
-                isDark
-                  ? "bg-white/5 border border-white/10 hover:bg-white/10"
-                  : "bg-gray-100 border border-gray-200 hover:bg-gray-200"
-              }
-            `}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[index] }}
-                      ></span>
-                      <span className={isDark ? "text-white" : "text-gray-900"}>
-                        {item.chapter}
-                      </span>
-                    </div>
-
-                    <span
-                      className={
-                        isDark
-                          ? "font-semibold text-white"
-                          : "font-semibold text-gray-900"
-                      }
-                    >
-                      {item.participants}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate("/admin-login");
+            }}
+            className="flex flex-col items-center flex-1 text-red-400 py-1.5"
+          >
+            <LogoutIcon className="text-lg sm:text-xl" />
+            <span className="text-[9px] sm:text-[11px] mt-0.5">Logout</span>
+          </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function MetricCard({ title, value, icon, theme, role }) {
+  const iconColor =
+  role === "superadmin"
+    ? "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]"
+    : "opacity-70";
+
+  return (
+    <motion.div
+      whileHover={{ y: -6 }}
+      className={`${theme.surface} relative p-6 rounded-2xl border border-white/10 shadow-xl`}
+    >
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400 rounded-t-xl"></div>
+
+      <div className="flex justify-between items-center mb-3">
+        <span className={`text-xs uppercase ${theme.textSecondary}`}>
+          {title}
+        </span>
+
+        <div className={iconColor}>{icon}</div>
+      </div>
+
+      <h2 className={`text-4xl font-bold ${theme.textPrimary}`}>
+        <CountUp end={value} duration={1.5} />
+      </h2>
+    </motion.div>
   );
 }

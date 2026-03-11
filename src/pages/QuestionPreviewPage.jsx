@@ -10,6 +10,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import SearchIcon from "@mui/icons-material/Search";
 import { motion } from "framer-motion";
+import AdminBottomDock from "../components/AdminBottomDock";
 
 export default function QuestionPreviewPage() {
   const [questions, setQuestions] = useState([]);
@@ -135,7 +136,8 @@ export default function QuestionPreviewPage() {
     );
 
   return (
-    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 relative">
+    <>
+  <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 pb-28">
       <Toaster position="top-right" />
       <div className="max-w-6xl mx-auto">
 
@@ -295,5 +297,9 @@ export default function QuestionPreviewPage() {
         ↑ Top
       </button>
     </div>
+
+    <AdminBottomDock role={user?.user_metadata?.role} />
+    
+    </>
   );
 }

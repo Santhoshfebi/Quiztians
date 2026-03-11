@@ -2,83 +2,106 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
+
 import {
   Container,
-  Paper,
   Typography,
   TextField,
   Grid,
   Button,
   Stack,
   CircularProgress,
-  Tabs,
-  Tab,
-  Box,
+  Paper,
   Card,
   CardContent,
-  useMediaQuery,
+  ToggleButton,
+  ToggleButtonGroup,
+  Chip,
+  Box,
   Autocomplete,
 } from "@mui/material";
 
+import AdminBottomDock from "../components/AdminBottomDock";
+
 export default function AddQuestions() {
   const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width:900px)");
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const [chapter, setChapter] = useState("");
   const [allChapters, setAllChapters] = useState([]);
-  const [newChapters, setNewChapters] = useState([]); 
+
+  const [tabIndex, setTabIndex] = useState(0);
+
   const [question_en, setQuestionEn] = useState("");
   const [question_ta, setQuestionTa] = useState("");
+
   const [optionA_en, setOptionAEn] = useState("");
   const [optionB_en, setOptionBEn] = useState("");
   const [optionC_en, setOptionCEn] = useState("");
   const [optionD_en, setOptionDEn] = useState("");
+
   const [optionA_ta, setOptionATa] = useState("");
   const [optionB_ta, setOptionBTa] = useState("");
   const [optionC_ta, setOptionCTa] = useState("");
   const [optionD_ta, setOptionDTa] = useState("");
+
   const [correct_en, setCorrectEn] = useState("");
   const [correct_ta, setCorrectTa] = useState("");
-  const [tabIndex, setTabIndex] = useState(0);
 
-  // Check admin access
+  // admin check
   useEffect(() => {
     const checkAdmin = async () => {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user;
 
-      if (!currentUser || (currentUser.user_metadata.role !== "admin" && currentUser.user_metadata.role !== "superadmin")) {
+      if (
+        !currentUser ||
+        (currentUser.user_metadata.role !== "admin" &&
+          currentUser.user_metadata.role !== "superadmin")
+      ) {
         toast.error("Access denied");
         navigate("/admin-login");
         return;
       }
 
       setUser(currentUser);
-      if (!sessionStorage.getItem("addQuestionWelcome")) {
-        toast.success(`Welcome, ${currentUser.email}!`);
-        sessionStorage.setItem("addQuestionWelcome", "true");
-      }
     };
+
     checkAdmin();
   }, [navigate]);
 
-  // Fetch existing chapters
+  // fetch chapters
   useEffect(() => {
     const fetchChapters = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("questions")
         .select("chapter")
         .not("chapter", "is", null);
-      if (!error && data) {
-        const uniqueChapters = [...new Set(data.map((q) => q.chapter))];
-        setAllChapters(uniqueChapters);
+
+      if (data) {
+        const unique = [...new Set(data.map((q) => q.chapter))];
+        setAllChapters(unique);
       }
     };
+
     fetchChapters();
   }, []);
+
+  const optionsEN = [
+    { label: "A", value: optionA_en },
+    { label: "B", value: optionB_en },
+    { label: "C", value: optionC_en },
+    { label: "D", value: optionD_en },
+  ];
+
+  const optionsTA = [
+    { label: "A", value: optionA_ta },
+    { label: "B", value: optionB_ta },
+    { label: "C", value: optionC_ta },
+    { label: "D", value: optionD_ta },
+  ];
 
   const allFieldsFilled =
     chapter &&
@@ -95,15 +118,16 @@ export default function AddQuestions() {
     correct_en &&
     correct_ta;
 
-  // Add question handler
   const handleAddQuestion = async () => {
     if (!allFieldsFilled) {
-      toast.error("Please fill all fields and select correct answers");
+      toast.error("Please complete all fields");
       return;
     }
+
     setLoading(true);
-    try {
-      const { error } = await supabase.from("questions").insert([{
+
+    const { error } = await supabase.from("questions").insert([
+      {
         chapter,
         question_en,
         question_ta,
@@ -118,230 +142,269 @@ export default function AddQuestions() {
         correct_answer: correct_en,
         correct_answer_ta: correct_ta,
         created_at: new Date(),
-      }]);
-      if (error) throw error;
+      },
+    ]);
 
-      toast.success("Question added successfully!");
-
-      // Dynamically add new chapter
-      if (chapter && !allChapters.includes(chapter)) {
-        setAllChapters((prev) => [...prev, chapter]);
-        setNewChapters((prev) => [...prev, chapter]);
-
-        // Remove "NEW" label automatically after 10 seconds
-        setTimeout(() => {
-          setNewChapters((prev) => prev.filter((ch) => ch !== chapter));
-        }, 10000);
-      }
-
-      // Reset all fields
-      setChapter(""); setQuestionEn(""); setQuestionTa("");
-      setOptionAEn(""); setOptionBEn(""); setOptionCEn(""); setOptionDEn("");
-      setOptionATa(""); setOptionBTa(""); setOptionCTa(""); setOptionDTa("");
-      setCorrectEn(""); setCorrectTa("");
-
-    } catch (err) {
-      console.error(err);
+    if (error) {
       toast.error("Failed to add question");
-    } finally {
       setLoading(false);
+      return;
     }
+
+    toast.success("Question added!");
+
+    setQuestionEn("");
+    setQuestionTa("");
+
+    setOptionAEn("");
+    setOptionBEn("");
+    setOptionCEn("");
+    setOptionDEn("");
+
+    setOptionATa("");
+    setOptionBTa("");
+    setOptionCTa("");
+    setOptionDTa("");
+
+    setCorrectEn("");
+    setCorrectTa("");
+
+    setLoading(false);
   };
 
   if (!user)
     return (
       <Container sx={{ mt: 10, textAlign: "center" }}>
         <CircularProgress />
-        <Typography mt={2}>Checking admin access...</Typography>
+        <Typography mt={2}>Checking admin...</Typography>
       </Container>
     );
 
-  const optionsEN = [
-    { label: "A", value: optionA_en },
-    { label: "B", value: optionB_en },
-    { label: "C", value: optionC_en },
-    { label: "D", value: optionD_en },
-  ];
-
-  const optionsTA = [
-    { label: "A", value: optionA_ta },
-    { label: "B", value: optionB_ta },
-    { label: "C", value: optionC_ta },
-    { label: "D", value: optionD_ta },
-  ];
-
   return (
-    <Container maxWidth="lg" sx={{ my: 6 }}>
+    <Container maxWidth="lg" sx={{ py: 6, pb: 14 }}>
       <Toaster position="top-right" />
 
-      <Stack direction={isMobile ? "column" : "row"} spacing={4} alignItems="stretch">
-        {/* Form Panel */}
-        <Paper sx={{ p: 5, borderRadius: 3, boxShadow: 5, flex: 1, background: "linear-gradient(to bottom, #e3f2fd, #ffffff)" }}>
-          <Typography variant="h4" fontWeight="bold" textAlign="center" color="primary" gutterBottom>
-            Add New Question
-          </Typography>
+      <Typography
+        variant="h4"
+        fontWeight="bold"
+        textAlign="center"
+        color="primary"
+        mb={4}
+      >
+        Add Question
+      </Typography>
 
-          <Stack spacing={4}>
-            {/* Chapter Autocomplete with auto-fading "NEW" label */}
-            <Autocomplete
-              freeSolo
-              options={allChapters}
-              value={chapter}
-              onChange={(event, newValue) => setChapter(newValue || "")}
-              onInputChange={(event, newInputValue) => setChapter(newInputValue)}
-              renderOption={(props, option) => (
-                <Box
-                  component="li"
-                  {...props}
-                  sx={{
-                    fontWeight: newChapters.includes(option) ? "bold" : "normal",
-                    backgroundColor: newChapters.includes(option) ? "#e3f2fd" : "inherit",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  {option}
-                  {newChapters.includes(option) && (
-                    <Typography variant="caption" color="primary" sx={{ ml: 1, fontWeight: "bold" }}>
-                      NEW
-                    </Typography>
-                  )}
-                </Box>
-              )}
-              renderInput={(params) => (
-                <TextField {...params} label="Chapter" fullWidth />
-              )}
-            />
-
-            {/* Question Tabs */}
-            <Tabs value={tabIndex} onChange={(e, val) => setTabIndex(val)} textColor="primary" indicatorColor="primary">
-              <Tab label="English" />
-              <Tab label="Tamil" />
-            </Tabs>
-            {tabIndex === 0 ? (
-              <TextField
-                label="Question (English)"
-                value={question_en}
-                onChange={(e) => setQuestionEn(e.target.value)}
-                fullWidth multiline rows={3} sx={{ mt: 2 }}
+      <Grid container spacing={4}>
+        {/* FORM */}
+        <Grid item xs={12} md={7}>
+          <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 5 }}>
+            <Stack spacing={3}>
+              {/* Chapter */}
+              <Autocomplete
+                freeSolo
+                options={allChapters}
+                value={chapter}
+                onChange={(e, v) => setChapter(v || "")}
+                onInputChange={(e, v) => setChapter(v)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Chapter" />
+                )}
               />
-            ) : (
-              <TextField
-                label="Question (Tamil)"
-                value={question_ta}
-                onChange={(e) => setQuestionTa(e.target.value)}
-                fullWidth multiline rows={3} sx={{ mt: 2 }}
-              />
-            )}
 
-            {/* Options Grid */}
-            <Grid container spacing={2}>
-              {tabIndex === 0
-                ? optionsEN.map((opt, idx) => (
-                    <Grid item xs={12} md={6} key={idx}>
-                      <TextField
-                        label={`Option ${opt.label}`}
-                        value={opt.value}
-                        onChange={(e) => [setOptionAEn, setOptionBEn, setOptionCEn, setOptionDEn][idx](e.target.value)}
-                        fullWidth
-                      />
-                    </Grid>
-                  ))
-                : optionsTA.map((opt, idx) => (
-                    <Grid item xs={12} md={6} key={idx}>
-                      <TextField
-                        label={`Option ${opt.label}`}
-                        value={opt.value}
-                        onChange={(e) => [setOptionATa, setOptionBTa, setOptionCTa, setOptionDTa][idx](e.target.value)}
-                        fullWidth
-                      />
-                    </Grid>
-                  ))}
-            </Grid>
+              {/* Language Toggle */}
+              <ToggleButtonGroup
+                value={tabIndex}
+                exclusive
+                onChange={(e, v) => v !== null && setTabIndex(v)}
+                sx={{ alignSelf: "center" }}
+              >
+                <ToggleButton value={0}>English</ToggleButton>
+                <ToggleButton value={1}>Tamil</ToggleButton>
+              </ToggleButtonGroup>
 
-            {/* Correct Answer */}
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              {/* Question */}
+              {tabIndex === 0 ? (
                 <TextField
-                  label="Correct Answer (English)"
-                  value={correct_en}
-                  onChange={(e) => setCorrectEn(e.target.value)}
-                  fullWidth
+                  label="Question (English)"
+                  multiline
+                  rows={3}
+                  value={question_en}
+                  onChange={(e) => setQuestionEn(e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              ) : (
                 <TextField
-                  label="Correct Answer (Tamil)"
-                  value={correct_ta}
-                  onChange={(e) => setCorrectTa(e.target.value)}
-                  fullWidth
+                  label="Question (Tamil)"
+                  multiline
+                  rows={3}
+                  value={question_ta}
+                  onChange={(e) => setQuestionTa(e.target.value)}
                 />
-              </Grid>
-            </Grid>
+              )}
 
-            {/* Action Buttons */}
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              {/* Options */}
+              <Grid container spacing={2}>
+                {(tabIndex === 0 ? optionsEN : optionsTA).map((opt, idx) => (
+                  <Grid item xs={12} sm={6} key={idx}>
+                    <Card
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        border: "1px solid #ddd",
+                      }}
+                    >
+                      <Typography fontWeight="bold">
+                        Option {opt.label}
+                      </Typography>
+
+                      <TextField
+                        value={opt.value}
+                        onChange={(e) =>
+                          (tabIndex === 0
+                            ? [
+                                setOptionAEn,
+                                setOptionBEn,
+                                setOptionCEn,
+                                setOptionDEn,
+                              ]
+                            : [
+                                setOptionATa,
+                                setOptionBTa,
+                                setOptionCTa,
+                                setOptionDTa,
+                              ])[idx](e.target.value)
+                        }
+                        fullWidth
+                        placeholder={`Enter option ${opt.label}`}
+                      />
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {/* Correct answer */}
+              <Typography fontWeight="bold" textAlign="center">
+                Select Correct Answer
+              </Typography>
+
+              <Stack direction="row" spacing={2} justifyContent="center">
+                {["A", "B", "C", "D"].map((opt) => (
+                  <Chip
+                    key={opt}
+                    label={opt}
+                    clickable
+                    color={
+                      (tabIndex === 0 ? correct_en : correct_ta) === opt
+                        ? "success"
+                        : "default"
+                    }
+                    onClick={() =>
+                      tabIndex === 0 ? setCorrectEn(opt) : setCorrectTa(opt)
+                    }
+                    sx={{ fontWeight: "bold", px: 2 }}
+                  />
+                ))}
+              </Stack>
+
+              {/* Add button */}
               <Button
                 variant="contained"
-                color="primary"
+                size="large"
+                disabled={!allFieldsFilled || loading}
                 onClick={handleAddQuestion}
-                disabled={loading || !allFieldsFilled}
-                fullWidth
-                sx={{ fontWeight: "bold", py: 1.5, textTransform: "none" }}
+                sx={{
+                  py: 1.8,
+                  fontWeight: "bold",
+                  borderRadius: 3,
+                }}
               >
                 {loading ? "Adding..." : "Add Question"}
               </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => navigate("/admin")}
-                fullWidth
-                sx={{ fontWeight: "bold", py: 1.5, textTransform: "none" }}
-              >
-                Back to Admin Panel
-              </Button>
             </Stack>
-          </Stack>
-        </Paper>
+          </Paper>
+        </Grid>
 
-        {/* Preview Panel */}
-        <Card sx={{ flex: 1, p: 3, borderRadius: 3, boxShadow: 5, background: "#f0f4ff" }}>
-          <CardContent>
-            <Typography variant="h5" fontWeight="bold" gutterBottom color="primary" textAlign="center">
-              Live Preview
-            </Typography>
+        {/* PREVIEW */}
+        <Grid item xs={12} md={5}>
+          <Card
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              boxShadow: 6,
+              position: "sticky",
+              top: 90,
+            }}
+          >
+            <CardContent>
+              <Typography fontWeight="bold" mb={2}>
+                Live Preview
+              </Typography>
 
-            <Box mb={2}>
-              <Typography fontWeight="bold">Chapter:</Typography>
-              <Typography>{chapter || "—"}</Typography>
-            </Box>
+              <Typography variant="subtitle2">Chapter</Typography>
+              <Typography mb={3}>{chapter || "—"}</Typography>
 
-            {[{ label: "Question (EN)", value: question_en, opts: optionsEN, correct: correct_en },
-              { label: "Question (TA)", value: question_ta, opts: optionsTA, correct: correct_ta }].map((q, idx) => (
-              <Box key={idx} mb={3}>
-                <Typography fontWeight="bold">{q.label}</Typography>
-                <Typography mb={1}>{q.value || "—"}</Typography>
-                <Stack spacing={1}>
-                  {q.opts.filter(o => o.value).map((opt, i) => (
-                    <Box
-                      key={i}
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        backgroundColor: opt.value === q.correct ? "#c8e6c9" : "#ffffff",
-                        border: "1px solid #ccc",
-                      }}
-                    >
-                      {opt.label}. {opt.value}
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            ))}
-          </CardContent>
-        </Card>
-      </Stack>
+              <Grid container spacing={3}>
+                {/* English Preview */}
+                <Grid item xs={12} md={6}>
+                  <Typography fontWeight="bold" mb={1}>
+                    English
+                  </Typography>
+
+                  <Typography mb={2}>{question_en || "—"}</Typography>
+
+                  <Stack spacing={1}>
+                    {optionsEN
+                      .filter((o) => o.value)
+                      .map((opt, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            p: 1.2,
+                            borderRadius: 2,
+                            border: "1px solid #ccc",
+                            background:
+                              opt.label === correct_en ? "#c8e6c9" : "#ffffff",
+                          }}
+                        >
+                          {opt.label}. {opt.value}
+                        </Box>
+                      ))}
+                  </Stack>
+                </Grid>
+
+                {/* Tamil Preview */}
+                <Grid item xs={12} md={6}>
+                  <Typography fontWeight="bold" mb={1}>
+                    Tamil
+                  </Typography>
+
+                  <Typography mb={2}>{question_ta || "—"}</Typography>
+
+                  <Stack spacing={1}>
+                    {optionsTA
+                      .filter((o) => o.value)
+                      .map((opt, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            p: 1.2,
+                            borderRadius: 2,
+                            border: "1px solid #ccc",
+                            background:
+                              opt.label === correct_ta ? "#c8e6c9" : "#ffffff",
+                          }}
+                        >
+                          {opt.label}. {opt.value}
+                        </Box>
+                      ))}
+                  </Stack>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <AdminBottomDock role={user?.user_metadata?.role} />
     </Container>
   );
 }

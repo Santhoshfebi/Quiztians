@@ -6,6 +6,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QuizIcon from "@mui/icons-material/Quiz";
 import LanguageIcon from "@mui/icons-material/Language";
 import { motion } from "framer-motion";
+import AdminBottomDock from "../components/AdminBottomDock";
 
 export default function ChaptersPreview() {
   const navigate = useNavigate();
@@ -109,7 +110,8 @@ export default function ChaptersPreview() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
+    <>
+    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 pb-28">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
@@ -188,5 +190,10 @@ export default function ChaptersPreview() {
         </div>
       </div>
     </div>
+
+    <AdminBottomDock />
+
+    </>
   );
 }
+  
