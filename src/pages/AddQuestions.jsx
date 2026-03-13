@@ -50,7 +50,6 @@ export default function AddQuestions() {
   const [correct_en, setCorrectEn] = useState("");
   const [correct_ta, setCorrectTa] = useState("");
 
-  // admin check
   useEffect(() => {
     const checkAdmin = async () => {
       const { data } = await supabase.auth.getSession();
@@ -72,7 +71,6 @@ export default function AddQuestions() {
     checkAdmin();
   }, [navigate]);
 
-  // fetch chapters
   useEffect(() => {
     const fetchChapters = async () => {
       const { data } = await supabase
@@ -126,6 +124,24 @@ export default function AddQuestions() {
 
     setLoading(true);
 
+    const correctAnswerTextEN =
+      correct_en === "A"
+        ? optionA_en
+        : correct_en === "B"
+          ? optionB_en
+          : correct_en === "C"
+            ? optionC_en
+            : optionD_en;
+
+    const correctAnswerTextTA =
+      correct_ta === "A"
+        ? optionA_ta
+        : correct_ta === "B"
+          ? optionB_ta
+          : correct_ta === "C"
+            ? optionC_ta
+            : optionD_ta;
+
     const { error } = await supabase.from("questions").insert([
       {
         chapter,
@@ -139,8 +155,8 @@ export default function AddQuestions() {
         option_b_ta: optionB_ta,
         option_c_ta: optionC_ta,
         option_d_ta: optionD_ta,
-        correct_answer: correct_en,
-        correct_answer_ta: correct_ta,
+        correct_answer: correctAnswerTextEN,
+        correct_answer_ta: correctAnswerTextTA,
         created_at: new Date(),
       },
     ]);
@@ -181,7 +197,7 @@ export default function AddQuestions() {
     );
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6, pb: 14 }}>
+    <Container maxWidth="xl" sx={{ py: 6, pb: 14 }}>
       <Toaster position="top-right" />
 
       <Typography
@@ -194,12 +210,11 @@ export default function AddQuestions() {
         Add Question
       </Typography>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={4} alignItems="flex-start">
         {/* FORM */}
-        <Grid item xs={12} md={7}>
-          <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 5 }}>
+        <Grid item md={7}>
+          <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 5, minHeight: 500 }}>
             <Stack spacing={3}>
-              {/* Chapter */}
               <Autocomplete
                 freeSolo
                 options={allChapters}
@@ -211,7 +226,6 @@ export default function AddQuestions() {
                 )}
               />
 
-              {/* Language Toggle */}
               <ToggleButtonGroup
                 value={tabIndex}
                 exclusive
@@ -222,7 +236,6 @@ export default function AddQuestions() {
                 <ToggleButton value={1}>Tamil</ToggleButton>
               </ToggleButtonGroup>
 
-              {/* Question */}
               {tabIndex === 0 ? (
                 <TextField
                   label="Question (English)"
@@ -241,16 +254,11 @@ export default function AddQuestions() {
                 />
               )}
 
-              {/* Options */}
               <Grid container spacing={2}>
                 {(tabIndex === 0 ? optionsEN : optionsTA).map((opt, idx) => (
-                  <Grid item xs={12} sm={6} key={idx}>
+                  <Grid item xs={6} key={idx}>
                     <Card
-                      sx={{
-                        p: 2,
-                        borderRadius: 3,
-                        border: "1px solid #ddd",
-                      }}
+                      sx={{ p: 2, borderRadius: 3, border: "1px solid #ddd" }}
                     >
                       <Typography fontWeight="bold">
                         Option {opt.label}
@@ -274,14 +282,12 @@ export default function AddQuestions() {
                               ])[idx](e.target.value)
                         }
                         fullWidth
-                        placeholder={`Enter option ${opt.label}`}
                       />
                     </Card>
                   </Grid>
                 ))}
               </Grid>
 
-              {/* Correct answer */}
               <Typography fontWeight="bold" textAlign="center">
                 Select Correct Answer
               </Typography>
@@ -297,25 +303,21 @@ export default function AddQuestions() {
                         ? "success"
                         : "default"
                     }
-                    onClick={() =>
-                      tabIndex === 0 ? setCorrectEn(opt) : setCorrectTa(opt)
-                    }
+                    onClick={() => {
+                      setCorrectEn(opt);
+                      setCorrectTa(opt);
+                    }}
                     sx={{ fontWeight: "bold", px: 2 }}
                   />
                 ))}
               </Stack>
 
-              {/* Add button */}
               <Button
                 variant="contained"
                 size="large"
                 disabled={!allFieldsFilled || loading}
                 onClick={handleAddQuestion}
-                sx={{
-                  py: 1.8,
-                  fontWeight: "bold",
-                  borderRadius: 3,
-                }}
+                sx={{ py: 1.8, fontWeight: "bold", borderRadius: 3 }}
               >
                 {loading ? "Adding..." : "Add Question"}
               </Button>
@@ -323,8 +325,8 @@ export default function AddQuestions() {
           </Paper>
         </Grid>
 
-        {/* PREVIEW */}
-        <Grid item xs={12} md={5}>
+        {/* LIVE PREVIEW */}
+        <Grid item md={5}>
           <Card
             sx={{
               p: 3,
@@ -342,63 +344,52 @@ export default function AddQuestions() {
               <Typography variant="subtitle2">Chapter</Typography>
               <Typography mb={3}>{chapter || "—"}</Typography>
 
-              <Grid container spacing={3}>
-                {/* English Preview */}
-                <Grid item xs={12} md={6}>
-                  <Typography fontWeight="bold" mb={1}>
-                    English
-                  </Typography>
+              <Typography fontWeight="bold">English</Typography>
+              <Typography mb={2}>{question_en || "—"}</Typography>
 
-                  <Typography mb={2}>{question_en || "—"}</Typography>
+              <Stack spacing={1}>
+                {optionsEN
+                  .filter((o) => o.value)
+                  .map((opt, idx) => (
+                    <Box
+                      key={idx}
+                      sx={{
+                        p: 1.2,
+                        borderRadius: 2,
+                        border: "1px solid #ccc",
+                        background:
+                          opt.label === correct_en ? "#c8e6c9" : "#ffffff",
+                      }}
+                    >
+                      {opt.label}. {opt.value}
+                    </Box>
+                  ))}
+              </Stack>
 
-                  <Stack spacing={1}>
-                    {optionsEN
-                      .filter((o) => o.value)
-                      .map((opt, idx) => (
-                        <Box
-                          key={idx}
-                          sx={{
-                            p: 1.2,
-                            borderRadius: 2,
-                            border: "1px solid #ccc",
-                            background:
-                              opt.label === correct_en ? "#c8e6c9" : "#ffffff",
-                          }}
-                        >
-                          {opt.label}. {opt.value}
-                        </Box>
-                      ))}
-                  </Stack>
-                </Grid>
+              <Typography fontWeight="bold" mt={3}>
+                Tamil
+              </Typography>
 
-                {/* Tamil Preview */}
-                <Grid item xs={12} md={6}>
-                  <Typography fontWeight="bold" mb={1}>
-                    Tamil
-                  </Typography>
+              <Typography mb={2}>{question_ta || "—"}</Typography>
 
-                  <Typography mb={2}>{question_ta || "—"}</Typography>
-
-                  <Stack spacing={1}>
-                    {optionsTA
-                      .filter((o) => o.value)
-                      .map((opt, idx) => (
-                        <Box
-                          key={idx}
-                          sx={{
-                            p: 1.2,
-                            borderRadius: 2,
-                            border: "1px solid #ccc",
-                            background:
-                              opt.label === correct_ta ? "#c8e6c9" : "#ffffff",
-                          }}
-                        >
-                          {opt.label}. {opt.value}
-                        </Box>
-                      ))}
-                  </Stack>
-                </Grid>
-              </Grid>
+              <Stack spacing={1}>
+                {optionsTA
+                  .filter((o) => o.value)
+                  .map((opt, idx) => (
+                    <Box
+                      key={idx}
+                      sx={{
+                        p: 1.2,
+                        borderRadius: 2,
+                        border: "1px solid #ccc",
+                        background:
+                          opt.label === correct_ta ? "#c8e6c9" : "#ffffff",
+                      }}
+                    >
+                      {opt.label}. {opt.value}
+                    </Box>
+                  ))}
+              </Stack>
             </CardContent>
           </Card>
         </Grid>

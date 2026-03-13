@@ -20,7 +20,6 @@ import {
 } from "@mui/material";
 import { Toaster, toast } from "react-hot-toast";
 
-// Icons
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QuizIcon from "@mui/icons-material/Quiz";
 import PreviewIcon from "@mui/icons-material/Preview";
@@ -38,7 +37,6 @@ export default function EditQuestions() {
   const [chapters, setChapters] = useState([]);
   const [langTab, setLangTab] = useState("en");
 
-  // Load question & chapters
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -55,8 +53,7 @@ export default function EditQuestions() {
           .from("questions")
           .select("chapter");
 
-        setChapters([...new Set(chapterData.map(q => q.chapter))]);
-
+        setChapters([...new Set(chapterData.map((q) => q.chapter))]);
       } catch (err) {
         toast.error("Failed to load question");
         navigate("/admin/preview-questions");
@@ -64,17 +61,28 @@ export default function EditQuestions() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [id, navigate]);
 
   const handleChange = (field, value) => {
-    setQuestion(prev => ({ ...prev, [field]: value }));
+    setQuestion((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
     if (!question) return;
 
-    const required = ["chapter", "question_en", "question_ta", "option_a_en", "option_b_en", "option_c_en", "option_d_en", "correct_answer"];
+    const required = [
+      "chapter",
+      "question_en",
+      "question_ta",
+      "option_a_en",
+      "option_b_en",
+      "option_c_en",
+      "option_d_en",
+      "correct_answer",
+    ];
+
     for (let field of required) {
       if (!question[field]) {
         toast.error("Fill all mandatory fields");
@@ -83,9 +91,23 @@ export default function EditQuestions() {
     }
 
     setSaving(true);
+
     try {
+      // convert A/B/C/D → a/b/c/d
+      const correctKey = question.correct_answer.toLowerCase();
+
+      const correctAnswerEN = question[`option_${correctKey}_en`];
+      const correctAnswerTA = question[`option_${correctKey}_ta`];
+
       const { id, ...updateData } = question;
-      const { error } = await supabase.from("questions").update(updateData).eq("id", id);
+
+      updateData.correct_answer = correctAnswerEN;
+      updateData.correct_answer_ta = correctAnswerTA;
+
+      const { error } = await supabase
+        .from("questions")
+        .update(updateData)
+        .eq("id", id);
 
       if (error) throw error;
 
@@ -100,16 +122,21 @@ export default function EditQuestions() {
 
   if (loading)
     return (
-      <Box height="100vh" display="flex" justifyContent="center" alignItems="center">
+      <Box
+        height="100vh"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+      >
         <CircularProgress />
       </Box>
     );
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Toaster position="top-right" />
 
-      {/* Page Header */}
+      {/* HEADER */}
       <Paper
         sx={{
           p: 3,
@@ -123,7 +150,14 @@ export default function EditQuestions() {
           flexWrap: "wrap",
         }}
       >
-        <Typography variant="h5" fontWeight="bold" display="flex" alignItems="center" gap={1} color="primary">
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          display="flex"
+          alignItems="center"
+          gap={1}
+          color="primary"
+        >
           <QuizIcon /> Edit Question
         </Typography>
 
@@ -137,10 +171,12 @@ export default function EditQuestions() {
         </Button>
       </Paper>
 
-      {/* Split layout: Left (Form) | Right (Preview) */}
-      <Stack direction={isMobile ? "column" : "row"} spacing={4}>
-        
-        {/* LEFT: Edit Form */}
+      <Stack
+        direction={isMobile ? "column" : "row"}
+        spacing={4}
+        alignItems="flex-start"
+      >
+        {/* LEFT FORM */}
         <Paper
           sx={{
             flex: 1,
@@ -150,7 +186,7 @@ export default function EditQuestions() {
             background: "linear-gradient(to bottom, #e3f2fd, #ffffff)",
           }}
         >
-          {/* Chapter Selector */}
+          {/* CHAPTER */}
           <TextField
             select
             label="Chapter"
@@ -159,27 +195,27 @@ export default function EditQuestions() {
             fullWidth
             sx={{ mb: 3 }}
           >
-            {chapters.map(ch => (
+            {chapters.map((ch) => (
               <MenuItem key={ch} value={ch}>
                 {ch}
               </MenuItem>
             ))}
           </TextField>
 
-          {/* Language Tabs */}
+          {/* LANGUAGE TABS */}
           <Tabs
             value={langTab}
             onChange={(e, tab) => setLangTab(tab)}
             indicatorColor="primary"
             textColor="primary"
-            sx={{ mb: 3 }}
             variant="fullWidth"
+            sx={{ mb: 3 }}
           >
             <Tab label="English" value="en" />
             <Tab label="Tamil" value="ta" />
           </Tabs>
 
-          {/* ENGLISH FORM */}
+          {/* ENGLISH */}
           {langTab === "en" && (
             <Grid container spacing={2}>
               <Grid item xs={12}>
@@ -199,23 +235,33 @@ export default function EditQuestions() {
                     label={`Option ${opt.toUpperCase()} (EN)`}
                     fullWidth
                     value={question[`option_${opt}_en`]}
-                    onChange={(e) => handleChange(`option_${opt}_en`, e.target.value)}
+                    onChange={(e) =>
+                      handleChange(`option_${opt}_en`, e.target.value)
+                    }
                   />
                 </Grid>
               ))}
 
               <Grid item xs={12}>
                 <TextField
-                  label="Correct Answer (EN)"
-                  fullWidth
+                  select
+                  label="Correct Answer"
                   value={question.correct_answer}
-                  onChange={(e) => handleChange("correct_answer", e.target.value)}
-                />
+                  onChange={(e) =>
+                    handleChange("correct_answer", e.target.value)
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="A">A</MenuItem>
+                  <MenuItem value="B">B</MenuItem>
+                  <MenuItem value="C">C</MenuItem>
+                  <MenuItem value="D">D</MenuItem>
+                </TextField>
               </Grid>
             </Grid>
           )}
 
-          {/* TAMIL FORM */}
+          {/* TAMIL */}
           {langTab === "ta" && (
             <Grid container spacing={2}>
               <Grid item xs={12}>
@@ -235,27 +281,19 @@ export default function EditQuestions() {
                     label={`Option ${opt.toUpperCase()} (TA)`}
                     fullWidth
                     value={question[`option_${opt}_ta`]}
-                    onChange={(e) => handleChange(`option_${opt}_ta`, e.target.value)}
+                    onChange={(e) =>
+                      handleChange(`option_${opt}_ta`, e.target.value)
+                    }
                   />
                 </Grid>
               ))}
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Correct Answer (TA)"
-                  fullWidth
-                  value={question.correct_answer_ta}
-                  onChange={(e) => handleChange("correct_answer_ta", e.target.value)}
-                />
-              </Grid>
             </Grid>
           )}
 
-          {/* Buttons */}
+          {/* BUTTONS */}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mt={4}>
             <Button
               variant="contained"
-              color="primary"
               startIcon={<SaveIcon />}
               onClick={handleSave}
               fullWidth={isMobile}
@@ -265,7 +303,6 @@ export default function EditQuestions() {
 
             <Button
               variant="outlined"
-              color="secondary"
               startIcon={<CancelIcon />}
               onClick={() => navigate("/admin/preview-questions")}
               fullWidth={isMobile}
@@ -275,7 +312,7 @@ export default function EditQuestions() {
           </Stack>
         </Paper>
 
-        {/* RIGHT: LIVE PREVIEW */}
+        {/* RIGHT PREVIEW */}
         <Card
           sx={{
             flex: 1,
@@ -283,6 +320,8 @@ export default function EditQuestions() {
             borderRadius: 3,
             boxShadow: 4,
             background: "#f0f4ff",
+            position: "sticky",
+            top: 100,
           }}
         >
           <CardContent>
@@ -298,24 +337,23 @@ export default function EditQuestions() {
               <PreviewIcon /> Live Preview
             </Typography>
 
-            <Typography mb={1}><strong>Chapter:</strong> {question.chapter}</Typography>
+            <Typography mb={2}>
+              <strong>Chapter:</strong> {question.chapter}
+            </Typography>
 
-            {/* Preview EN + TA */}
             {["en", "ta"].map((lang) => (
               <Box key={lang} mb={3}>
                 <Typography fontWeight="bold">
-                  {lang === "en" ? "English" : "Tamil"}:
+                  {lang === "en" ? "English" : "Tamil"}
                 </Typography>
 
                 <Typography mb={1}>
                   {question[`question_${lang}`] || "—"}
                 </Typography>
 
-                {/* Options List */}
                 <Stack spacing={1}>
                   {["a", "b", "c", "d"].map((opt) => {
-                    const val = question[`option_${opt}_${lang}`];
-                    const correct = question[`correct_answer${lang === "en" ? "" : "_ta"}`];
+                    const value = question[`option_${opt}_${lang}`];
 
                     return (
                       <Box
@@ -324,10 +362,13 @@ export default function EditQuestions() {
                           p: 1.5,
                           borderRadius: 2,
                           border: "1px solid #ccc",
-                          backgroundColor: val === correct ? "#c8e6c9" : "#fff",
+                          backgroundColor:
+                            question.correct_answer?.toLowerCase() === opt
+                              ? "#c8e6c9"
+                              : "#fff",
                         }}
                       >
-                        {opt.toUpperCase()}. {val || "—"}
+                        {opt.toUpperCase()}. {value || "—"}
                       </Box>
                     );
                   })}

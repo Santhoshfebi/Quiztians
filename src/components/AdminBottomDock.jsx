@@ -68,7 +68,7 @@ export default function AdminBottomDock({ role }) {
                 transition-all group
                 ${
                   active
-                    ? `bg-gradient-to-r ${theme.accentGradient} text-white`
+                    ? `bg-linear-to-r ${theme.accentGradient} text-white`
                     : `${theme.textPrimary} hover:bg-white/10`
                 }
               `}
