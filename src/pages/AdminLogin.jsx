@@ -339,12 +339,6 @@ export default function AdminLogin() {
               </span>
             </p>
           </form>
-          {/* <button
-            onClick={() => navigate("/")}
-            className="rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition"
-          >
-            Back to landing
-          </button> */}
         </motion.div>
       </div>
     </motion.div>

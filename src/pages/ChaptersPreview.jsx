@@ -1,199 +1,195 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { motion } from "framer-motion";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QuizIcon from "@mui/icons-material/Quiz";
 import LanguageIcon from "@mui/icons-material/Language";
-import { motion } from "framer-motion";
 import AdminBottomDock from "../components/AdminBottomDock";
 
 export default function ChaptersPreview() {
   const navigate = useNavigate();
+
   const [chapters, setChapters] = useState([]);
-  const [filteredChapters, setFilteredChapters] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
 
+  // FETCH
   useEffect(() => {
-    const fetchChapters = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("questions")
-          .select("chapter, question_en, question_ta")
-          .not("chapter", "is", null);
+    const fetch = async () => {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("chapter, question_en, question_ta");
 
-        if (error) throw error;
-
-        const chapterMap = {};
-        data.forEach((q) => {
-          if (!q.chapter) return;
-          const chapterKey = q.chapter.trim().toLowerCase();
-          if (!chapterMap[chapterKey]) {
-            chapterMap[chapterKey] = {
-              name: q.chapter.trim(),
-              hasEnglish: false,
-              hasTamil: false,
-            };
-          }
-          if (q.question_en && q.question_en.trim() !== "")
-            chapterMap[chapterKey].hasEnglish = true;
-          if (q.question_ta && q.question_ta.trim() !== "")
-            chapterMap[chapterKey].hasTamil = true;
-        });
-
-        const validChapters = Object.values(chapterMap)
-          .filter((ch) => ch.hasEnglish && ch.hasTamil)
-          .map((ch) => ch.name)
-          .sort((a, b) => a.localeCompare(b));
-
-        setChapters(validChapters);
-        setFilteredChapters(validChapters);
-      } catch (err) {
-        console.error("Error fetching chapters:", err);
-        alert("Failed to load chapters.");
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error(error);
+        return;
       }
+
+      const map = {};
+
+      data.forEach((q) => {
+        if (!q.chapter) return;
+
+        const key = q.chapter.trim().toLowerCase();
+
+        if (!map[key]) {
+          map[key] = {
+            name: q.chapter.trim(),
+            count: 0,
+            en: false,
+            ta: false,
+          };
+        }
+
+        map[key].count++;
+        if (q.question_en?.trim()) map[key].en = true;
+        if (q.question_ta?.trim()) map[key].ta = true;
+      });
+
+      const list = Object.values(map).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      setChapters(list);
+      setFiltered(list);
+      setLoading(false);
     };
 
-    fetchChapters();
+    fetch();
   }, []);
 
+  // SEARCH
   useEffect(() => {
-    const filtered = chapters.filter((ch) =>
-      ch.toLowerCase().includes(searchTerm.toLowerCase())
+    setFiltered(
+      chapters.filter((c) =>
+        c.name.toLowerCase().includes(search.toLowerCase())
+      )
     );
-    setFilteredChapters(filtered);
-  }, [searchTerm, chapters]);
+  }, [search, chapters]);
 
   const handlePreview = (chapter, lang) => {
-    if (!chapter || !lang) return;
     navigate("/quiz", {
       state: {
         name: "Admin Preview",
         phone: "0000000000",
         place: "Admin",
         language: lang,
-        chapter: chapter,
+        chapter,
         isPreview: true,
       },
     });
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
-        <p className="text-xl animate-pulse font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">
-          Loading chapters...
+        <p className="text-xl animate-pulse font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent">
+          Loading Chapters...
         </p>
       </div>
     );
-  }
-
-  if (filteredChapters.length === 0) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4">
-        <p className="text-xl font-bold text-red-600 mb-4">
-          No bilingual chapters found.
-        </p>
-        {chapters.length > 0 && (
-          <button
-            onClick={() => setSearchTerm("")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow flex items-center gap-2"
-          >
-            <ArrowBackIcon /> Reset Search
-          </button>
-        )}
-      </div>
-    );
-  }
 
   return (
     <>
-    <div className="min-h-screen p-6 bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 pb-28">
-      <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 text-white pb-28">
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mt-8 mb-8 gap-4">
-          <h1
-            className="text-3xl font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent text-center cursor-pointer hover:underline transition-all"
-            onClick={() => window.location.reload()}
-          >
-            Admin Chapter Preview
+        {/* HEADER */}
+        <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <h1 className="text-3xl font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">
+            Chapters Dashboard
           </h1>
-
-          <button
-            onClick={() => navigate("/admin")}
-            className="px-8 py-4 rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition"
-          >
-            <ArrowBackIcon /> Back to Admin Panel
-          </button>
         </div>
 
-        {/* Total Chapters Summary */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center">
-            <p className="text-gray-500 text-sm">Total Chapters</p>
-            <p className="text-4xl font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">{chapters.length}</p>
-          </div>
-        </div>
-
-        {/* Search bar */}
-        <div className="flex justify-center mb-10 mt-4">
-          <div className="relative w-full md:w-1/2 font-black bg-linear-to-r from-pink-200 to-indigo-800 bg-clip-text text-transparent">
+        {/* SEARCH */}
+        <div className="max-w-7xl mx-auto px-4 mb-6">
+          <div className="relative">
             <input
-              type="text"
-              placeholder="Search chapter..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-12"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search chapters..."
+              className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500"
             />
-            <SearchIcon className="absolute right-3 top-3 text-gray-400" />
+            <SearchIcon className="absolute right-4 top-3 text-gray-400" />
           </div>
         </div>
 
-        {/* Chapter Cards with animation */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
-          {filteredChapters.map((chapter, idx) => (
+        {/* STATS */}
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 text-center">
+            <p className="text-gray-300 text-sm">Total Chapters</p>
+            <p className="text-3xl font-bold">{chapters.length}</p>
+          </div>
+
+          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 text-center">
+            <p className="text-gray-300 text-sm">Total Questions</p>
+            <p className="text-3xl font-bold">
+              {chapters.reduce((acc, c) => acc + c.count, 0)}
+            </p>
+          </div>
+        </div>
+
+        {/* GRID */}
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((ch, i) => (
             <motion.div
-              key={idx}
+              key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: idx * 0.05 }}
-              className="bg-white rounded-2xl p-6 flex flex-col items-center justify-between shadow-xl hover:shadow-2xl transition-shadow transform hover:scale-105 border-t-4 border-blue-400"
+              transition={{ delay: i * 0.05 }}
+              className="group backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 shadow-xl hover:scale-[1.03] transition"
             >
-              <QuizIcon className="text-blue-500 text-5xl mb-4" />
-              <h2 className="text-2xl font-bold text-pink-800 mb-3 text-center">
-                {chapter}
-              </h2>
-              <p className="text-gray-600 text-center mb-4">
-                Preview the quiz in both languages
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <QuizIcon className="text-purple-400" />
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20">
+                  {ch.count} Qs
+                </span>
+              </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handlePreview(chapter, "en")}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow flex items-center gap-2"
+              <h2 className="text-xl font-bold mb-2">{ch.name}</h2>
+
+              {/* LANGUAGE STATUS */}
+              <div className="flex gap-2 mb-4 text-xs">
+                <span
+                  className={`px-2 py-1 rounded ${
+                    ch.en ? "bg-blue-500/30" : "bg-red-500/30"
+                  }`}
                 >
-                  <LanguageIcon /> English
+                  EN
+                </span>
+                <span
+                  className={`px-2 py-1 rounded ${
+                    ch.ta ? "bg-green-500/30" : "bg-red-500/30"
+                  }`}
+                >
+                  TA
+                </span>
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePreview(ch.name, "en")}
+                  className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm flex items-center justify-center gap-1"
+                >
+                  <LanguageIcon fontSize="small" /> English
                 </button>
+
                 <button
-                  onClick={() => handlePreview(chapter, "ta")}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow flex items-center gap-2"
+                  onClick={() => handlePreview(ch.name, "ta")}
+                  className="flex-1 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm flex items-center justify-center gap-1"
                 >
-                  <LanguageIcon /> Tamil
+                  <LanguageIcon fontSize="small" /> Tamil
                 </button>
               </div>
             </motion.div>
           ))}
         </div>
       </div>
-    </div>
 
-    <AdminBottomDock />
-
+      <AdminBottomDock />
     </>
   );
 }
-  

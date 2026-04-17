@@ -149,13 +149,6 @@ export default function QuestionPreviewPage() {
           >
              Admin Question Preview
           </h1>
-
-          <button
-            onClick={() => navigate("/admin")}
-            className="px-8 py-4 rounded-2xl font-bold bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 shadow-xl hover:scale-105 transition"
-          >
-            <ArrowBackIcon /> Back to Admin Panel
-          </button>
         </div>
 
         {/* Total Questions */}

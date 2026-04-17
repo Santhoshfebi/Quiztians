@@ -23,12 +23,12 @@ export default function AdminBottomDock({ role }) {
     {
       label: "Preview",
       icon: <QuestionAnswerIcon />,
-      route: "/admin/preview-questions",
+      route: "/admin/preview-quiz",
     },
     {
       label: "Quiz",
       icon: <PlayArrowIcon />,
-      route: "/admin/preview-quiz",
+      route: "/admin/preview-questions",
     },
     {
       label: "Config",
