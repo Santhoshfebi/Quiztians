@@ -216,7 +216,10 @@ export default function AdminLogin() {
           transition={{ duration: 0.8 }}
           className="relative bg-linear-to-br from-indigo-900 to-purple-900 text-white p-14 flex flex-col justify-center"
         >
-          <h1 className="text-2xl sm:text-4xl font-black mb-6 bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 bg-size-[200%_200%] bg-clip-text text-transparent animate-gradient">
+          <h1
+            onClick={() => navigate("/")}
+            className="text-2xl sm:text-4xl font-black mb-6 bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 bg-size-[200%_200%] bg-clip-text text-transparent animate-gradient cursor-pointer hover:opacity-80 transition"
+          >
             QUIZTIANS
           </h1>
 
