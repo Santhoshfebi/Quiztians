@@ -32,13 +32,41 @@ export default function AdminLogin() {
 
       if (error) throw error;
 
-      const role = data.user?.user_metadata?.role;
+      const currentUser = data.user;
+      const role = currentUser?.user_metadata?.role;
 
       if (role !== "admin" && role !== "superadmin") {
         toast.error("Access denied: Not an admin account", { id: loginToast });
         await supabase.auth.signOut();
         return;
       }
+
+      /*
+        Previous login tracking logic:
+
+        current_login = latest successful login time we saved last time
+        previous_login = old current_login before updating to new time
+
+        First login:
+        previous_login = null
+        current_login = now
+
+        Second login:
+        previous_login = first login time
+        current_login = now
+      */
+      const oldCurrentLogin = currentUser.user_metadata?.current_login || null;
+
+      const { data: updatedUserData, error: updateError } =
+        await supabase.auth.updateUser({
+          data: {
+            ...currentUser.user_metadata,
+            previous_login: oldCurrentLogin,
+            current_login: new Date().toISOString(),
+          },
+        });
+
+      if (updateError) throw updateError;
 
       toast.success("Login successful!", { id: loginToast });
 
@@ -79,7 +107,6 @@ export default function AdminLogin() {
       className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-6 relative overflow-hidden"
     >
       {/* TOAST */}
-
       <Toaster
         position="top-right"
         toastOptions={{
@@ -95,7 +122,6 @@ export default function AdminLogin() {
       />
 
       {/* SUCCESS CHECKMARK ANIMATION */}
-
       {loginSuccess && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -149,7 +175,6 @@ export default function AdminLogin() {
       )}
 
       {/* FLOATING ORBS */}
-
       <motion.div
         className="absolute w-96 h-96 bg-purple-500/30 rounded-full blur-[120px]"
         animate={{ y: [0, -40, 0], x: [0, 40, 0] }}
@@ -163,7 +188,6 @@ export default function AdminLogin() {
       />
 
       {/* PARTICLES */}
-
       {[...Array(25)].map((_, i) => (
         <motion.div
           key={i}
@@ -184,10 +208,8 @@ export default function AdminLogin() {
       ))}
 
       {/* MAIN CARD */}
-
       <div className="relative w-full max-w-6xl grid md:grid-cols-2 rounded-3xl overflow-hidden shadow-2xl">
         {/* LEFT PANEL */}
-
         <motion.div
           initial={{ x: -80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -210,7 +232,6 @@ export default function AdminLogin() {
         </motion.div>
 
         {/* WAVE DIVIDER */}
-
         <div className="hidden md:block absolute left-1/2 top-0 h-full -translate-x-1/2">
           <motion.svg
             viewBox="0 0 200 800"
@@ -230,7 +251,6 @@ export default function AdminLogin() {
         </div>
 
         {/* RIGHT PANEL */}
-
         <motion.div
           initial={{ x: 80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -249,7 +269,6 @@ export default function AdminLogin() {
             }}
           >
             {/* EMAIL */}
-
             <div className="relative">
               <User size={18} className="absolute left-3 top-3 text-gray-400" />
 
@@ -263,7 +282,6 @@ export default function AdminLogin() {
             </div>
 
             {/* PASSWORD */}
-
             <div className="relative">
               <Lock size={18} className="absolute left-3 top-3 text-gray-400" />
 
@@ -285,7 +303,6 @@ export default function AdminLogin() {
             </div>
 
             {/* REMEMBER + FORGOT */}
-
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-gray-300">
                 <input
@@ -306,7 +323,6 @@ export default function AdminLogin() {
             </div>
 
             {/* LOGIN BUTTON */}
-
             <button
               type="submit"
               disabled={loading}
@@ -316,7 +332,6 @@ export default function AdminLogin() {
             </button>
 
             {/* DIVIDER */}
-
             <div className="flex items-center gap-4 text-gray-400 text-sm">
               <div className="flex-1 h-px bg-gray-500" />
               or
@@ -324,7 +339,6 @@ export default function AdminLogin() {
             </div>
 
             {/* OTHER LOGIN */}
-
             <button
               type="button"
               className="w-full py-3 border border-white/20 rounded-lg text-gray-300 hover:bg-white/10 transition"
