@@ -129,37 +129,43 @@ export default function AdminUsers() {
     }
 
     const confirmed = window.confirm(
-      `Delete ${admin.full_name || admin.email}?`
+      `Permanently delete ${admin.full_name || admin.email} from Admins and Authentication?`,
     );
 
     if (!confirmed) return;
 
     const deleteToast = toast.loading("Deleting admin...");
 
-    const { error } = await supabase
-      .from("admins")
-      .delete()
-      .eq("id", admin.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-admin", {
+        body: {
+          adminId: admin.id,
+        },
+      });
 
-    if (error) {
-      toast.error(error.message, {
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("Admin deleted permanently", {
         id: deleteToast,
       });
-      return;
+
+      await fetchAdmins();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete admin", {
+        id: deleteToast,
+      });
     }
-
-    toast.success("Admin deleted", {
-      id: deleteToast,
-    });
-
-    await fetchAdmins();
   };
-
+  
   const totalAdmins = admins.length;
   const activeAdmins = admins.filter((a) => a.is_active).length;
   const disabledAdmins = admins.filter((a) => !a.is_active).length;
   const pendingInvites = admins.filter(
-    (a) => a.invite_status === "pending"
+    (a) => a.invite_status === "pending",
   ).length;
 
   const formatDate = (date) => {
@@ -312,9 +318,7 @@ export default function AdminUsers() {
                       {admin.full_name || "N/A"}
                     </td>
 
-                    <td className="py-3 px-4 text-gray-300">
-                      {admin.email}
-                    </td>
+                    <td className="py-3 px-4 text-gray-300">{admin.email}</td>
 
                     <td className="py-3 px-4">
                       <span className="px-3 py-1 rounded-full text-xs border border-indigo-400/40 text-indigo-300 bg-indigo-500/10">
