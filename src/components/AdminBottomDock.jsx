@@ -8,6 +8,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import LogoutIcon from "@mui/icons-material/Logout";
+import HistoryIcon from "@mui/icons-material/History";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 import { roleThemes } from "../theme/roleTheme";
 
@@ -40,7 +42,19 @@ export default function AdminBottomDock({ role }) {
       icon: <BarChartIcon />,
       route: "/admin/view-results",
     },
+    {
+      label: "Logs",
+      icon: <HistoryIcon />,
+      route: "/admin/login-logs",
+    },
   ];
+  if (role === "superadmin") {
+    navItems.push({
+      label: "Admins",
+      icon: <AdminPanelSettingsIcon />,
+      route: "/admin/admin-users",
+    });
+  }
 
   return (
     <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md sm:max-w-xl">

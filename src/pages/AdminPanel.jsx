@@ -27,6 +27,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PeopleIcon from "@mui/icons-material/People";
+import HistoryIcon from "@mui/icons-material/History";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -166,7 +168,16 @@ export default function AdminPanel() {
     { label: "Quiz", icon: <PlayArrowIcon />, route: "/admin/preview-quiz" },
     { label: "Config", icon: <SettingsIcon />, route: "/admin/quiz-config" },
     { label: "Results", icon: <BarChartIcon />, route: "/admin/view-results" },
+    { label: "Logs", icon: <HistoryIcon />, route: "/admin/login-logs" },
   ];
+
+  if (role === "superadmin") {
+    navItems.push({
+      label: "Admins",
+      icon: <AdminPanelSettingsIcon />,
+      route: "/admin/admin-users",
+    });
+  }
 
   if (loading) return <div className="p-20 text-center">Loading...</div>;
 
@@ -184,7 +195,7 @@ export default function AdminPanel() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
           <div>
             <h1
-              className={`text-2xl sm:text-3xl font-black bg-gradient-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
+              className={`text-2xl sm:text-3xl font-black bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
             >
               Dashboard
             </h1>
@@ -202,15 +213,17 @@ export default function AdminPanel() {
 
           <span>
             <p className="text-[13px] text-gray-400 mt-1">
-            Last login: {formatLastLogin(previousLogin)}
-          </p>
+              Last login: {formatLastLogin(previousLogin)}
+            </p>
           </span>
-          
         </div>
 
         <div className="p-5 sm:p-6 mb-10 rounded-2xl bg-linear-to-r from-purple-600/30 via-indigo-600/20 to-blue-600/20 border border-white/10 backdrop-blur-xl">
-          <h2 className="text-lg sm:text-xl font-semibold text-white">
-            Welcome back 👋
+          <h2 className="text-lg sm:text-l font-semibold text-white">
+            Welcome back{" "}
+            <p className="text-base sm:text-xl font-black italic bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">
+              {user?.user_metadata?.full_name}
+            </p>
           </h2>
 
           <p className="text-xs sm:text-sm text-gray-300">
@@ -344,7 +357,7 @@ export default function AdminPanel() {
                   group
                   ${
                     active
-                      ? `bg-gradient-to-r ${theme.accentGradient} text-white`
+                      ? `bg-linear-to-r ${theme.accentGradient} text-white`
                       : `${theme.textPrimary} hover:bg-white/10`
                   }
                 `}

@@ -1,15 +1,15 @@
 export const roleThemes = {
   admin: {
-    appBg: "bg-slate-100",
-    sidebarBg: "bg-white border-r border-slate-200",
-    surface: "bg-white",
-    textPrimary: "text-gray-900",
-    textSecondary: "text-gray-500",
-    accentGradient: "from-indigo-500 to-blue-600",
-    headingGradient: "from-indigo-600 to-blue-600",
-    badge: "bg-indigo-100 text-indigo-700 border-indigo-300",
-    glow: "bg-indigo-500/20",
-    premiumCard: "from-indigo-500 to-blue-600",
+    appBg: "bg-gradient-to-br from-violet-200 via-purple-900 to-fuchsia-900",
+    sidebarBg: "bg-white/80 backdrop-blur-xl border-r border-purple-200",
+    surface: "bg-white/70 backdrop-blur-xl border border-purple-100 shadow-lg",
+    textPrimary: "text-purple-900",
+    textSecondary: "text-purple-600",
+    accentGradient: "from-purple-500 to-indigo-600",
+    headingGradient: "from-purple-600 to-indigo-600",
+    badge: "bg-purple-100 text-purple-700 border-purple-300",
+    glow: "bg-purple-500/20",
+    premiumCard: "from-purple-500 to-indigo-600",
   },
 
   superadmin: {

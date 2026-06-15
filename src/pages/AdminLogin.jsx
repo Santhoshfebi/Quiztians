@@ -41,32 +41,44 @@ export default function AdminLogin() {
         return;
       }
 
-      /*
-        Previous login tracking logic:
+      const { data: adminRecord, error: adminCheckError } = await supabase
+        .from("admins")
+        .select("is_active")
+        .eq("id", currentUser.id)
+        .maybeSingle();
 
-        current_login = latest successful login time we saved last time
-        previous_login = old current_login before updating to new time
+      if (adminCheckError) throw adminCheckError;
 
-        First login:
-        previous_login = null
-        current_login = now
+      if (adminRecord && !adminRecord.is_active) {
+        toast.error("Your admin account has been disabled contact superadmin", {
+          id: loginToast,
+        });
+        await supabase.auth.signOut();
+        return;
+      }
 
-        Second login:
-        previous_login = first login time
-        current_login = now
-      */
       const oldCurrentLogin = currentUser.user_metadata?.current_login || null;
 
-      const { data: updatedUserData, error: updateError } =
-        await supabase.auth.updateUser({
-          data: {
-            ...currentUser.user_metadata,
-            previous_login: oldCurrentLogin,
-            current_login: new Date().toISOString(),
-          },
-        });
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          ...currentUser.user_metadata,
+          previous_login: oldCurrentLogin,
+          current_login: new Date().toISOString(),
+        },
+      });
 
       if (updateError) throw updateError;
+
+      const { error: logError } = await supabase
+        .from("admin_login_logs")
+        .insert({
+          user_id: currentUser.id,
+          email: currentUser.email,
+          role,
+          status: "success",
+        });
+
+      if (logError) throw logError;
 
       toast.success("Login successful!", { id: loginToast });
 
@@ -341,19 +353,8 @@ export default function AdminLogin() {
               <div className="flex-1 h-px bg-gray-500" />
             </div>
 
-            {/* OTHER LOGIN */}
-            <button
-              type="button"
-              className="w-full py-3 border border-white/20 rounded-lg text-gray-300 hover:bg-white/10 transition"
-            >
-              Sign in with other
-            </button>
-
             <p className="text-xs text-center text-gray-400">
-              Don't have an account?
-              <span className="text-indigo-400 ml-1 cursor-pointer">
-                Sign Up
-              </span>
+              Admin access is managed by superadmin.
             </p>
           </form>
         </motion.div>

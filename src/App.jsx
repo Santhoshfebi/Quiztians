@@ -3,23 +3,31 @@ import { useEffect } from "react";
 import { supabase } from "./supabaseClient";
 
 import Welcome from "./pages/Welcome";
+import AlreadyAttempted from "./pages/AlreadyAttempted";
+import StartQuizConfirm from "./pages/StartQuizConfirm";
 import Quiz from "./pages/Quiz";
 import Result from "./pages/Result";
+import Leaderboard from "./pages/Leaderboard";
+import Review from "./pages/Review";
+import Scores from "./pages/Scores";
+
+// admin access
+
 import AdminPanel from "./pages/AdminPanel";
 import AdminLogin from "./pages/AdminLogin";
+import AdminUsers from "./pages/AdminUsers";
+import AdminLoginLogs from "./pages/AdminLoginLogs";
 import SetPassword from "./pages/SetPassword";
 import ResetPassword from "./pages/ResetPassword";
+
+//  admin control 
+
 import AddQuestions from "./pages/AddQuestions";
 import QuizConfig from "./pages/QuizConfig";
 import ViewResults from "./pages/ViewResults";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
-import AlreadyAttempted from "./pages/AlreadyAttempted";
-import Review from "./pages/Review";
-import Leaderboard from "./pages/Leaderboard";
-import StartQuizConfirm from "./pages/StartQuizConfirm";
-import Scores from "./pages/Scores";
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -67,6 +75,7 @@ function AppRoutes() {
 
       {/* admin navigation path */}
       <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/admin/admin-users" element={<AdminUsers />} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/admin" element={<AdminPanel />} />
@@ -76,6 +85,7 @@ function AppRoutes() {
       <Route path="/admin/preview-quiz" element={<QuizPreview />} />
       <Route path="/admin/quiz-config" element={<QuizConfig />} />
       <Route path="/admin/view-results" element={<ViewResults />} />
+      <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
     </Routes>
   );
 }
