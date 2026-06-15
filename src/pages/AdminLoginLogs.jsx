@@ -33,9 +33,7 @@ export default function AdminLoginLogs() {
         .select("*")
         .order("login_time", { ascending: false });
 
-      if (!error && data) {
-        setLogs(data);
-      }
+      if (!error && data) setLogs(data);
 
       setLoading(false);
     };
@@ -57,13 +55,16 @@ export default function AdminLoginLogs() {
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      const matchesSearch =
-        log.email?.toLowerCase().includes(search.toLowerCase()) ||
-        log.role?.toLowerCase().includes(search.toLowerCase()) ||
-        log.status?.toLowerCase().includes(search.toLowerCase());
+      const q = search.toLowerCase();
 
-      const matchesRole =
-        roleFilter === "all" ? true : log.role === roleFilter;
+      const matchesSearch =
+        log.email?.toLowerCase().includes(q) ||
+        log.role?.toLowerCase().includes(q) ||
+        log.status?.toLowerCase().includes(q) ||
+        log.device?.toLowerCase().includes(q) ||
+        log.browser?.toLowerCase().includes(q);
+
+      const matchesRole = roleFilter === "all" || log.role === roleFilter;
 
       return matchesSearch && matchesRole;
     });
@@ -72,7 +73,7 @@ export default function AdminLoginLogs() {
   const totalLogs = logs.length;
   const adminLogs = logs.filter((log) => log.role === "admin").length;
   const superAdminLogs = logs.filter((log) => log.role === "superadmin").length;
-  const successLogs = logs.filter((log) => log.status === "success").length;
+  const desktopLogs = logs.filter((log) => log.device === "Desktop").length;
 
   if (loading) {
     return (
@@ -92,7 +93,7 @@ export default function AdminLoginLogs() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 max-w-6xl mx-auto"
+        className="relative z-10 max-w-7xl mx-auto"
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -103,7 +104,7 @@ export default function AdminLoginLogs() {
             </h1>
 
             <p className={`text-xs sm:text-sm ${theme.textSecondary}`}>
-              Track administrator login activity
+              Track administrator login activity, device and browser.
             </p>
           </div>
 
@@ -119,16 +120,16 @@ export default function AdminLoginLogs() {
           <LogStatCard title="Total Logins" value={totalLogs} />
           <LogStatCard title="Admin Logins" value={adminLogs} />
           <LogStatCard title="Superadmin Logins" value={superAdminLogs} />
-          <LogStatCard title="Success Logs" value={successLogs} />
+          <LogStatCard title="Desktop Logins" value={desktopLogs} />
         </div>
 
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input
             type="text"
-            placeholder="Search by email, role or status..."
+            placeholder="Search email, role, device, browser..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-purple-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
 
           <select
@@ -156,6 +157,8 @@ export default function AdminLoginLogs() {
                   <th className="px-5 py-4">Email</th>
                   <th className="px-5 py-4">Role</th>
                   <th className="px-5 py-4">Login Time</th>
+                  <th className="px-5 py-4">Device</th>
+                  <th className="px-5 py-4">Browser</th>
                   <th className="px-5 py-4">Status</th>
                 </tr>
               </thead>
@@ -164,7 +167,7 @@ export default function AdminLoginLogs() {
                 {filteredLogs.length === 0 && (
                   <tr>
                     <td
-                      colSpan="4"
+                      colSpan="6"
                       className="px-5 py-8 text-center text-gray-400"
                     >
                       No login logs found
@@ -189,6 +192,14 @@ export default function AdminLoginLogs() {
 
                     <td className="px-5 py-4 text-gray-300">
                       {formatDate(log.login_time)}
+                    </td>
+
+                    <td className="px-5 py-4 text-gray-300">
+                      {log.device || "Unknown"}
+                    </td>
+
+                    <td className="px-5 py-4 text-gray-300">
+                      {log.browser || "Unknown"}
                     </td>
 
                     <td className="px-5 py-4">

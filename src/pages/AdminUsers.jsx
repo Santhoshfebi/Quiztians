@@ -9,13 +9,12 @@ export default function AdminUsers() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [admins, setAdmins] = useState([]);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [tempPassword, setTempPassword] = useState("");
   const [role, setRole] = useState("admin");
 
   useEffect(() => {
@@ -56,6 +55,50 @@ export default function AdminUsers() {
     setAdmins(data || []);
   };
 
+  const handleInviteAdmin = async (e) => {
+    e.preventDefault();
+
+    if (!fullName || !email || !role) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    setSendingInvite(true);
+    const inviteToast = toast.loading("Sending invitation...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-admin", {
+        body: {
+          fullName,
+          email,
+          role,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("Admin invitation sent successfully", {
+        id: inviteToast,
+      });
+
+      setFullName("");
+      setEmail("");
+      setRole("admin");
+
+      await fetchAdmins();
+    } catch (err) {
+      toast.error(err.message || "Failed to send invite", {
+        id: inviteToast,
+      });
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
   const toggleAdminStatus = async (admin) => {
     if (admin.id === currentUser.id) {
       toast.error("You cannot disable your own account");
@@ -75,6 +118,7 @@ export default function AdminUsers() {
     }
 
     toast.success(newStatus ? "Admin enabled" : "Admin disabled");
+
     await fetchAdmins();
   };
 
@@ -98,84 +142,34 @@ export default function AdminUsers() {
       .eq("id", admin.id);
 
     if (error) {
-      toast.error(error.message, { id: deleteToast });
+      toast.error(error.message, {
+        id: deleteToast,
+      });
       return;
     }
 
-    toast.success("Admin deleted", { id: deleteToast });
+    toast.success("Admin deleted", {
+      id: deleteToast,
+    });
+
     await fetchAdmins();
-  };
-
-  const handleCreateAdmin = async (e) => {
-    e.preventDefault();
-
-    if (!fullName || !email || !tempPassword) {
-      toast.error("Please fill all fields");
-      return;
-    }
-
-    if (tempPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
-    setCreating(true);
-    const createToast = toast.loading("Creating admin...");
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: tempPassword,
-        options: {
-          data: {
-            full_name: fullName,
-            role,
-            current_login: null,
-            previous_login: null,
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      const newUser = data.user;
-
-      if (newUser) {
-        const { error: insertError } = await supabase.from("admins").insert({
-          id: newUser.id,
-          full_name: fullName,
-          email,
-          role,
-          is_active: true,
-          created_by: currentUser.id,
-        });
-
-        if (insertError) throw insertError;
-      }
-
-      toast.success("Admin created successfully", {
-        id: createToast,
-      });
-
-      setFullName("");
-      setEmail("");
-      setTempPassword("");
-      setRole("admin");
-
-      await fetchAdmins();
-    } catch (err) {
-      toast.error(err.message || "Failed to create admin", {
-        id: createToast,
-      });
-    } finally {
-      setCreating(false);
-    }
   };
 
   const totalAdmins = admins.length;
   const activeAdmins = admins.filter((a) => a.is_active).length;
   const disabledAdmins = admins.filter((a) => !a.is_active).length;
-  const superAdmins = admins.filter((a) => a.role === "superadmin").length;
+  const pendingInvites = admins.filter(
+    (a) => a.invite_status === "pending"
+  ).length;
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+
+    return new Date(date).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  };
 
   if (loading) {
     return (
@@ -187,7 +181,19 @@ export default function AdminUsers() {
 
   return (
     <div className="relative min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-6 text-white overflow-hidden">
-      <Toaster position="top-right" />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "rgba(30,27,75,0.85)",
+            backdropFilter: "blur(10px)",
+            color: "#fff",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "12px",
+          },
+        }}
+      />
 
       <div className="absolute -top-40 -left-40 w-100 h-100 bg-purple-500/20 blur-[150px] rounded-full" />
       <div className="absolute top-60 -right-40 w-100 h-100 bg-indigo-500/20 blur-[150px] rounded-full" />
@@ -197,14 +203,14 @@ export default function AdminUsers() {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-10 max-w-6xl mx-auto"
       >
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-black bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
               Admin Management
             </h1>
 
             <p className="text-sm text-gray-400 mt-1">
-              Create and manage administrator accounts.
+              Invite and manage administrator accounts.
             </p>
           </div>
 
@@ -220,13 +226,13 @@ export default function AdminUsers() {
           <StatCard title="Total Admins" value={totalAdmins} />
           <StatCard title="Active Admins" value={activeAdmins} />
           <StatCard title="Disabled Admins" value={disabledAdmins} />
-          <StatCard title="Superadmins" value={superAdmins} />
+          <StatCard title="Pending Invites" value={pendingInvites} />
         </div>
 
         <div className="rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl p-6">
-          <h2 className="text-xl font-semibold mb-5">Create New Admin</h2>
+          <h2 className="text-xl font-semibold mb-5">Send Admin Invitation</h2>
 
-          <form onSubmit={handleCreateAdmin} className="grid gap-5">
+          <form onSubmit={handleInviteAdmin} className="grid gap-5">
             <input
               type="text"
               placeholder="Full name"
@@ -243,14 +249,6 @@ export default function AdminUsers() {
               className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
-            <input
-              type="password"
-              placeholder="Temporary password"
-              value={tempPassword}
-              onChange={(e) => setTempPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -259,6 +257,7 @@ export default function AdminUsers() {
               <option className="bg-slate-900" value="admin">
                 Admin
               </option>
+
               <option className="bg-slate-900" value="superadmin">
                 Superadmin
               </option>
@@ -266,10 +265,10 @@ export default function AdminUsers() {
 
             <button
               type="submit"
-              disabled={creating}
-              className="w-full py-3 rounded-xl font-semibold text-white bg-linear-to-r from-pink-500 to-indigo-500 shadow-lg shadow-indigo-500/40 hover:shadow-pink-500/50 hover:scale-[1.01] transition-all disabled:opacity-60"
+              disabled={sendingInvite}
+              className="w-full py-3 rounded-xl font-semibold text-white bg-linear-to-r from-pink-500 to-indigo-500 shadow-lg shadow-indigo-500/40 hover:shadow-pink-500/50 hover:scale-[1.01] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {creating ? "Creating..." : "Create Admin"}
+              {sendingInvite ? "Sending Invite..." : "Send Invite"}
             </button>
           </form>
         </div>
@@ -284,8 +283,10 @@ export default function AdminUsers() {
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Created</th>
+                  <th className="py-3 px-4">Account</th>
+                  <th className="py-3 px-4">Invite</th>
+                  <th className="py-3 px-4">Invited</th>
+                  <th className="py-3 px-4">Accepted</th>
                   <th className="py-3 px-4">Actions</th>
                 </tr>
               </thead>
@@ -294,7 +295,7 @@ export default function AdminUsers() {
                 {admins.length === 0 && (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="8"
                       className="py-6 px-4 text-center text-gray-400"
                     >
                       No admins found
@@ -311,7 +312,9 @@ export default function AdminUsers() {
                       {admin.full_name || "N/A"}
                     </td>
 
-                    <td className="py-3 px-4 text-gray-300">{admin.email}</td>
+                    <td className="py-3 px-4 text-gray-300">
+                      {admin.email}
+                    </td>
 
                     <td className="py-3 px-4">
                       <span className="px-3 py-1 rounded-full text-xs border border-indigo-400/40 text-indigo-300 bg-indigo-500/10">
@@ -331,13 +334,24 @@ export default function AdminUsers() {
                       </span>
                     </td>
 
+                    <td className="py-3 px-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs border ${
+                          admin.invite_status === "accepted"
+                            ? "bg-green-500/10 text-green-300 border-green-400/40"
+                            : "bg-yellow-500/10 text-yellow-300 border-yellow-400/40"
+                        }`}
+                      >
+                        {(admin.invite_status || "pending").toUpperCase()}
+                      </span>
+                    </td>
+
                     <td className="py-3 px-4 text-gray-400">
-                      {admin.created_at
-                        ? new Date(admin.created_at).toLocaleString("en-IN", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })
-                        : "N/A"}
+                      {formatDate(admin.invited_at)}
+                    </td>
+
+                    <td className="py-3 px-4 text-gray-400">
+                      {formatDate(admin.accepted_at)}
                     </td>
 
                     <td className="py-3 px-4">

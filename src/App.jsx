@@ -15,8 +15,10 @@ import Scores from "./pages/Scores";
 
 import AdminPanel from "./pages/AdminPanel";
 import AdminLogin from "./pages/AdminLogin";
+import AcceptAdminInvite from "./pages/AcceptAdminInvite";
 import AdminUsers from "./pages/AdminUsers";
 import AdminLoginLogs from "./pages/AdminLoginLogs";
+import AdminActivityLogs from "./pages/AdminActivityLogs";
 import SetPassword from "./pages/SetPassword";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -76,6 +78,7 @@ function AppRoutes() {
       {/* admin navigation path */}
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin/admin-users" element={<AdminUsers />} />
+      <Route path="/accept-admin-invite" element={<AcceptAdminInvite />} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/admin" element={<AdminPanel />} />
@@ -86,6 +89,8 @@ function AppRoutes() {
       <Route path="/admin/quiz-config" element={<QuizConfig />} />
       <Route path="/admin/view-results" element={<ViewResults />} />
       <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
+      <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
+      
     </Routes>
   );
 }

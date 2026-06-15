@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
+import { logAdminActivity } from "../utils/logAdminActivity";
 
 import {
   Container,
@@ -160,12 +161,18 @@ export default function AddQuestions() {
         created_at: new Date(),
       },
     ]);
-
     if (error) {
       toast.error("Failed to add question");
       setLoading(false);
       return;
     }
+
+    await logAdminActivity({
+      action: "ADD_QUESTION",
+      module: "Questions",
+      description: `Added a new question to chapter "${chapter}"`,
+      targetType: "question",
+    });
 
     toast.success("Question added!");
 

@@ -76,6 +76,17 @@ export default function AdminLogin() {
           email: currentUser.email,
           role,
           status: "success",
+          user_agent: navigator.userAgent,
+          browser: navigator.userAgent.includes("Chrome")
+            ? "Chrome"
+            : navigator.userAgent.includes("Firefox")
+              ? "Firefox"
+              : navigator.userAgent.includes("Safari")
+                ? "Safari"
+                : "Unknown",
+          device: /Mobi|Android/i.test(navigator.userAgent)
+            ? "Mobile"
+            : "Desktop",
         });
 
       if (logError) throw logError;

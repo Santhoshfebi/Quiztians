@@ -29,6 +29,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import PeopleIcon from "@mui/icons-material/People";
 import HistoryIcon from "@mui/icons-material/History";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import TimelineIcon from "@mui/icons-material/Timeline";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -168,15 +169,21 @@ export default function AdminPanel() {
     { label: "Quiz", icon: <PlayArrowIcon />, route: "/admin/preview-quiz" },
     { label: "Config", icon: <SettingsIcon />, route: "/admin/quiz-config" },
     { label: "Results", icon: <BarChartIcon />, route: "/admin/view-results" },
-    { label: "Logs", icon: <HistoryIcon />, route: "/admin/login-logs" },
+    { label: "Activity", icon: <TimelineIcon />, route: "/admin/activity-logs" },
   ];
 
   if (role === "superadmin") {
-    navItems.push({
-      label: "Admins",
-      icon: <AdminPanelSettingsIcon />,
-      route: "/admin/admin-users",
-    });
+    navItems.push(
+      { label: "Logs", 
+        icon: <HistoryIcon />,
+        route: "/admin/login-logs" 
+      },
+      {
+        label: "Admins",
+        icon: <AdminPanelSettingsIcon />,
+        route: "/admin/admin-users",
+      },
+    );
   }
 
   if (loading) return <div className="p-20 text-center">Loading...</div>;

@@ -5,6 +5,7 @@ import { Toaster, toast } from "react-hot-toast";
 import dayjs from "dayjs";
 import { ArrowBack, Refresh } from "@mui/icons-material";
 import AdminBottomDock from "../components/AdminBottomDock";
+import { logAdminActivity } from "../utils/logAdminActivity";
 
 export default function QuizConfig() {
   const navigate = useNavigate();
@@ -143,17 +144,27 @@ export default function QuizConfig() {
     }
 
     if (response.error) {
-      toast.error("Failed to save config");
-    } else {
-      toast.success("Configuration saved!");
+  toast.error("Failed to save config");
+} else {
+  toast.success("Configuration saved!");
 
-      // ✅ LIVE UPDATE LAST SAVED
-      setLastSaved(response.data?.updated_at || new Date());
+  // Activity Log
+  await logAdminActivity({
+    action: configId ? "UPDATE_CONFIG" : "CREATE_CONFIG",
+    module: "Quiz Configuration",
+    description: configId
+      ? `Updated quiz configuration. Duration: ${duration} mins, Chapters: ${activeChapters.length}`
+      : `Created quiz configuration. Duration: ${duration} mins, Chapters: ${activeChapters.length}`,
+    targetId: response.data?.id,
+    targetType: "quiz_config",
+  });
 
-      if (!configId && response.data?.id) {
-        setConfigId(response.data.id);
-      }
-    }
+  setLastSaved(response.data?.updated_at || new Date());
+
+  if (!configId && response.data?.id) {
+    setConfigId(response.data.id);
+  }
+}
 
     setLoading(false);
   };

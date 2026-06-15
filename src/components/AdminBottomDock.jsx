@@ -10,6 +10,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HistoryIcon from "@mui/icons-material/History";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import TimelineIcon from "@mui/icons-material/Timeline";
 
 import { roleThemes } from "../theme/roleTheme";
 
@@ -43,17 +44,24 @@ export default function AdminBottomDock({ role }) {
       route: "/admin/view-results",
     },
     {
-      label: "Logs",
-      icon: <HistoryIcon />,
-      route: "/admin/login-logs",
+      label: "Activity",
+      icon: <TimelineIcon />,
+      route: "/admin/activity-logs",
     },
   ];
   if (role === "superadmin") {
-    navItems.push({
-      label: "Admins",
-      icon: <AdminPanelSettingsIcon />,
-      route: "/admin/admin-users",
-    });
+    navItems.push(
+      {
+        label: "Logs",
+        icon: <HistoryIcon />,
+        route: "/admin/login-logs",
+      },
+      {
+        label: "Admins",
+        icon: <AdminPanelSettingsIcon />,
+        route: "/admin/admin-users",
+      },
+    );
   }
 
   return (

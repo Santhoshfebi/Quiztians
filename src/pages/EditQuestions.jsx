@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate, useParams } from "react-router-dom";
+import { logAdminActivity } from "../utils/logAdminActivity";
+
 import {
   Box,
   Button,
@@ -110,6 +112,14 @@ export default function EditQuestions() {
         .eq("id", id);
 
       if (error) throw error;
+
+      await logAdminActivity({
+        action: "EDIT_QUESTION",
+        module: "Questions",
+        description: `Updated question in chapter "${question.chapter}"`,
+        targetId: id,
+        targetType: "question",
+      });
 
       toast.success("Question updated successfully!");
       navigate("/admin/preview-questions");
