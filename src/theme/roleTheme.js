@@ -1,6 +1,6 @@
 export const roleThemes = {
   admin: {
-    appBg: "bg-gradient-to-br from-violet-200 via-purple-900 to-fuchsia-900",
+    appBg: "bg-gradient-to-br from-violet-300 via-purple-900 to-fuchsia-900",
     sidebarBg: "bg-white/80 backdrop-blur-xl border-r border-purple-200",
     surface: "bg-white/70 backdrop-blur-xl border border-purple-100 shadow-lg",
     textPrimary: "text-purple-900",
