@@ -80,7 +80,7 @@ export default function AdminLoginLogs() {
 
           <button
             onClick={() => navigate("/admin")}
-            className="px-4 py-2 rounded-xl bg-white/10 text-black border border-white/10 hover:bg-white/20 transition"
+            className="px-4 py-2 rounded-xl bg-white/10 text-white border border-white/10 hover:bg-white/20 transition"
           >
             Back
           </button>
@@ -89,7 +89,7 @@ export default function AdminLoginLogs() {
         <div className="rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-white/10 text-black-300">
+              <thead className="bg-white/10 text-gray-300">
                 <tr>
                   <th className="px-5 py-4">Email</th>
                   <th className="px-5 py-4">Role</th>
@@ -115,7 +115,7 @@ export default function AdminLoginLogs() {
                     key={log.id}
                     className="border-t border-white/10 hover:bg-white/5 transition"
                   >
-                    <td className="px-5 py-4 text-black">{log.email}</td>
+                    <td className="px-5 py-4 text-white">{log.email}</td>
 
                     <td className="px-5 py-4">
                       <span className={`px-3 py-1 rounded-full border text-xs ${theme.badge}`}>
@@ -123,7 +123,7 @@ export default function AdminLoginLogs() {
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 text-black-300">
+                    <td className="px-5 py-4 text-gray-300">
                       {formatDate(log.login_time)}
                     </td>
 
