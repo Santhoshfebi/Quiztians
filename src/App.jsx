@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+} from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "./supabaseClient";
 
@@ -22,7 +27,7 @@ import AdminActivityLogs from "./pages/AdminActivityLogs";
 import SetPassword from "./pages/SetPassword";
 import ResetPassword from "./pages/ResetPassword";
 
-//  admin control 
+//  admin control
 
 import AddQuestions from "./pages/AddQuestions";
 import QuizConfig from "./pages/QuizConfig";
@@ -81,6 +86,9 @@ function AppRoutes() {
       <Route path="/accept-admin-invite" element={<AcceptAdminInvite />} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* admin control */}
+
       <Route path="/admin" element={<AdminPanel />} />
       <Route path="/admin/add-questions" element={<AddQuestions />} />
       <Route path="/admin/preview-questions" element={<QuestionPreviewPage />} />
@@ -90,7 +98,6 @@ function AppRoutes() {
       <Route path="/admin/view-results" element={<ViewResults />} />
       <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
       <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
-      
     </Routes>
   );
 }
