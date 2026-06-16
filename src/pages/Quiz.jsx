@@ -5,7 +5,6 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { Toaster, toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Material UI imports
 import PersonIcon from "@mui/icons-material/Person";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -15,7 +14,7 @@ export default function Quiz() {
   const { state } = useLocation();
   const results = state || {};
 
-  const language = results.language || "en"; // 'en' or 'ta'
+  const language = results.language || "en";
   const selectedChapter =
     results.chapter || localStorage.getItem("selectedChapter");
   const isPreview = results.isPreview || false;
@@ -38,24 +37,24 @@ export default function Quiz() {
     parseInt(sessionStorage.getItem(`${attemptKey}_warnings`)) || 0
   );
 
-  // ⭐ Store answers for review
   const answersTracker = useRef([]);
 
-  // ⭐ Store quiz start time
   useEffect(() => {
     const now = new Date().toISOString();
     localStorage.setItem("quiz_start_time", now);
   }, []);
 
-  // Restore pending quiz result
   useEffect(() => {
     const pending = sessionStorage.getItem("pendingQuizResult");
+
     if (pending) {
       const data = JSON.parse(pending);
+
       (async () => {
         try {
           await supabase.from("results").insert([data]);
           sessionStorage.removeItem("pendingQuizResult");
+
           toast.success("Your last quiz result was safely restored!", {
             duration: 4000,
           });
@@ -66,7 +65,6 @@ export default function Quiz() {
     }
   }, []);
 
-  // Anti-cheating logic
   useEffect(() => {
     if (isPreview) return;
 
@@ -83,16 +81,19 @@ export default function Quiz() {
       if (warnings < maxWarnings) {
         const urgency =
           warnings < maxWarnings - 1 ? "Warning" : "FINAL WARNING";
+
         toast.error(
           `${urgency} ${warnings}/${maxWarnings - 1}: Refreshing or leaving will auto-submit on the ${maxWarnings}th attempt.`,
           { duration: 5000 }
         );
+
         e.preventDefault();
         e.returnValue = "";
       } else {
         toast.success("Quiz auto-submitted due to multiple attempts.", {
           duration: 4000,
         });
+
         handleSubmit(true);
       }
     };
@@ -124,7 +125,6 @@ export default function Quiz() {
     };
   }, []);
 
-  // Fetch questions & prevent reattempts
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!selectedChapter) {
@@ -134,21 +134,43 @@ export default function Quiz() {
       }
 
       if (!isPreview && results.phone) {
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from("results")
-          .select("id")
+          .select("*")
           .eq("phone", results.phone)
           .eq("chapter", selectedChapter);
 
-        if (existing && existing.length > 0) {
-          localStorage.setItem(attemptKey, "true");
-          navigate("/already-attempted", { state: { language } });
+        if (existingError) {
+          console.error("Error checking existing attempt:", existingError);
+          toast.error("Error checking attempt. Please try again.");
+          navigate("/");
           return;
-        } else {
-          localStorage.removeItem(attemptKey);
-          sessionStorage.removeItem(`${attemptKey}_warnings`);
-          setWarningCount(0);
         }
+
+        if (existing && existing.length > 0) {
+          const existingResult = existing[0];
+
+          localStorage.setItem(attemptKey, "true");
+
+          navigate("/already-attempted", {
+            state: {
+              language,
+              name: existingResult.name,
+              phone: existingResult.phone,
+              place: existingResult.place,
+              chapter: existingResult.chapter,
+              score: existingResult.score,
+              total: existingResult.total,
+              attemptedAt: existingResult.created_at,
+            },
+          });
+
+          return;
+        }
+
+        localStorage.removeItem(attemptKey);
+        sessionStorage.removeItem(`${attemptKey}_warnings`);
+        setWarningCount(0);
       }
 
       const { data, error } = await supabase
@@ -169,9 +191,9 @@ export default function Quiz() {
     fetchQuestions();
   }, [selectedChapter]);
 
-  // Timer
   useEffect(() => {
     if (isPreview) return;
+
     const timer = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -179,45 +201,47 @@ export default function Quiz() {
           handleSubmit(true);
           return 0;
         }
+
         return t - 1;
       });
     }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
   const q = questions[current];
 
-  // ⭐ Multilingual options
   const options = useMemo(() => {
     if (!q) return [];
+
     return language === "en"
       ? [q.option_a_en, q.option_b_en, q.option_c_en, q.option_d_en]
       : [q.option_a_ta, q.option_b_ta, q.option_c_ta, q.option_d_ta];
   }, [q, language]);
 
-  // ⭐ Correct answer based on language
   const correctAnswer = useMemo(() => {
     if (!q) return null;
+
     return language === "en" ? q.correct_answer : q.correct_answer_ta;
   }, [q, language]);
 
-  // Handle select
   const handleSelect = (option) => {
     if (isPreview || showAnswer) return;
 
-    // ⭐ Track answer with language
     answersTracker.current.push({
       question: language === "en" ? q.question_en : q.question_ta,
       correct_answer: correctAnswer,
       user_answer: option,
       chapter: selectedChapter,
-      lang: language, // ✅ store language for review
+      lang: language,
     });
 
     setSelected(option);
     setShowAnswer(true);
 
-    if (option === correctAnswer) setScore((prev) => prev + 1);
+    if (option === correctAnswer) {
+      setScore((prev) => prev + 1);
+    }
 
     if (current < questions.length - 1) {
       setTimeout(() => {
@@ -228,16 +252,18 @@ export default function Quiz() {
     }
   };
 
-  // ⭐ Submit function with language-aware answers
   const handleSubmit = async (isAuto = false) => {
     if (hasSubmitted || quizSubmittedRef.current) return;
+
     quizSubmittedRef.current = true;
     setHasSubmitted(true);
     localStorage.setItem(attemptKey, "true");
 
     const start_time = localStorage.getItem("quiz_start_time");
     const end_time = new Date().toISOString();
+
     let time_taken = null;
+
     if (start_time) {
       const start = new Date(start_time);
       const end = new Date(end_time);
@@ -265,7 +291,11 @@ export default function Quiz() {
       }
 
       try {
-        resultInsert = await supabase.from("results").insert([resultData]).select("id");
+        resultInsert = await supabase
+          .from("results")
+          .insert([resultData])
+          .select("id");
+
         sessionStorage.removeItem("pendingQuizResult");
       } catch (error) {
         console.error("Error submitting quiz:", error);
@@ -275,7 +305,6 @@ export default function Quiz() {
     if (resultInsert?.data?.[0]?.id) {
       const result_id = resultInsert.data[0].id;
 
-      // ⭐ Save answers with language
       const formattedAnswers = answersTracker.current.map((a) => ({
         result_id,
         phone: results.phone,
@@ -283,7 +312,7 @@ export default function Quiz() {
         question: a.question,
         correct_answer: a.correct_answer,
         user_answer: a.user_answer,
-        lang: a.lang, // ✅ store language
+        lang: a.lang,
       }));
 
       try {
@@ -314,12 +343,13 @@ export default function Quiz() {
   const timePercent = (timeLeft / (quizDuration * 60)) * 100;
   const isWarningTime = timeLeft <= 300;
 
-  if (loading)
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-4">
         <h2 className="text-center text-lg font-semibold text-gray-600 animate-pulse">
           Loading questions...
         </h2>
+
         <DotLottieReact
           src="https://lottie.host/3695126e-4a51-4de3-84e9-b5b77db17695/TP1TtYQU4O.lottie"
           loop
@@ -327,8 +357,9 @@ export default function Quiz() {
         />
       </div>
     );
+  }
 
-  if (!questions?.length)
+  if (!questions?.length) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 px-4">
         <h2 className="text-xl font-bold text-red-600 text-center">
@@ -336,42 +367,53 @@ export default function Quiz() {
         </h2>
       </div>
     );
-    
+  }
+
   return (
     <div className="relative flex items-start justify-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 p-4">
       <Toaster position="top-center" />
+
       <motion.div
         className="w-full md:w-3/4 max-w-3xl mx-auto mt-16 bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-gray-100 flex flex-col"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 text-gray-700 space-y-2 sm:space-y-0">
           <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
             <PersonIcon fontSize="small" /> {results.name}
           </p>
+
           <p className="font-semibold text-sm sm:text-base flex items-center gap-1">
             <LocationOnIcon fontSize="small" /> {results.place}
           </p>
+
           <h2 className="text-lg sm:text-xl font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent text-center">
             {language === "en" ? "Chapter" : "அதிகாரம்"}:{" "}
-            <span className="font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">{selectedChapter}</span>
+            <span className="font-black bg-linear-to-r from-pink-800 to-indigo-600 bg-clip-text text-transparent">
+              {selectedChapter}
+            </span>
           </h2>
+
           <p className="font-medium text-sm sm:text-base text-center sm:text-right">
-            {language === "en" ? "Question" : "கேள்வி"} {current + 1} / {questions.length}
+            {language === "en" ? "Question" : "கேள்வி"} {current + 1} /{" "}
+            {questions.length}
           </p>
         </div>
 
-        {/* Timer */}
         {!isPreview && (
           <>
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium text-gray-600 text-sm sm:text-base flex items-center gap-1">
-                <AccessTimeIcon fontSize="small" /> {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
+                <AccessTimeIcon fontSize="small" />{" "}
+                {language === "en" ? "Time Left" : "மீதமுள்ள நேரம்"}:
               </span>
+
               <span
-                className={`font-semibold text-sm sm:text-base ${isWarningTime ? "text-red-600 animate-pulse" : "text-green-600"
-                  }`}
+                className={`font-semibold text-sm sm:text-base ${
+                  isWarningTime
+                    ? "text-red-600 animate-pulse"
+                    : "text-green-600"
+                }`}
               >
                 {formatTime(timeLeft)}
               </span>
@@ -379,12 +421,13 @@ export default function Quiz() {
 
             <div className="w-full bg-gray-200 h-3 rounded-full mb-2 overflow-hidden">
               <motion.div
-                className={`h-3 rounded-full ${warningCount === maxWarnings - 1
-                  ? "bg-red-800 animate-[pulse_0.5s_infinite]"
-                  : isWarningTime
-                    ? "bg-red-500"
-                    : "bg-green-500"
-                  }`}
+                className={`h-3 rounded-full ${
+                  warningCount === maxWarnings - 1
+                    ? "bg-red-800 animate-[pulse_0.5s_infinite]"
+                    : isWarningTime
+                      ? "bg-red-500"
+                      : "bg-green-500"
+                }`}
                 initial={{ width: "100%" }}
                 animate={{ width: `${timePercent}%` }}
                 transition={{ duration: 1, ease: "linear" }}
@@ -393,18 +436,19 @@ export default function Quiz() {
 
             {warningCount > 0 && warningCount < maxWarnings && (
               <p
-                className={`text-xs sm:text-sm font-medium mb-2 text-center ${warningCount === maxWarnings - 1
-                  ? "text-red-800 animate-[pulse_0.5s_infinite]"
-                  : "text-red-600 animate-pulse"
-                  }`}
+                className={`text-xs sm:text-sm font-medium mb-2 text-center ${
+                  warningCount === maxWarnings - 1
+                    ? "text-red-800 animate-[pulse_0.5s_infinite]"
+                    : "text-red-600 animate-pulse"
+                }`}
               >
-                Warning {warningCount}/{maxWarnings - 1} – Quiz will auto-submit on the {maxWarnings}th attempt with 0 score
+                Warning {warningCount}/{maxWarnings - 1} – Quiz will
+                auto-submit on the {maxWarnings}th attempt with 0 score
               </p>
             )}
           </>
         )}
 
-        {/* Question */}
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
@@ -422,23 +466,29 @@ export default function Quiz() {
               {options.map((option, idx) => {
                 const base =
                   "w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl border transition-all duration-200 font-medium break-words";
+
                 const isCorrect = option === correctAnswer;
                 const isSelected = selected === option;
 
                 let styles = base;
+
                 if (isPreview) {
                   styles += isCorrect
                     ? " bg-green-100 border-green-400 text-green-800"
                     : " bg-gray-100";
                 } else if (showAnswer) {
-                  if (isSelected && isCorrect)
+                  if (isSelected && isCorrect) {
                     styles += " bg-green-500 text-white border-green-600";
-                  else if (isSelected && !isCorrect)
+                  } else if (isSelected && !isCorrect) {
                     styles += " bg-red-500 text-white border-red-600";
-                  else styles += " bg-gray-100 opacity-70";
-                } else if (isSelected)
+                  } else {
+                    styles += " bg-gray-100 opacity-70";
+                  }
+                } else if (isSelected) {
                   styles += " bg-blue-500 text-white border-blue-600";
-                else styles += " hover:bg-blue-50";
+                } else {
+                  styles += " hover:bg-blue-50";
+                }
 
                 return (
                   <motion.button
@@ -454,16 +504,16 @@ export default function Quiz() {
               })}
             </div>
 
-            {/* Preview Navigation Buttons */}
             {isPreview && (
               <div className="flex flex-col sm:flex-row justify-between mt-6 gap-3">
                 <button
                   onClick={() => setCurrent((prev) => Math.max(prev - 1, 0))}
                   disabled={current === 0}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${current === 0
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${
+                    current === 0
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600"
+                  }`}
                 >
                   Previous
                 </button>
@@ -477,13 +527,16 @@ export default function Quiz() {
 
                 <button
                   onClick={() =>
-                    setCurrent((prev) => Math.min(prev + 1, questions.length - 1))
+                    setCurrent((prev) =>
+                      Math.min(prev + 1, questions.length - 1)
+                    )
                   }
                   disabled={current === questions.length - 1}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${current === questions.length - 1
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600"
-                    }`}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-semibold shadow ${
+                    current === questions.length - 1
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600"
+                  }`}
                 >
                   Next
                 </button>
@@ -492,7 +545,6 @@ export default function Quiz() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Submit */}
         {!isPreview && current === questions.length - 1 && (
           <motion.button
             whileHover={{ scale: 1.03 }}

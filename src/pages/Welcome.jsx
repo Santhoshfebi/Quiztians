@@ -124,7 +124,19 @@ export default function Welcome() {
       if (error) throw error;
 
       if (existingAttempt) {
-        navigate("/already-attempted", { state: { language } });
+        navigate("/already-attempted", {
+          state: {
+            language,
+            name: existingAttempt.name,
+            phone: existingAttempt.phone,
+            place: existingAttempt.place,
+            chapter: existingAttempt.chapter,
+            score: existingAttempt.score,
+            total: existingAttempt.total,
+            attemptedAt: existingAttempt.created_at,
+          },
+        });
+
         return;
       }
 
@@ -322,7 +334,7 @@ export default function Welcome() {
       </div>
 
       {/* FEATURES */}
-      <div className="max-w-6xl mx-auto py-14 sm:py-20 px-4 sm:px-6">
+      {/* <div className="max-w-6xl mx-auto py-14 sm:py-20 px-4 sm:px-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10 sm:mb-16">
           Why Choose QuizPro?
         </h2>
@@ -347,7 +359,7 @@ export default function Welcome() {
             </motion.div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
