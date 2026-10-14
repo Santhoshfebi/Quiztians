@@ -1,27 +1,45 @@
 export const roleThemes = {
   admin: {
-    appBg: "bg-gradient-to-br from-violet-900 via-purple-900 to-fuchsia-900",
-    sidebarBg: "bg-white/80 backdrop-blur-xl border-r border-purple-200",
-    surface: "bg-white/70 backdrop-blur-xl border border-purple-100 shadow-lg",
-    textPrimary: "text-purple-900",
-    textSecondary: "text-purple-600",
-    accentGradient: "from-purple-500 to-indigo-600",
-    headingGradient: "from-purple-600 to-indigo-600",
-    badge: "bg-purple-100 text-purple-700 border-purple-300",
-    glow: "bg-purple-500/20",
-    premiumCard: "from-purple-500 to-indigo-600",
+    roleLabel: "Administrator",
+
+    accent: "#8B5CF6",
+    accentSoft: "rgba(139, 92, 246, 0.10)",
+
+    accentGradient:
+      "from-violet-600 via-violet-500 to-indigo-500",
+
+    headingGradient:
+      "from-white via-violet-100 to-violet-300",
+
+    badge:
+      "border-violet-500/15 bg-violet-500/[0.07] text-violet-300",
+
+    glow: "bg-violet-600/[0.08]",
+
+    chart: "#8B5CF6",
+
+    chartSecondary: "#6366F1",
   },
 
   superadmin: {
-    appBg: "bg-gradient-to-br from-gray-950 via-black to-gray-900",
-    sidebarBg: "bg-black/80 backdrop-blur-xl border-r border-white/10",
-    surface: "bg-white/5 backdrop-blur-xl border border-white/10",
-    textPrimary: "text-white",
-    textSecondary: "text-gray-300",
-    accentGradient: "from-amber-400 to-orange-500",
-    headingGradient: "from-amber-300 to-orange-400",
-    badge: "bg-amber-500/20 text-amber-300 border-amber-400/40",
-    glow: "bg-amber-400/20",
-    premiumCard: "from-amber-500 to-red-600",
+    roleLabel: "Super Administrator",
+
+    accent: "#B86C3A",
+    accentSoft: "rgba(184, 108, 58, 0.10)",
+
+    accentGradient:
+      "from-[#74340E] via-[#8F4B1E] to-[#A56234]",
+
+    headingGradient:
+      "from-white via-[#E4C2A7] to-[#B86C3A]",
+
+    badge:
+      "border-[#A96638]/20 bg-[#A96638]/[0.07] text-[#C98250]",
+
+    glow: "bg-[#8B4513]/[0.10]",
+
+    chart: "#B86C3A",
+
+    chartSecondary: "#D09A72",
   },
 };

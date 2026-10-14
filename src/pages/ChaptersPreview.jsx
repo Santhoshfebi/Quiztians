@@ -1,195 +1,964 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient";
 import { motion } from "framer-motion";
-import SearchIcon from "@mui/icons-material/Search";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import QuizIcon from "@mui/icons-material/Quiz";
-import LanguageIcon from "@mui/icons-material/Language";
-import AdminBottomDock from "../components/AdminBottomDock";
+
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  FileQuestion,
+  Languages,
+  Play,
+  RefreshCw,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
+
+import { supabase } from "../supabaseClient";
+import AdminLayout from "../components/admin/AdminLayout";
+
+// ===========================================================
+// CHAPTERS PREVIEW
+// ===========================================================
 
 export default function ChaptersPreview() {
   const navigate = useNavigate();
 
+  // =========================================================
+  // STATE
+  // ===========================================================
+
   const [chapters, setChapters] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  // FETCH
-  useEffect(() => {
-    const fetch = async () => {
-      const { data, error } = await supabase
+  // =========================================================
+  // FETCH CHAPTERS
+  // ===========================================================
+
+  const fetchChapters = async ({ refresh = false } = {}) => {
+    if (refresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setError("");
+
+    try {
+      const { data, error: fetchError } = await supabase
         .from("questions")
         .select("chapter, question_en, question_ta");
 
-      if (error) {
-        console.error(error);
-        return;
+      if (fetchError) {
+        throw fetchError;
       }
 
-      const map = {};
+      const chapterMap = {};
 
-      data.forEach((q) => {
-        if (!q.chapter) return;
+      (data || []).forEach((question) => {
+        if (!question.chapter) return;
 
-        const key = q.chapter.trim().toLowerCase();
+        const chapterName = question.chapter.trim();
 
-        if (!map[key]) {
-          map[key] = {
-            name: q.chapter.trim(),
+        if (!chapterName) return;
+
+        const key = chapterName.toLowerCase();
+
+        if (!chapterMap[key]) {
+          chapterMap[key] = {
+            name: chapterName,
             count: 0,
             en: false,
             ta: false,
           };
         }
 
-        map[key].count++;
-        if (q.question_en?.trim()) map[key].en = true;
-        if (q.question_ta?.trim()) map[key].ta = true;
+        chapterMap[key].count += 1;
+
+        if (question.question_en?.trim()) {
+          chapterMap[key].en = true;
+        }
+
+        if (question.question_ta?.trim()) {
+          chapterMap[key].ta = true;
+        }
       });
 
-      const list = Object.values(map).sort((a, b) =>
+      const list = Object.values(chapterMap).sort((a, b) =>
         a.name.localeCompare(b.name)
       );
 
       setChapters(list);
-      setFiltered(list);
-      setLoading(false);
-    };
+    } catch (fetchError) {
+      console.error("Failed to fetch chapters:", fetchError);
 
-    fetch();
+      setError(
+        fetchError?.message ||
+        "Unable to load chapters. Please try again."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // =========================================================
+  // INITIAL LOAD
+  // ===========================================================
+
+  useEffect(() => {
+    fetchChapters();
   }, []);
 
+  // =========================================================
   // SEARCH
-  useEffect(() => {
-    setFiltered(
-      chapters.filter((c) =>
-        c.name.toLowerCase().includes(search.toLowerCase())
-      )
-    );
-  }, [search, chapters]);
+  // ===========================================================
 
-  const handlePreview = (chapter, lang) => {
+  const filteredChapters = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return chapters;
+    }
+
+    return chapters.filter((chapter) =>
+      chapter.name.toLowerCase().includes(query)
+    );
+  }, [chapters, search]);
+
+  // =========================================================
+  // STATS
+  // ===========================================================
+
+  const stats = useMemo(() => {
+    const totalQuestions = chapters.reduce(
+      (total, chapter) => total + chapter.count,
+      0
+    );
+
+    const englishChapters = chapters.filter(
+      (chapter) => chapter.en
+    ).length;
+
+    const tamilChapters = chapters.filter(
+      (chapter) => chapter.ta
+    ).length;
+
+    const bilingualChapters = chapters.filter(
+      (chapter) => chapter.en && chapter.ta
+    ).length;
+
+    return {
+      totalQuestions,
+      englishChapters,
+      tamilChapters,
+      bilingualChapters,
+    };
+  }, [chapters]);
+
+  // =========================================================
+  // PREVIEW
+  // ===========================================================
+
+  const handlePreview = (chapter, language) => {
     navigate("/quiz", {
       state: {
         name: "Admin Preview",
         phone: "0000000000",
         place: "Admin",
-        language: lang,
+        language,
         chapter,
         isPreview: true,
       },
     });
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900">
-        <p className="text-xl animate-pulse font-black bg-linear-to-r from-pink-600 to-indigo-800 bg-clip-text text-transparent">
-          Loading Chapters...
-        </p>
-      </div>
-    );
+  // =========================================================
+  // UI
+  // ===========================================================
 
   return (
-    <>
-      <div className="min-h-screen bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 text-white pb-28">
+    <AdminLayout
+      title="Chapter Preview"
+      eyebrow="Quiz Management"
+    >
+      {({ theme }) => (
+        <>
+          {/* =================================================
+              HERO
+          ================================================= */}
 
-        {/* HEADER */}
-        <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h1 className="text-3xl font-black bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">
-            Chapters Dashboard
-          </h1>
-        </div>
+          <motion.section
+            initial={{
+              opacity: 0,
+              y: 10,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+          >
+            {/* GLOW */}
 
-        {/* SEARCH */}
-        <div className="max-w-7xl mx-auto px-4 mb-6">
-          <div className="relative">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search chapters..."
-              className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500"
+            <div
+              className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[110px]`}
             />
-            <SearchIcon className="absolute right-4 top-3 text-gray-400" />
-          </div>
-        </div>
 
-        {/* STATS */}
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 text-center">
-            <p className="text-gray-300 text-sm">Total Chapters</p>
-            <p className="text-3xl font-bold">{chapters.length}</p>
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              {/* LEFT */}
+
+              <div className="max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <Sparkles
+                    size={15}
+                    style={{
+                      color: theme.accent,
+                    }}
+                  />
+
+                  <p
+                    className="text-[11px] font-black uppercase tracking-[0.14em]"
+                    style={{
+                      color: theme.accent,
+                    }}
+                  >
+                    Quiz Preview
+                  </p>
+                </div>
+
+                <h2 className="mt-3 text-[27px] font-black tracking-[-0.04em] text-white sm:text-[31px] lg:text-[35px]">
+                  Preview quiz by chapter
+                </h2>
+
+                <p className="mt-2 max-w-xl text-[13px] leading-6 text-zinc-500 sm:text-[14px]">
+                  Choose a chapter and launch the quiz exactly
+                  as a participant would see it in English or
+                  Tamil.
+                </p>
+              </div>
+
+              {/* RIGHT */}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={refreshing}
+                  onClick={() =>
+                    fetchChapters({
+                      refresh: true,
+                    })
+                  }
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-[12px] font-bold text-zinc-400 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw
+                    size={15}
+                    className={
+                      refreshing ? "animate-spin" : ""
+                    }
+                  />
+
+                  Refresh
+                </button>
+
+                <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-[#0D0D10] px-4 py-3">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border"
+                    style={{
+                      borderColor: `${theme.accent}20`,
+                      backgroundColor: theme.accentSoft,
+                    }}
+                  >
+                    <Languages
+                      size={18}
+                      style={{
+                        color: theme.accent,
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <p className="text-[12px] font-black text-zinc-200">
+                      Bilingual Preview
+                    </p>
+
+                    <p className="mt-1 text-[11px] text-zinc-600">
+                      English + Tamil
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* =================================================
+              STATS
+          ================================================= */}
+
+          <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <StatCard
+              label="Total Chapters"
+              value={chapters.length}
+              icon={BookOpen}
+              theme={theme}
+            />
+
+            <StatCard
+              label="Total Questions"
+              value={stats.totalQuestions}
+              icon={FileQuestion}
+              theme={theme}
+            />
+
+            <StatCard
+              label="English Ready"
+              value={stats.englishChapters}
+              icon={Languages}
+              theme={theme}
+            />
+
+            <StatCard
+              label="Tamil Ready"
+              value={stats.tamilChapters}
+              icon={CheckCircle2}
+              theme={theme}
+            />
+          </section>
+
+          {/* =================================================
+              SEARCH
+          ================================================= */}
+
+          <motion.section
+            initial={{
+              opacity: 0,
+              y: 8,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            transition={{
+              delay: 0.05,
+            }}
+            className="mt-4 rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              {/* SEARCH FIELD */}
+
+              <div className="w-full lg:max-w-xl">
+                <label className="text-[12px] font-bold text-zinc-500">
+                  Search chapters
+                </label>
+
+                <div className="relative mt-2">
+                  <Search
+                    size={17}
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600"
+                  />
+
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(event) =>
+                      setSearch(event.target.value)
+                    }
+                    placeholder="Search by chapter name..."
+                    className="h-12 w-full rounded-2xl border border-white/[0.07] bg-[#0D0D10] pl-11 pr-11 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-white/[0.14] focus:bg-[#101013]"
+                  />
+
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.04] hover:text-zinc-300"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* RESULT COUNT */}
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-white/[0.05] bg-[#0D0D10] px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-700">
+                    Showing
+                  </p>
+
+                  <p className="mt-1 text-[13px] font-black text-zinc-300">
+                    {filteredChapters.length} of{" "}
+                    {chapters.length} chapters
+                  </p>
+                </div>
+
+                <div className="hidden rounded-xl border border-white/[0.05] bg-[#0D0D10] px-4 py-3 sm:block">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-700">
+                    Bilingual
+                  </p>
+
+                  <p className="mt-1 text-[13px] font-black text-zinc-300">
+                    {stats.bilingualChapters} ready
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* =================================================
+              SECTION HEADER
+          ================================================= */}
+
+          <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-600">
+                Available Chapters
+              </p>
+
+              <h3 className="mt-1 text-[19px] font-black tracking-[-0.025em] text-zinc-100">
+                Select a chapter to preview
+              </h3>
+            </div>
+
+            {!loading && chapters.length > 0 && (
+              <p className="text-[12px] text-zinc-600">
+                Preview mode does not count as a participant
+                attempt.
+              </p>
+            )}
           </div>
 
-          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 text-center">
-            <p className="text-gray-300 text-sm">Total Questions</p>
-            <p className="text-3xl font-bold">
-              {chapters.reduce((acc, c) => acc + c.count, 0)}
-            </p>
-          </div>
-        </div>
+          {/* =================================================
+              CONTENT
+          ================================================= */}
 
-        {/* GRID */}
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((ch, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="group backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 shadow-xl hover:scale-[1.03] transition"
+          <section className="mt-4">
+            {loading ? (
+              <ChapterLoading theme={theme} />
+            ) : error ? (
+              <ErrorState
+                message={error}
+                onRetry={() => fetchChapters()}
+                theme={theme}
+              />
+            ) : filteredChapters.length === 0 ? (
+              <EmptyState
+                hasSearch={Boolean(search.trim())}
+                onClear={() => setSearch("")}
+                theme={theme}
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                {filteredChapters.map((chapter, index) => (
+                  <ChapterCard
+                    key={chapter.name.toLowerCase()}
+                    chapter={chapter}
+                    index={index}
+                    theme={theme}
+                    onPreview={handlePreview}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </AdminLayout>
+  );
+}
+
+// ===========================================================
+// CHAPTER CARD
+// ===========================================================
+
+function ChapterCard({
+  chapter,
+  index,
+  theme,
+  onPreview,
+}) {
+  const bilingual = chapter.en && chapter.ta;
+
+  return (
+    <motion.article
+      initial={{
+        opacity: 0,
+        y: 14,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.28,
+        delay: Math.min(index * 0.035, 0.25),
+      }}
+      whileHover={{
+        y: -2,
+      }}
+      className="group relative overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114] p-5 transition-shadow hover:shadow-2xl sm:p-6"
+    >
+      {/* =====================================================
+          ACCENT GLOW
+      ===================================================== */}
+
+      <div
+        className="pointer-events-none absolute -right-14 -top-14 h-40 w-40 rounded-full opacity-0 blur-[70px] transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          backgroundColor: theme.accentSoft,
+        }}
+      />
+
+      <div className="relative">
+        {/* ===================================================
+            TOP
+        =================================================== */}
+
+        <div className="flex items-start justify-between gap-4">
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
+            style={{
+              borderColor: `${theme.accent}20`,
+              backgroundColor: theme.accentSoft,
+            }}
+          >
+            <BookOpen
+              size={19}
+              strokeWidth={1.8}
+              style={{
+                color: theme.accent,
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {bilingual && (
+              <span className="hidden rounded-full border border-emerald-500/10 bg-emerald-500/[0.04] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-500/70 sm:inline-flex">
+                Bilingual
+              </span>
+            )}
+
+            <span
+              className="rounded-full border px-2.5 py-1 text-[10px] font-black"
+              style={{
+                borderColor: `${theme.accent}18`,
+                backgroundColor: theme.accentSoft,
+                color: theme.accent,
+              }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <QuizIcon className="text-purple-400" />
-                <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20">
-                  {ch.count} Qs
-                </span>
-              </div>
+              {chapter.count}{" "}
+              {chapter.count === 1 ? "Q" : "Qs"}
+            </span>
+          </div>
+        </div>
 
-              <h2 className="text-xl font-bold mb-2">{ch.name}</h2>
+        {/* ===================================================
+            CHAPTER NAME
+        =================================================== */}
 
-              {/* LANGUAGE STATUS */}
-              <div className="flex gap-2 mb-4 text-xs">
-                <span
-                  className={`px-2 py-1 rounded ${
-                    ch.en ? "bg-blue-500/30" : "bg-red-500/30"
-                  }`}
-                >
-                  EN
-                </span>
-                <span
-                  className={`px-2 py-1 rounded ${
-                    ch.ta ? "bg-green-500/30" : "bg-red-500/30"
-                  }`}
-                >
-                  TA
-                </span>
-              </div>
+        <div className="mt-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-700">
+            Chapter
+          </p>
 
-              {/* ACTIONS */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handlePreview(ch.name, "en")}
-                  className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm flex items-center justify-center gap-1"
-                >
-                  <LanguageIcon fontSize="small" /> English
-                </button>
+          <h3 className="mt-2 break-words text-[18px] font-black leading-6 tracking-[-0.02em] text-zinc-100 sm:text-[19px]">
+            {chapter.name}
+          </h3>
 
-                <button
-                  onClick={() => handlePreview(ch.name, "ta")}
-                  className="flex-1 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm flex items-center justify-center gap-1"
-                >
-                  <LanguageIcon fontSize="small" /> Tamil
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          <p className="mt-2 text-[12px] leading-5 text-zinc-600">
+            {chapter.count}{" "}
+            {chapter.count === 1 ? "question" : "questions"}{" "}
+            available for preview.
+          </p>
+        </div>
+
+        {/* ===================================================
+            LANGUAGE AVAILABILITY
+        =================================================== */}
+
+        <div className="mt-5 rounded-2xl border border-white/[0.05] bg-[#0D0D10] p-3">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-700">
+            Language availability
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <LanguageStatus
+              code="EN"
+              label="English"
+              available={chapter.en}
+              theme={theme}
+            />
+
+            <LanguageStatus
+              code="TA"
+              label="Tamil"
+              available={chapter.ta}
+              theme={theme}
+            />
+          </div>
+        </div>
+
+        {/* ===================================================
+            PREVIEW BUTTONS
+        =================================================== */}
+
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <PreviewButton
+            label="English"
+            code="EN"
+            available={chapter.en}
+            theme={theme}
+            onClick={() =>
+              onPreview(chapter.name, "en")
+            }
+          />
+
+          <PreviewButton
+            label="Tamil"
+            code="TA"
+            available={chapter.ta}
+            theme={theme}
+            onClick={() =>
+              onPreview(chapter.name, "ta")
+            }
+          />
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+// ===========================================================
+// LANGUAGE STATUS
+// ===========================================================
+
+function LanguageStatus({
+  code,
+  label,
+  available,
+  theme,
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 ${available
+          ? ""
+          : "border-white/[0.04] bg-white/[0.012]"
+        }`}
+      style={
+        available
+          ? {
+            borderColor: `${theme.accent}16`,
+            backgroundColor: theme.accentSoft,
+          }
+          : undefined
+      }
+    >
+      <div
+        className={`flex h-7 min-w-7 items-center justify-center rounded-lg px-1.5 text-[9px] font-black ${!available
+            ? "bg-white/[0.025] text-zinc-700"
+            : ""
+          }`}
+        style={
+          available
+            ? {
+              backgroundColor: `${theme.accent}12`,
+              color: theme.accent,
+            }
+            : undefined
+        }
+      >
+        {code}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p
+          className={`truncate text-[11px] font-bold ${available
+              ? "text-zinc-300"
+              : "text-zinc-700"
+            }`}
+        >
+          {label}
+        </p>
+
+        <p
+          className={`mt-0.5 text-[9px] font-bold uppercase tracking-[0.07em] ${available
+              ? "text-emerald-500/70"
+              : "text-red-400/50"
+            }`}
+        >
+          {available ? "Ready" : "Unavailable"}
+        </p>
+      </div>
+
+      {available ? (
+        <CheckCircle2
+          size={14}
+          className="shrink-0 text-emerald-500"
+        />
+      ) : (
+        <X
+          size={13}
+          className="shrink-0 text-red-400/50"
+        />
+      )}
+    </div>
+  );
+}
+
+// ===========================================================
+// PREVIEW BUTTON
+// ===========================================================
+
+function PreviewButton({
+  label,
+  code,
+  available,
+  theme,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      disabled={!available}
+      onClick={onClick}
+      className={`group/button flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-3 text-[12px] font-black transition ${available
+          ? "hover:-translate-y-0.5"
+          : "cursor-not-allowed border-white/[0.04] bg-white/[0.015] text-zinc-700"
+        }`}
+      style={
+        available
+          ? {
+            borderColor: `${theme.accent}20`,
+            backgroundColor: theme.accentSoft,
+            color: theme.accent,
+          }
+          : undefined
+      }
+    >
+      <Play
+        size={14}
+        fill={available ? "currentColor" : "none"}
+      />
+
+      <span>{label}</span>
+
+      {available && (
+        <ArrowRight
+          size={13}
+          className="transition-transform group-hover/button:translate-x-0.5"
+        />
+      )}
+
+      {!available && (
+        <span className="sr-only">
+          {code} unavailable
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ===========================================================
+// STAT CARD
+// ===========================================================
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  theme,
+}) {
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 8,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      className="rounded-[18px] border border-white/[0.055] bg-[#111114] p-4 sm:p-5"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-bold text-zinc-600 sm:text-[12px]">
+          {label}
+        </p>
+
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+          style={{
+            backgroundColor: theme.accentSoft,
+            color: theme.accent,
+          }}
+        >
+          <Icon size={14} />
         </div>
       </div>
 
-      <AdminBottomDock />
-    </>
+      <p className="mt-3 text-[30px] font-black tracking-[-0.045em] text-zinc-100 sm:text-[34px]">
+        {value}
+      </p>
+    </motion.div>
+  );
+}
+
+// ===========================================================
+// LOADING
+// ===========================================================
+
+function ChapterLoading({ theme }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+      {[1, 2, 3, 4, 5, 6].map((item) => (
+        <div
+          key={item}
+          className="rounded-[22px] border border-white/[0.05] bg-[#111114] p-5 sm:p-6"
+        >
+          <div className="flex items-center justify-between">
+            <div
+              className="h-11 w-11 animate-pulse rounded-xl"
+              style={{
+                backgroundColor: theme.accentSoft,
+              }}
+            />
+
+            <div className="h-6 w-14 animate-pulse rounded-full bg-white/[0.035]" />
+          </div>
+
+          <div className="mt-5 h-3 w-16 animate-pulse rounded-full bg-white/[0.035]" />
+
+          <div className="mt-3 h-5 w-2/3 animate-pulse rounded-full bg-white/[0.055]" />
+
+          <div className="mt-3 h-3 w-1/2 animate-pulse rounded-full bg-white/[0.025]" />
+
+          <div className="mt-5 h-[86px] animate-pulse rounded-2xl bg-white/[0.02]" />
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="h-12 animate-pulse rounded-xl bg-white/[0.025]" />
+
+            <div className="h-12 animate-pulse rounded-xl bg-white/[0.025]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===========================================================
+// EMPTY STATE
+// ===========================================================
+
+function EmptyState({
+  hasSearch,
+  onClear,
+  theme,
+}) {
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+      }}
+      animate={{
+        opacity: 1,
+      }}
+      className="rounded-[22px] border border-dashed border-white/[0.07] bg-[#111114] px-5 py-16 text-center"
+    >
+      <div
+        className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border"
+        style={{
+          borderColor: `${theme.accent}15`,
+          backgroundColor: theme.accentSoft,
+        }}
+      >
+        {hasSearch ? (
+          <Search
+            size={22}
+            style={{
+              color: theme.accent,
+            }}
+          />
+        ) : (
+          <BookOpen
+            size={22}
+            style={{
+              color: theme.accent,
+            }}
+          />
+        )}
+      </div>
+
+      <h3 className="mt-5 text-[18px] font-black text-zinc-200">
+        {hasSearch
+          ? "No matching chapters"
+          : "No chapters available"}
+      </h3>
+
+      <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-zinc-600">
+        {hasSearch
+          ? "No chapter names match your current search. Try another keyword."
+          : "Add questions with a chapter name and they will automatically appear here."}
+      </p>
+
+      {hasSearch && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-2.5 text-[12px] font-bold text-zinc-300 transition hover:bg-white/[0.06] hover:text-white"
+        >
+          Clear Search
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+// ===========================================================
+// ERROR STATE
+// ===========================================================
+
+function ErrorState({
+  message,
+  onRetry,
+  theme,
+}) {
+  return (
+    <div className="rounded-[22px] border border-red-500/10 bg-[#111114] px-5 py-16 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/15 bg-red-500/[0.05]">
+        <X
+          size={22}
+          className="text-red-400"
+        />
+      </div>
+
+      <h3 className="mt-5 text-[18px] font-black text-zinc-200">
+        Unable to load chapters
+      </h3>
+
+      <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-zinc-600">
+        {message}
+      </p>
+
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-5 inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[12px] font-black transition hover:-translate-y-0.5"
+        style={{
+          borderColor: `${theme.accent}20`,
+          backgroundColor: theme.accentSoft,
+          color: theme.accent,
+        }}
+      >
+        <RefreshCw size={14} />
+
+        Try Again
+      </button>
+    </div>
   );
 }

@@ -1,336 +1,1887 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import CountUp from "react-countup";
-import { roleThemes } from "../theme/roleTheme";
-import AdminBottomDock from "../components/AdminBottomDock";
+import {
+  Activity,
+  BookOpen,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Clock3,
+  FileText,
+  Filter,
+  Search,
+  Settings2,
+  ShieldCheck,
+  UserCog,
+  UserRound,
+  X,
+} from "lucide-react";
+
+import { supabase } from "../supabaseClient";
+import AdminLayout from "../components/admin/AdminLayout";
+
+/* ==========================================================
+   ADMIN ACTIVITY LOGS
+========================================================== */
 
 export default function AdminActivityLogs() {
-  const navigate = useNavigate();
+  /* ========================================================
+     DATA
+  ======================================================== */
 
-  const [user, setUser] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  /* ========================================================
+     FILTERS
+  ======================================================== */
 
   const [search, setSearch] = useState("");
   const [moduleFilter, setModuleFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
 
-  useEffect(() => {
-    const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  /* ========================================================
+     PAGINATION
+  ======================================================== */
 
-      if (!user) {
-        navigate("/admin-login");
-        return;
-      }
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-      if (!["admin", "superadmin"].includes(user.user_metadata?.role)) {
-        navigate("/admin-login");
-        return;
-      }
+  /* ========================================================
+     FETCH LOGS
+  ======================================================== */
 
-      setUser(user);
+  const fetchLogs = async () => {
+    setLoading(true);
 
+    try {
       const { data, error } = await supabase
         .from("admin_activity_logs")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", {
+          ascending: false,
+        });
 
-      if (!error && data) {
-        setLogs(data);
+      if (error) {
+        throw error;
       }
 
+      setLogs(data || []);
+    } catch (error) {
+      console.error(
+        "Fetch activity logs error:",
+        error
+      );
+
+      setLogs([]);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    init();
-  }, [navigate]);
+  /* ========================================================
+     INITIAL FETCH
+  ======================================================== */
 
-  const role = user?.user_metadata?.role || "admin";
-  const theme = roleThemes[role];
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  /* ========================================================
+     FILTER OPTIONS
+  ======================================================== */
 
   const modules = useMemo(() => {
-    return ["all", ...new Set(logs.map((log) => log.module).filter(Boolean))];
+    return [
+      ...new Set(
+        logs
+          .map((log) => log.module)
+          .filter(Boolean)
+      ),
+    ].sort((a, b) =>
+      String(a).localeCompare(String(b))
+    );
   }, [logs]);
 
   const actions = useMemo(() => {
-    return ["all", ...new Set(logs.map((log) => log.action).filter(Boolean))];
+    return [
+      ...new Set(
+        logs
+          .map((log) => log.action)
+          .filter(Boolean)
+      ),
+    ].sort((a, b) =>
+      String(a).localeCompare(String(b))
+    );
   }, [logs]);
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const q = search.toLowerCase();
+  /* ========================================================
+     FILTERED LOGS
+  ======================================================== */
 
+  const filteredLogs = useMemo(() => {
+    const query = search
+      .trim()
+      .toLowerCase();
+
+    return logs.filter((log) => {
       const matchesSearch =
-        log.admin_email?.toLowerCase().includes(q) ||
-        log.admin_name?.toLowerCase().includes(q) ||
-        log.action?.toLowerCase().includes(q) ||
-        log.module?.toLowerCase().includes(q) ||
-        log.description?.toLowerCase().includes(q);
+        !query ||
+        [
+          log.admin_email,
+          log.admin_name,
+          log.action,
+          log.module,
+          log.description,
+        ].some((value) =>
+          String(value || "")
+            .toLowerCase()
+            .includes(query)
+        );
 
       const matchesModule =
-        moduleFilter === "all" || log.module === moduleFilter;
+        moduleFilter === "all" ||
+        log.module === moduleFilter;
 
       const matchesAction =
-        actionFilter === "all" || log.action === actionFilter;
+        actionFilter === "all" ||
+        log.action === actionFilter;
 
-      return matchesSearch && matchesModule && matchesAction;
+      return (
+        matchesSearch &&
+        matchesModule &&
+        matchesAction
+      );
     });
-  }, [logs, search, moduleFilter, actionFilter]);
+  }, [
+    logs,
+    search,
+    moduleFilter,
+    actionFilter,
+  ]);
 
-  const totalLogs = logs.length;
-  const questionLogs = logs.filter((log) => log.module === "Questions").length;
-  const configLogs = logs.filter(
-    (log) => log.module === "Quiz Configuration"
-  ).length;
-  const adminLogs = logs.filter((log) => log.module === "Admin Users").length;
+  /* ========================================================
+     PAGINATION CALCULATIONS
+  ======================================================== */
 
-  const formatDate = (date) => {
-    if (!date) return "N/A";
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredLogs.length /
+      pageSize
+    )
+  );
 
-    return new Date(date).toLocaleString("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  };
+  const paginatedLogs = useMemo(() => {
+    const start =
+      (page - 1) *
+      pageSize;
 
-  const getActionStyle = (action) => {
-    if (action?.includes("DELETE")) {
-      return "bg-red-500/20 text-red-300 border-red-400/40";
-    }
-
-    if (action?.includes("CREATE") || action?.includes("ADD")) {
-      return "bg-green-500/20 text-green-300 border-green-400/40";
-    }
-
-    if (action?.includes("UPDATE") || action?.includes("EDIT")) {
-      return "bg-blue-500/20 text-blue-300 border-blue-400/40";
-    }
-
-    if (action?.includes("DISABLE")) {
-      return "bg-orange-500/20 text-orange-300 border-orange-400/40";
-    }
-
-    return "bg-purple-500/20 text-purple-300 border-purple-400/40";
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-950 via-purple-950 to-slate-900 text-white">
-        Loading activity logs...
-      </div>
+    return filteredLogs.slice(
+      start,
+      start + pageSize
     );
-  }
+  }, [
+    filteredLogs,
+    page,
+    pageSize,
+  ]);
+
+  const firstVisible =
+    filteredLogs.length === 0
+      ? 0
+      : (page - 1) *
+      pageSize +
+      1;
+
+  const lastVisible =
+    Math.min(
+      page * pageSize,
+      filteredLogs.length
+    );
+
+  /* ========================================================
+     KEEP PAGE VALID
+  ======================================================== */
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [
+    page,
+    totalPages,
+  ]);
+
+  /* ========================================================
+     RESET PAGE WHEN FILTERS CHANGE
+  ======================================================== */
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    search,
+    moduleFilter,
+    actionFilter,
+    pageSize,
+  ]);
+
+  /* ========================================================
+     STATS
+  ======================================================== */
+
+  const stats = useMemo(() => {
+    const totalLogs =
+      logs.length;
+
+    const questionLogs =
+      logs.filter(
+        (log) =>
+          log.module ===
+          "Questions"
+      ).length;
+
+    const configLogs =
+      logs.filter(
+        (log) =>
+          log.module ===
+          "Quiz Configuration"
+      ).length;
+
+    const adminLogs =
+      logs.filter(
+        (log) =>
+          log.module ===
+          "Admin Users"
+      ).length;
+
+    return {
+      totalLogs,
+      questionLogs,
+      configLogs,
+      adminLogs,
+    };
+  }, [logs]);
+
+  /* ========================================================
+     ACTIVE FILTER COUNT
+  ======================================================== */
+
+  const activeFilterCount =
+    (moduleFilter !== "all"
+      ? 1
+      : 0) +
+    (actionFilter !== "all"
+      ? 1
+      : 0);
+
+  /* ========================================================
+     CLEAR FILTERS
+  ======================================================== */
+
+  const clearFilters = () => {
+    setSearch("");
+    setModuleFilter("all");
+    setActionFilter("all");
+  };
+
+  /* ========================================================
+     PAGE
+  ======================================================== */
 
   return (
-    <>
-      <div
-        className={`relative min-h-screen ${theme.appBg} px-4 sm:px-6 lg:px-8 py-6 pb-32 overflow-hidden`}
-      >
-        <div className="absolute -top-40 -left-40 w-100 h-100 bg-purple-500/20 blur-[150px] rounded-full" />
-        <div className="absolute top-60 -right-40 w-100 h-100 bg-indigo-500/20 blur-[150px] rounded-full" />
+    <AdminLayout
+      title="Activity Logs"
+      eyebrow="Audit Trail"
+    >
+      {({ theme }) => (
+        <>
+          {/* ==================================================
+              HERO
+          ================================================== */}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 max-w-7xl mx-auto"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1
-                className={`text-2xl sm:text-3xl font-black bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
-              >
-                Admin Activity Logs
-              </h1>
-
-              <p className={`text-xs sm:text-sm ${theme.textSecondary}`}>
-                Track admin actions across questions, quiz config and users.
-              </p>
-            </div>
-
-            <button
-              onClick={() => navigate("/admin")}
-              className="px-4 py-2 rounded-xl bg-white/10 text-white border border-white/10 hover:bg-white/20 transition"
-            >
-              Back
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <StatCard title="Total Activities" value={totalLogs} />
-            <StatCard title="Question Actions" value={questionLogs} />
-            <StatCard title="Config Actions" value={configLogs} />
-            <StatCard title="Admin Actions" value={adminLogs} />
-          </div>
-
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Search admin, action, module..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          <motion.section
+            initial={{
+              opacity: 0,
+              y: 10,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+          >
+            <div
+              className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[110px]`}
             />
 
-            <select
-              value={moduleFilter}
-              onChange={(e) => setModuleFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {modules.map((module) => (
-                <option key={module} value={module} className="bg-slate-900">
-                  {module === "all" ? "All Modules" : module}
-                </option>
-              ))}
-            </select>
+            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck
+                    size={15}
+                    style={{
+                      color:
+                        theme.accent,
+                    }}
+                  />
 
-            <select
-              value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {actions.map((action) => (
-                <option key={action} value={action} className="bg-slate-900">
-                  {action === "all" ? "All Actions" : action}
-                </option>
-              ))}
-            </select>
-          </div>
+                  <p
+                    className="text-[12px] font-black uppercase tracking-[0.14em]"
+                    style={{
+                      color:
+                        theme.accent,
+                    }}
+                  >
+                    Administrative Audit
+                  </p>
+                </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden">
-              <div className="overflow-x-auto overflow-y-auto h-175 pr-2">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-black/90 text-gray-300 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-5 py-4">Admin</th>
-                      <th className="px-5 py-4">Action</th>
-                      <th className="px-5 py-4">Module</th>
-                      <th className="px-5 py-4">Description</th>
-                      <th className="px-5 py-4">Time</th>
-                    </tr>
-                  </thead>
+                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[32px] lg:text-[36px]">
+                  Activity Logs
+                </h2>
 
-                  <tbody>
-                    {filteredLogs.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan="5"
-                          className="px-5 py-8 text-center text-gray-400"
-                        >
-                          No activity logs found
-                        </td>
-                      </tr>
-                    )}
+                <p className="mt-2 max-w-xl text-[13px] leading-6 text-zinc-500 sm:text-[14px]">
+                  Review administrative
+                  actions across questions,
+                  quiz configuration and
+                  admin user management.
+                </p>
 
-                    {filteredLogs.map((log) => (
-                      <tr
-                        key={log.id}
-                        className="border-t border-white/10 hover:bg-white/5 transition"
-                      >
-                        <td className="px-5 py-4">
-                          <p className="text-white font-semibold">
-                            {log.admin_name || "Unknown"}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {log.admin_email}
-                          </p>
-                        </td>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <MiniBadge>
+                    {
+                      filteredLogs.length
+                    }{" "}
+                    visible
+                  </MiniBadge>
 
-                        <td className="px-5 py-4">
-                          <span
-                            className={`px-3 py-1 rounded-full border text-xs ${getActionStyle(
-                              log.action
-                            )}`}
-                          >
-                            {log.action}
-                          </span>
-                        </td>
+                  <MiniBadge>
+                    {logs.length} total
+                  </MiniBadge>
+                </div>
+              </div>
 
-                        <td className="px-5 py-4 text-gray-300">
-                          {log.module || "N/A"}
-                        </td>
-
-                        <td className="px-5 py-4 text-gray-300 max-w-sm">
-                          {log.description || "No description"}
-                        </td>
-
-                        <td className="px-5 py-4 text-gray-400">
-                          {formatDate(log.created_at)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border"
+                style={{
+                  borderColor:
+                    `${theme.accent}20`,
+                  backgroundColor:
+                    theme.accentSoft,
+                  color:
+                    theme.accent,
+                }}
+              >
+                <Activity size={22} />
               </div>
             </div>
+          </motion.section>
 
-            <div className="rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl p-6">
-              <h2 className="text-lg font-bold text-white mb-5">
-                Timeline View
-              </h2>
+          {/* ==================================================
+              CONTENT
+          ================================================== */}
 
-              <div className="space-y-5 max-h-162.5 overflow-y-auto pr-2">
-                {filteredLogs.length === 0 && (
-                  <p className="text-gray-400 text-sm">No timeline data</p>
-                )}
+          {loading ? (
+            <ActivityLogsLoading
+              theme={theme}
+            />
+          ) : (
+            <>
+              {/* ==============================================
+                  STATS
+              ============================================== */}
 
-                {filteredLogs.map((log) => (
-                  <div key={log.id} className="relative pl-6">
-                    <span className="absolute left-0 top-1.5 w-3 h-3 rounded-full bg-purple-400 shadow-[0_0_12px_rgba(192,132,252,0.8)]" />
-                    <span className="absolute left-1.25 top-5 w-px h-full bg-white/10" />
+              <section className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <ActivityStatCard
+                  title="Total Activities"
+                  value={
+                    stats.totalLogs
+                  }
+                  icon={Activity}
+                  index={0}
+                  theme={theme}
+                />
 
-                    <p className="text-sm text-white font-semibold">
-                      {log.action}
-                    </p>
+                <ActivityStatCard
+                  title="Question Actions"
+                  value={
+                    stats.questionLogs
+                  }
+                  icon={BookOpen}
+                  index={1}
+                  theme={theme}
+                />
 
-                    <p className="text-xs text-gray-400 mt-1">
-                      {log.description || "No description"}
-                    </p>
+                <ActivityStatCard
+                  title="Config Actions"
+                  value={
+                    stats.configLogs
+                  }
+                  icon={Settings2}
+                  index={2}
+                  theme={theme}
+                />
 
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10">
-                        {log.module || "N/A"}
+                <ActivityStatCard
+                  title="Admin Actions"
+                  value={
+                    stats.adminLogs
+                  }
+                  icon={UserCog}
+                  index={3}
+                  theme={theme}
+                />
+              </section>
+
+              {/* ==============================================
+                  FILTERS
+              ============================================== */}
+
+              <section className="mt-4 rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                  {/* SEARCH */}
+
+                  <div className="relative min-w-0 flex-1">
+                    <Search
+                      size={16}
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                    />
+
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(
+                        event
+                      ) =>
+                        setSearch(
+                          event.target
+                            .value
+                        )
+                      }
+                      placeholder="Search admin, email, action, module or description..."
+                      className="h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-10 pr-10 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-white/[0.14]"
+                    />
+
+                    {search && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() =>
+                          setSearch("")
+                        }
+                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.05] hover:text-zinc-300"
+                      >
+                        <X
+                          size={
+                            14
+                          }
+                        />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* FILTER SELECTS */}
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:w-[480px]">
+                    <FilterSelect
+                      value={
+                        moduleFilter
+                      }
+                      onChange={
+                        setModuleFilter
+                      }
+                      icon={Filter}
+                      theme={theme}
+                    >
+                      <option value="all">
+                        All Modules
+                      </option>
+
+                      {modules.map(
+                        (
+                          module
+                        ) => (
+                          <option
+                            key={
+                              module
+                            }
+                            value={
+                              module
+                            }
+                          >
+                            {
+                              module
+                            }
+                          </option>
+                        )
+                      )}
+                    </FilterSelect>
+
+                    <FilterSelect
+                      value={
+                        actionFilter
+                      }
+                      onChange={
+                        setActionFilter
+                      }
+                      icon={
+                        Activity
+                      }
+                      theme={theme}
+                    >
+                      <option value="all">
+                        All Actions
+                      </option>
+
+                      {actions.map(
+                        (
+                          action
+                        ) => (
+                          <option
+                            key={
+                              action
+                            }
+                            value={
+                              action
+                            }
+                          >
+                            {
+                              action
+                            }
+                          </option>
+                        )
+                      )}
+                    </FilterSelect>
+                  </div>
+                </div>
+
+                {/* ACTIVE FILTERS */}
+
+                {(search ||
+                  activeFilterCount >
+                  0) && (
+                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-4">
+                      <span className="text-[11px] font-bold text-zinc-600">
+                        Active filters
                       </span>
 
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10">
-                        {log.admin_name || log.admin_email}
-                      </span>
+                      {search && (
+                        <FilterChip
+                          label={`Search: ${search}`}
+                          onRemove={() =>
+                            setSearch("")
+                          }
+                          theme={theme}
+                        />
+                      )}
+
+                      {moduleFilter !==
+                        "all" && (
+                          <FilterChip
+                            label={
+                              moduleFilter
+                            }
+                            onRemove={() =>
+                              setModuleFilter(
+                                "all"
+                              )
+                            }
+                            theme={theme}
+                          />
+                        )}
+
+                      {actionFilter !==
+                        "all" && (
+                          <FilterChip
+                            label={
+                              actionFilter
+                            }
+                            onRemove={() =>
+                              setActionFilter(
+                                "all"
+                              )
+                            }
+                            theme={theme}
+                          />
+                        )}
+
+                      <button
+                        type="button"
+                        onClick={
+                          clearFilters
+                        }
+                        className="ml-auto text-[11px] font-black text-zinc-500 transition hover:text-white"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  )}
+              </section>
+
+              {/* ==============================================
+                  TABLE + TIMELINE
+              ============================================== */}
+
+              <section className="mt-4 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.75fr)]">
+                {/* ============================================
+                    ACTIVITY RECORDS
+                ============================================ */}
+
+                <div className="min-w-0 overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]">
+                  {/* HEADER */}
+
+                  <div className="flex flex-col gap-3 border-b border-white/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText
+                          size={15}
+                          style={{
+                            color:
+                              theme.accent,
+                          }}
+                        />
+
+                        <h3 className="text-[15px] font-black text-zinc-100">
+                          Activity Records
+                        </h3>
+                      </div>
+
+                      <p className="mt-1 text-[12px] text-zinc-600">
+                        {
+                          filteredLogs.length
+                        }{" "}
+                        of{" "}
+                        {
+                          logs.length
+                        }{" "}
+                        activities shown
+                      </p>
                     </div>
 
-                    <p className="text-[11px] text-gray-500 mt-2">
-                      {formatDate(log.created_at)}
+                    {/* PAGE SIZE */}
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-zinc-600">
+                        Rows
+                      </span>
+
+                      <div className="relative">
+                        <select
+                          value={
+                            pageSize
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            setPageSize(
+                              Number(
+                                event
+                                  .target
+                                  .value
+                              )
+                            )
+                          }
+                          className="h-9 appearance-none rounded-lg border border-white/[0.07] bg-[#141418] pl-3 pr-8 text-[11px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+                        >
+                          <option
+                            value={
+                              10
+                            }
+                          >
+                            10
+                          </option>
+
+                          <option
+                            value={
+                              50
+                            }
+                          >
+                            50
+                          </option>
+
+                          <option
+                            value={
+                              100
+                            }
+                          >
+                            100
+                          </option>
+                        </select>
+
+                        <ChevronDown
+                          size={12}
+                          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ==========================================
+                      DESKTOP TABLE
+                  ========================================== */}
+
+                  <div className="hidden w-full min-w-0 lg:block">
+                    <table className="w-full table-fixed border-collapse">
+                      <colgroup>
+                        <col className="w-[20%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[17%]" />
+                        <col className="w-[30%]" />
+                        <col className="w-[18%]" />
+                      </colgroup>
+
+                      <thead>
+                        <tr className="border-b border-white/[0.05] bg-white/[0.015]">
+                          <TableHeading>
+                            Admin
+                          </TableHeading>
+
+                          <TableHeading>
+                            Action
+                          </TableHeading>
+
+                          <TableHeading>
+                            Module
+                          </TableHeading>
+
+                          <TableHeading>
+                            Description
+                          </TableHeading>
+
+                          <TableHeading>
+                            Time
+                          </TableHeading>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {filteredLogs.length ===
+                          0 ? (
+                          <tr>
+                            <td
+                              colSpan={
+                                5
+                              }
+                              className="px-5 py-16"
+                            >
+                              <EmptyLogs
+                                theme={
+                                  theme
+                                }
+                              />
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedLogs.map(
+                            (
+                              log
+                            ) => (
+                              <ActivityRow
+                                key={
+                                  log.id
+                                }
+                                log={
+                                  log
+                                }
+                                theme={
+                                  theme
+                                }
+                              />
+                            )
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ==========================================
+                      MOBILE / TABLET
+                  ========================================== */}
+
+                  <div className="divide-y divide-white/[0.05] lg:hidden">
+                    {filteredLogs.length ===
+                      0 ? (
+                      <div className="p-6">
+                        <EmptyLogs
+                          theme={
+                            theme
+                          }
+                        />
+                      </div>
+                    ) : (
+                      paginatedLogs.map(
+                        (
+                          log
+                        ) => (
+                          <MobileActivityCard
+                            key={
+                              log.id
+                            }
+                            log={
+                              log
+                            }
+                            theme={
+                              theme
+                            }
+                          />
+                        )
+                      )
+                    )}
+                  </div>
+
+                  {/* ==========================================
+                      PAGINATION
+                  ========================================== */}
+
+                  <ActivityPagination
+                    page={page}
+                    setPage={
+                      setPage
+                    }
+                    totalPages={
+                      totalPages
+                    }
+                    firstVisible={
+                      firstVisible
+                    }
+                    lastVisible={
+                      lastVisible
+                    }
+                    totalItems={
+                      filteredLogs.length
+                    }
+                    theme={theme}
+                  />
+                </div>
+
+                {/* ============================================
+                    TIMELINE
+                ============================================ */}
+
+                <aside className="min-w-0 rounded-[22px] border border-white/[0.06] bg-[#111114]">
+                  <div className="border-b border-white/[0.05] p-4 sm:p-5">
+                    <div className="flex items-center gap-2">
+                      <Clock3
+                        size={15}
+                        style={{
+                          color:
+                            theme.accent,
+                        }}
+                      />
+
+                      <h3 className="text-[15px] font-black text-zinc-100">
+                        Timeline
+                      </h3>
+                    </div>
+
+                    <p className="mt-1 text-[12px] text-zinc-600">
+                      Recent administrative
+                      activity
                     </p>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
 
-      <AdminBottomDock role={user?.user_metadata?.role} />
-    </>
+                  <div className="max-h-[720px] overflow-y-auto p-4 sm:p-5">
+                    {filteredLogs.length ===
+                      0 ? (
+                      <EmptyTimeline
+                        theme={
+                          theme
+                        }
+                      />
+                    ) : (
+                      <div>
+                        {filteredLogs.map(
+                          (
+                            log,
+                            index
+                          ) => (
+                            <TimelineItem
+                              key={
+                                log.id
+                              }
+                              log={
+                                log
+                              }
+                              theme={
+                                theme
+                              }
+                              last={
+                                index ===
+                                filteredLogs.length -
+                                1
+                              }
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </aside>
+              </section>
+            </>
+          )}
+        </>
+      )}
+    </AdminLayout>
   );
 }
 
-function StatCard({ title, value }) {
+/* ==========================================================
+   ACTIVITY STAT CARD
+========================================================== */
+
+function ActivityStatCard({
+  title,
+  value,
+  icon: Icon,
+  index,
+  theme,
+}) {
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      className="relative p-5 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl"
+      initial={{
+        opacity: 0,
+        y: 8,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        delay:
+          index * 0.04,
+      }}
+      whileHover={{
+        y: -2,
+      }}
+      className="min-w-0 rounded-[18px] border border-white/[0.055] bg-[#111114] p-4"
     >
-      <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 rounded-t-xl" />
+      <div
+        className="flex h-10 w-10 items-center justify-center rounded-xl"
+        style={{
+          backgroundColor:
+            theme.accentSoft,
+          color:
+            theme.accent,
+        }}
+      >
+        <Icon size={17} />
+      </div>
 
-      <p className="text-xs uppercase tracking-wide text-gray-400">{title}</p>
+      <p className="mt-4 text-[12px] font-bold leading-4 text-zinc-500">
+        {title}
+      </p>
 
-      <h2 className="text-3xl font-black text-white mt-2">
-        <CountUp end={value} duration={1.2} />
-      </h2>
+      <p className="mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-100 sm:text-[32px]">
+        {value}
+      </p>
     </motion.div>
+  );
+}
+
+/* ==========================================================
+   FILTER SELECT
+========================================================== */
+
+function FilterSelect({
+  value,
+  onChange,
+  icon: Icon,
+  children,
+  theme,
+}) {
+  return (
+    <div className="relative">
+      <Icon
+        size={15}
+        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
+        style={{
+          color:
+            theme.accent,
+        }}
+      />
+
+      <select
+        value={value}
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event.target
+              .value
+          )
+        }
+        className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#141418] pl-10 pr-9 text-[12px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+      >
+        {children}
+      </select>
+
+      <ChevronDown
+        size={14}
+        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+      />
+    </div>
+  );
+}
+
+/* ==========================================================
+   FILTER CHIP
+========================================================== */
+
+function FilterChip({
+  label,
+  onRemove,
+  theme,
+}) {
+  return (
+    <span
+      className="inline-flex max-w-[240px] items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-bold"
+      style={{
+        borderColor:
+          `${theme.accent}20`,
+        backgroundColor:
+          theme.accentSoft,
+        color:
+          theme.accent,
+      }}
+    >
+      <span className="truncate">
+        {label}
+      </span>
+
+      <button
+        type="button"
+        aria-label={`Remove ${label} filter`}
+        onClick={
+          onRemove
+        }
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-white/[0.08]"
+      >
+        <X size={10} />
+      </button>
+    </span>
+  );
+}
+
+/* ==========================================================
+   TABLE HEADING
+========================================================== */
+
+function TableHeading({
+  children,
+}) {
+  return (
+    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-600 first:pl-4 last:pr-4 2xl:px-4">
+      {children}
+    </th>
+  );
+}
+
+/* ==========================================================
+   ACTIVITY ROW
+========================================================== */
+
+function ActivityRow({
+  log,
+  theme,
+}) {
+  return (
+    <tr className="border-b border-white/[0.045] transition last:border-b-0 hover:bg-white/[0.018]">
+      {/* ADMIN */}
+
+      <td className="px-3 py-4 pl-4 2xl:px-4">
+        <AdminIdentity
+          log={log}
+          theme={theme}
+        />
+      </td>
+
+      {/* ACTION */}
+
+      <td className="px-3 py-4 2xl:px-4">
+        <ActionBadge
+          action={
+            log.action
+          }
+        />
+      </td>
+
+      {/* MODULE */}
+
+      <td className="px-3 py-4 2xl:px-4">
+        <span
+          className="block truncate text-[12px] font-bold text-zinc-400"
+          title={
+            log.module ||
+            "N/A"
+          }
+        >
+          {log.module ||
+            "N/A"}
+        </span>
+      </td>
+
+      {/* DESCRIPTION */}
+
+      <td className="px-3 py-4 2xl:px-4">
+        <p
+          className="line-clamp-2 text-[12px] leading-5 text-zinc-500"
+          title={
+            log.description ||
+            "No description"
+          }
+        >
+          {log.description ||
+            "No description"}
+        </p>
+      </td>
+
+      {/* TIME */}
+
+      <td className="px-3 py-4 pr-4 2xl:px-4">
+        <DateDisplay
+          date={
+            log.created_at
+          }
+        />
+      </td>
+    </tr>
+  );
+}
+
+/* ==========================================================
+   MOBILE ACTIVITY CARD
+========================================================== */
+
+function MobileActivityCard({
+  log,
+  theme,
+}) {
+  return (
+    <article className="p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <AdminIdentity
+          log={log}
+          theme={theme}
+        />
+
+        <ActionBadge
+          action={
+            log.action
+          }
+        />
+      </div>
+
+      <div className="mt-4 rounded-xl border border-white/[0.05] bg-white/[0.018] p-3">
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+          Description
+        </p>
+
+        <p className="mt-1.5 text-[13px] leading-5 text-zinc-400">
+          {log.description ||
+            "No description"}
+        </p>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <MobileDetail
+          label="Module"
+          value={
+            log.module ||
+            "N/A"
+          }
+        />
+
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+            Time
+          </p>
+
+          <div className="mt-1.5">
+            <DateDisplay
+              date={
+                log.created_at
+              }
+            />
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ==========================================================
+   ADMIN IDENTITY
+========================================================== */
+
+function AdminIdentity({
+  log,
+  theme,
+}) {
+  const name =
+    log.admin_name ||
+    "Unknown";
+
+  const email =
+    log.admin_email ||
+    "No email";
+
+  const initial =
+    String(name)
+      .trim()
+      .charAt(0)
+      .toUpperCase() ||
+    "A";
+
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <div
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-[12px] font-black"
+        style={{
+          borderColor:
+            `${theme.accent}18`,
+          backgroundColor:
+            theme.accentSoft,
+          color:
+            theme.accent,
+        }}
+      >
+        {initial}
+      </div>
+
+      <div className="min-w-0">
+        <p
+          className="truncate text-[13px] font-black text-zinc-200"
+          title={name}
+        >
+          {name}
+        </p>
+
+        <p
+          className="mt-0.5 truncate text-[11px] text-zinc-600"
+          title={email}
+        >
+          {email}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   ACTION BADGE
+========================================================== */
+
+function ActionBadge({
+  action,
+}) {
+  const styles =
+    getActionStyles(
+      action
+    );
+
+  return (
+    <span
+      className={`inline-flex max-w-full items-center rounded-lg border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.04em] ${styles}`}
+      title={
+        action || "N/A"
+      }
+    >
+      <span className="truncate">
+        {action || "N/A"}
+      </span>
+    </span>
+  );
+}
+
+/* ==========================================================
+   DATE DISPLAY
+========================================================== */
+
+function DateDisplay({
+  date,
+}) {
+  if (!date) {
+    return (
+      <span className="text-[11px] text-zinc-600">
+        N/A
+      </span>
+    );
+  }
+
+  const value =
+    new Date(date);
+
+  if (
+    Number.isNaN(
+      value.getTime()
+    )
+  ) {
+    return (
+      <span className="text-[11px] text-zinc-600">
+        N/A
+      </span>
+    );
+  }
+
+  const dateText =
+    value.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
+
+  const timeText =
+    value.toLocaleTimeString(
+      "en-IN",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
+
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-[11px] font-bold text-zinc-400">
+        {dateText}
+      </p>
+
+      <p className="mt-0.5 truncate text-[10px] text-zinc-600">
+        {timeText}
+      </p>
+    </div>
+  );
+}
+
+/* ==========================================================
+   MOBILE DETAIL
+========================================================== */
+
+function MobileDetail({
+  label,
+  value,
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+        {label}
+      </p>
+
+      <p
+        className="mt-1.5 truncate text-[12px] font-bold text-zinc-400"
+        title={value}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* ==========================================================
+   TIMELINE ITEM
+========================================================== */
+
+function TimelineItem({
+  log,
+  theme,
+  last,
+}) {
+  return (
+    <div className="relative flex gap-3 pb-5 last:pb-0">
+      {!last && (
+        <div className="absolute bottom-0 left-[5px] top-[14px] w-px bg-white/[0.06]" />
+      )}
+
+      <div className="relative z-10 pt-1">
+        <span
+          className="block h-[11px] w-[11px] rounded-full border-2 border-[#111114]"
+          style={{
+            backgroundColor:
+              theme.accent,
+            boxShadow: `0 0 16px ${theme.accent}40`,
+          }}
+        />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <ActionBadge
+            action={
+              log.action
+            }
+          />
+
+          <span className="truncate text-[11px] font-bold text-zinc-600">
+            {log.module ||
+              "N/A"}
+          </span>
+        </div>
+
+        <p className="mt-2 text-[12px] leading-5 text-zinc-400">
+          {log.description ||
+            "No description"}
+        </p>
+
+        <div className="mt-2 flex min-w-0 items-center gap-1.5">
+          <UserRound
+            size={11}
+            className="shrink-0 text-zinc-700"
+          />
+
+          <span className="truncate text-[11px] font-bold text-zinc-600">
+            {log.admin_name ||
+              log.admin_email ||
+              "Unknown admin"}
+          </span>
+        </div>
+
+        <div className="mt-2">
+          <DateDisplay
+            date={
+              log.created_at
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   PAGINATION
+========================================================== */
+
+function ActivityPagination({
+  page,
+  setPage,
+  totalPages,
+  firstVisible,
+  lastVisible,
+  totalItems,
+  theme,
+}) {
+  if (
+    totalItems === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-white/[0.05] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* RANGE */}
+
+      <p className="text-[11px] font-bold text-zinc-600">
+        Showing{" "}
+        <span className="text-zinc-400">
+          {firstVisible}
+        </span>
+        {" – "}
+        <span className="text-zinc-400">
+          {lastVisible}
+        </span>{" "}
+        of{" "}
+        <span className="text-zinc-400">
+          {totalItems}
+        </span>
+      </p>
+
+      {/* CONTROLS */}
+
+      <div className="flex items-center gap-1.5">
+        <PaginationButton
+          label="First page"
+          disabled={
+            page === 1
+          }
+          onClick={() =>
+            setPage(1)
+          }
+        >
+          <ChevronsLeft
+            size={14}
+          />
+        </PaginationButton>
+
+        <PaginationButton
+          label="Previous page"
+          disabled={
+            page === 1
+          }
+          onClick={() =>
+            setPage(
+              (
+                current
+              ) =>
+                Math.max(
+                  1,
+                  current -
+                  1
+                )
+            )
+          }
+        >
+          <ChevronLeft
+            size={14}
+          />
+        </PaginationButton>
+
+        <div
+          className="flex h-9 min-w-[76px] items-center justify-center rounded-lg border px-3 text-[11px] font-black"
+          style={{
+            borderColor:
+              `${theme.accent}20`,
+            backgroundColor:
+              theme.accentSoft,
+            color:
+              theme.accent,
+          }}
+        >
+          {page} /{" "}
+          {totalPages}
+        </div>
+
+        <PaginationButton
+          label="Next page"
+          disabled={
+            page ===
+            totalPages
+          }
+          onClick={() =>
+            setPage(
+              (
+                current
+              ) =>
+                Math.min(
+                  totalPages,
+                  current +
+                  1
+                )
+            )
+          }
+        >
+          <ChevronRight
+            size={14}
+          />
+        </PaginationButton>
+
+        <PaginationButton
+          label="Last page"
+          disabled={
+            page ===
+            totalPages
+          }
+          onClick={() =>
+            setPage(
+              totalPages
+            )
+          }
+        >
+          <ChevronsRight
+            size={14}
+          />
+        </PaginationButton>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================
+   PAGINATION BUTTON
+========================================================== */
+
+function PaginationButton({
+  children,
+  label,
+  disabled,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] text-zinc-400 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ==========================================================
+   EMPTY LOGS
+========================================================== */
+
+function EmptyLogs({
+  theme,
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center">
+      <div
+        className="flex h-11 w-11 items-center justify-center rounded-xl border"
+        style={{
+          borderColor:
+            `${theme.accent}18`,
+          backgroundColor:
+            theme.accentSoft,
+          color:
+            theme.accent,
+        }}
+      >
+        <FileText
+          size={17}
+        />
+      </div>
+
+      <p className="mt-3 text-[13px] font-black text-zinc-300">
+        No activity logs found
+      </p>
+
+      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-600">
+        Try adjusting your
+        search or filter
+        selection.
+      </p>
+    </div>
+  );
+}
+
+/* ==========================================================
+   EMPTY TIMELINE
+========================================================== */
+
+function EmptyTimeline({
+  theme,
+}) {
+  return (
+    <div className="flex min-h-[180px] flex-col items-center justify-center text-center">
+      <div
+        className="flex h-10 w-10 items-center justify-center rounded-xl"
+        style={{
+          backgroundColor:
+            theme.accentSoft,
+          color:
+            theme.accent,
+        }}
+      >
+        <Clock3
+          size={16}
+        />
+      </div>
+
+      <p className="mt-3 text-[12px] font-black text-zinc-400">
+        No timeline data
+      </p>
+
+      <p className="mt-1 text-[11px] text-zinc-600">
+        Activity will appear
+        here when available.
+      </p>
+    </div>
+  );
+}
+
+/* ==========================================================
+   MINI BADGE
+========================================================== */
+
+function MiniBadge({
+  children,
+}) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-1.5 text-[11px] font-bold text-zinc-500">
+      {children}
+    </span>
+  );
+}
+
+/* ==========================================================
+   ACTION COLORS
+========================================================== */
+
+function getActionStyles(
+  action
+) {
+  const normalized =
+    String(action || "")
+      .toUpperCase();
+
+  if (
+    normalized.includes(
+      "DELETE"
+    )
+  ) {
+    return "border-red-500/15 bg-red-500/[0.07] text-red-400";
+  }
+
+  if (
+    normalized.includes(
+      "CREATE"
+    ) ||
+    normalized.includes(
+      "ADD"
+    )
+  ) {
+    return "border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-400";
+  }
+
+  if (
+    normalized.includes(
+      "UPDATE"
+    ) ||
+    normalized.includes(
+      "EDIT"
+    )
+  ) {
+    return "border-blue-500/15 bg-blue-500/[0.07] text-blue-400";
+  }
+
+  if (
+    normalized.includes(
+      "DISABLE"
+    )
+  ) {
+    return "border-orange-500/15 bg-orange-500/[0.07] text-orange-400";
+  }
+
+  return "border-violet-500/15 bg-violet-500/[0.07] text-violet-400";
+}
+
+/* ==========================================================
+   LOADING
+========================================================== */
+
+function ActivityLogsLoading({
+  theme,
+}) {
+  return (
+    <div className="mt-4 space-y-4">
+      {/* STATS */}
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({
+          length: 4,
+        }).map(
+          (
+            _,
+            index
+          ) => (
+            <div
+              key={
+                index
+              }
+              className="h-[138px] animate-pulse rounded-[18px] border border-white/[0.05] bg-[#111114] p-4"
+            >
+              <div
+                className="h-10 w-10 rounded-xl opacity-30"
+                style={{
+                  backgroundColor:
+                    theme.accentSoft,
+                }}
+              />
+
+              <div className="mt-4 h-3 w-24 rounded bg-white/[0.04]" />
+
+              <div className="mt-3 h-7 w-16 rounded bg-white/[0.05]" />
+            </div>
+          )
+        )}
+      </div>
+
+      {/* FILTERS */}
+
+      <div className="animate-pulse rounded-[22px] border border-white/[0.05] bg-[#111114] p-4 sm:p-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="h-11 rounded-xl bg-white/[0.035]" />
+          <div className="h-11 rounded-xl bg-white/[0.035]" />
+          <div className="h-11 rounded-xl bg-white/[0.035]" />
+        </div>
+      </div>
+
+      {/* CONTENT */}
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.75fr)]">
+        {/* TABLE */}
+
+        <div className="overflow-hidden rounded-[22px] border border-white/[0.05] bg-[#111114]">
+          <div className="border-b border-white/[0.04] p-5">
+            <div className="h-4 w-36 rounded bg-white/[0.05]" />
+
+            <div className="mt-2 h-3 w-48 rounded bg-white/[0.03]" />
+          </div>
+
+          <div className="space-y-2 p-4">
+            {Array.from({
+              length: 7,
+            }).map(
+              (
+                _,
+                index
+              ) => (
+                <div
+                  key={
+                    index
+                  }
+                  className="flex h-16 animate-pulse items-center gap-3 rounded-xl px-2"
+                >
+                  <div className="h-9 w-9 shrink-0 rounded-xl bg-white/[0.04]" />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="h-3 w-32 rounded bg-white/[0.05]" />
+
+                    <div className="mt-2 h-2.5 w-20 rounded bg-white/[0.025]" />
+                  </div>
+
+                  <div className="hidden h-7 w-20 rounded-lg bg-white/[0.035] sm:block" />
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* TIMELINE */}
+
+        <div className="min-h-[430px] animate-pulse rounded-[22px] border border-white/[0.05] bg-[#111114] p-5">
+          <div className="h-4 w-24 rounded bg-white/[0.05]" />
+
+          <div className="mt-2 h-3 w-40 rounded bg-white/[0.03]" />
+
+          <div className="mt-7 space-y-6">
+            {Array.from({
+              length: 5,
+            }).map(
+              (
+                _,
+                index
+              ) => (
+                <div
+                  key={
+                    index
+                  }
+                  className="flex gap-3"
+                >
+                  <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-white/[0.05]" />
+
+                  <div className="flex-1">
+                    <div className="h-3 w-24 rounded bg-white/[0.05]" />
+
+                    <div className="mt-2 h-2.5 w-full rounded bg-white/[0.025]" />
+
+                    <div className="mt-2 h-2.5 w-2/3 rounded bg-white/[0.025]" />
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

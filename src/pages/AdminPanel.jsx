@@ -1,7 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "../supabaseClient";
-import { useNavigate, useLocation } from "react-router-dom";
-
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
 
@@ -15,119 +12,134 @@ import {
   Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
 } from "recharts";
 
-import { roleThemes } from "../theme/roleTheme";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  CircleGauge,
+  Sparkles,
+  Trophy,
+  Users,
+} from "lucide-react";
 
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
-import SettingsIcon from "@mui/icons-material/Settings";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import BarChartIcon from "@mui/icons-material/BarChart";
-import LogoutIcon from "@mui/icons-material/Logout";
-import PeopleIcon from "@mui/icons-material/People";
-import HistoryIcon from "@mui/icons-material/History";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import TimelineIcon from "@mui/icons-material/Timeline";
+import { supabase } from "../supabaseClient";
+import AdminLayout from "../components/admin/AdminLayout";
+
+// ===========================================================
+// DASHBOARD
+// ===========================================================
 
 export default function AdminPanel() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const [user, setUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [activity, setActivity] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  // =========================================================
+  // RESULTS + REALTIME
+  // ===========================================================
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getUser();
-      const current = data.user;
+    let mounted = true;
 
-      if (!current) {
-        navigate("/admin-login");
-        return;
+    const fetchResults = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("results")
+          .select("*");
+
+        if (error) {
+          console.error(
+            "Unable to load results:",
+            error
+          );
+
+          return;
+        }
+
+        if (mounted && data) {
+          setRows(data);
+        }
+      } catch (error) {
+        console.error(
+          "Results fetch failed:",
+          error
+        );
       }
-
-      setUser(current);
-      setLoading(false);
     };
 
-    checkSession();
-  }, [navigate]);
-
-  useEffect(() => {
     fetchResults();
 
     const channel = supabase
       .channel("results-live")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "results" },
-        (payload) => {
-          setActivity((prev) => [payload.new, ...prev.slice(0, 8)]);
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "results",
         },
+        (payload) => {
+          setRows((prev) => [
+            ...prev,
+            payload.new,
+          ]);
+
+          setActivity((prev) => [
+            payload.new,
+            ...prev.slice(0, 8),
+          ]);
+        }
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      mounted = false;
+
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const fetchResults = async () => {
-    const { data } = await supabase.from("results").select("*");
-    if (data) setRows(data);
-  };
-
-  const role = user?.user_metadata?.role || "admin";
-  const theme = roleThemes[role];
-
-  // This shows the previous login, not the current login
-  const previousLogin = user?.user_metadata?.previous_login || null;
-
-  const formatLastLogin = (dateString) => {
-    if (!dateString) return "First login";
-
-    const date = new Date(dateString);
-
-    const day = date.toLocaleString("en-GB", {
-      day: "2-digit",
-    });
-
-    const month = date.toLocaleString("en-GB", {
-      month: "short",
-    });
-
-    const year = date.getFullYear();
-
-    const time = date.toLocaleString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-    return `${day} ${month}, ${year} ${time}`;
-  };
+  // =========================================================
+  // CHAPTER STATS
+  // ===========================================================
 
   const chapterStats = useMemo(() => {
     const map = {};
 
-    rows.forEach((r) => {
-      if (!r.chapter) return;
-      map[r.chapter] = (map[r.chapter] || 0) + 1;
+    rows.forEach((row) => {
+      if (!row.chapter) return;
+
+      map[row.chapter] =
+        (map[row.chapter] || 0) + 1;
     });
 
-    return Object.entries(map).map(([chapter, count]) => ({
-      chapter,
-      participants: count,
-    }));
+    return Object.entries(map).map(
+      ([chapter, count]) => ({
+        chapter,
+        participants: count,
+      })
+    );
   }, [rows]);
+
+  // =========================================================
+  // METRICS
+  // ===========================================================
 
   const totalParticipants = rows.length;
 
   const avgScore = Math.round(
-    rows.reduce((sum, r) => sum + (r.score || 0), 0) / (rows.length || 1),
+    rows.reduce(
+      (sum, row) =>
+        sum + (row.score || 0),
+      0
+    ) / (rows.length || 1)
   );
+
+  // =========================================================
+  // SCORE DISTRIBUTION
+  // ===========================================================
 
   const scoreDistribution = useMemo(() => {
     const buckets = {
@@ -138,288 +150,710 @@ export default function AdminPanel() {
       "81-100": 0,
     };
 
-    rows.forEach((r) => {
-      const s = r.score || 0;
+    rows.forEach((row) => {
+      const score = row.score || 0;
 
-      if (s <= 20) buckets["0-20"]++;
-      else if (s <= 40) buckets["21-40"]++;
-      else if (s <= 60) buckets["41-60"]++;
-      else if (s <= 80) buckets["61-80"]++;
-      else buckets["81-100"]++;
+      if (score <= 20) {
+        buckets["0-20"]++;
+      } else if (score <= 40) {
+        buckets["21-40"]++;
+      } else if (score <= 60) {
+        buckets["41-60"]++;
+      } else if (score <= 80) {
+        buckets["61-80"]++;
+      } else {
+        buckets["81-100"]++;
+      }
     });
 
-    return Object.entries(buckets).map(([range, count]) => ({
-      range,
-      count,
-    }));
+    return Object.entries(buckets).map(
+      ([range, count]) => ({
+        range,
+        count,
+      })
+    );
   }, [rows]);
 
-  const COLORS = chapterStats.map(
-    (_, i) => `hsl(${(i * 360) / chapterStats.length},60%,55%)`,
-  );
-
-  const navItems = [
-    { label: "Dashboard", icon: <DashboardIcon />, route: "/admin" },
-    { label: "Add", icon: <AddCircleIcon />, route: "/admin/add-questions" },
-    {
-      label: "Preview",
-      icon: <QuestionAnswerIcon />,
-      route: "/admin/preview-questions",
-    },
-    { label: "Quiz", icon: <PlayArrowIcon />, route: "/admin/preview-quiz" },
-    { label: "Config", icon: <SettingsIcon />, route: "/admin/quiz-config" },
-    { label: "Results", icon: <BarChartIcon />, route: "/admin/view-results" },
-    { label: "Activity", icon: <TimelineIcon />, route: "/admin/activity-logs" },
-  ];
-
-  if (role === "superadmin") {
-    navItems.push(
-      { label: "Logs", 
-        icon: <HistoryIcon />,
-        route: "/admin/login-logs" 
-      },
-      {
-        label: "Admins",
-        icon: <AdminPanelSettingsIcon />,
-        route: "/admin/admin-users",
-      },
-    );
-  }
-
-  if (loading) return <div className="p-20 text-center">Loading...</div>;
+  // =========================================================
+  // LAYOUT
+  // ===========================================================
 
   return (
-    <div
-      className={`relative min-h-screen ${theme.appBg} px-4 sm:px-6 lg:px-8 py-6 pb-32 overflow-hidden`}
-    >
-      <div className="absolute -top-40 -left-40 w-100 h-100 bg-purple-500/20 blur-[150px] rounded-full"></div>
-      <div className="absolute top-60 -right-40 w-100 h-100 bg-indigo-500/20 blur-[150px] rounded-full"></div>
+    <AdminLayout>
+      {({
+        user,
+        theme,
+        isSuperAdmin,
+      }) => (
+        <DashboardContent
+          user={user}
+          theme={theme}
+          isSuperAdmin={isSuperAdmin}
+          rows={rows}
+          activity={activity}
+          chapterStats={chapterStats}
+          scoreDistribution={
+            scoreDistribution
+          }
+          totalParticipants={
+            totalParticipants
+          }
+          avgScore={avgScore}
+        />
+      )}
+    </AdminLayout>
+  );
+}
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+// ===========================================================
+// DASHBOARD CONTENT
+// ===========================================================
+
+function DashboardContent({
+  user,
+  theme,
+  isSuperAdmin,
+  activity,
+  chapterStats,
+  scoreDistribution,
+  totalParticipants,
+  avgScore,
+}) {
+  // =========================================================
+  // CHART COLORS
+  // ===========================================================
+
+  const chartColors = useMemo(() => {
+    const palette = isSuperAdmin
+      ? [
+          "#B86C3A",
+          "#D09A72",
+          "#9A5423",
+          "#E1B18D",
+          "#74401F",
+          "#C47C4B",
+        ]
+      : [
+          "#8B5CF6",
+          "#6366F1",
+          "#A78BFA",
+          "#7C3AED",
+          "#818CF8",
+          "#C4B5FD",
+        ];
+
+    return chapterStats.map(
+      (_, index) =>
+        palette[index % palette.length]
+    );
+  }, [chapterStats, isSuperAdmin]);
+
+  return (
+    <>
+      {/* =====================================================
+          HERO
+      ===================================================== */}
+
+      <motion.section
+        initial={{
+          opacity: 0,
+          y: 12,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        className="relative overflow-hidden rounded-[24px] border border-white/[0.065] bg-[#111114] p-5 sm:p-7 lg:p-8"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-          <div>
-            <h1
-              className={`text-2xl sm:text-3xl font-black bg-linear-to-r ${theme.headingGradient} bg-clip-text text-transparent`}
-            >
-              Dashboard
-            </h1>
-
-            <p className={`text-xs sm:text-sm ${theme.textSecondary}`}>
-              {user.email}
-            </p>
-          </div>
-
-          <span
-            className={`px-3 py-1 text-xs rounded-full border ${theme.badge}`}
-          >
-            {role.toUpperCase()}
-          </span>
-
-          <span>
-            <p className="text-[13px] text-gray-400 mt-1">
-              Last login: {formatLastLogin(previousLogin)}
-            </p>
-          </span>
-        </div>
-
-        <div className="p-5 sm:p-6 mb-10 rounded-2xl bg-linear-to-r from-purple-600/30 via-indigo-600/20 to-blue-600/20 border border-white/10 backdrop-blur-xl">
-          <h2 className="text-lg sm:text-l font-semibold text-white">
-            Welcome back{" "}
-            <p className="text-base sm:text-xl font-black italic bg-linear-to-r from-pink-400 to-indigo-400 bg-clip-text text-transparent">
-              {user?.user_metadata?.full_name}
-            </p>
-          </h2>
-
-          <p className="text-xs sm:text-sm text-gray-300">
-            Your quiz analytics look great today.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-          <MetricCard
-            title="Participants"
-            value={totalParticipants}
-            icon={<PeopleIcon />}
-            theme={theme}
-            role={role}
-          />
-          <MetricCard
-            title="Chapters"
-            value={chapterStats.length}
-            icon={<BarChartIcon />}
-            theme={theme}
-            role={role}
-          />
-          <MetricCard
-            title="Average Score"
-            value={avgScore}
-            icon={<DashboardIcon />}
-            theme={theme}
-            role={role}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="p-5 sm:p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl">
-            <h3 className={`${theme.textPrimary} mb-4 text-sm sm:text-base`}>
-              Chapter Distribution
-            </h3>
-
-            <div className="h-60 sm:h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chapterStats}
-                    dataKey="participants"
-                    nameKey="chapter"
-                    innerRadius={40}
-                    outerRadius={80}
-                  >
-                    {chapterStats.map((e, i) => (
-                      <Cell key={i} fill={COLORS[i]} />
-                    ))}
-                  </Pie>
-
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="p-5 sm:p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl xl:col-span-2">
-            <h3 className={`${theme.textPrimary} mb-4 text-sm sm:text-base`}>
-              Score Distribution
-            </h3>
-
-            <div className="h-60 sm:h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={scoreDistribution}>
-                  <XAxis dataKey="range" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10 p-5 sm:p-6 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10">
-          <h3 className={`${theme.textPrimary} mb-4 text-sm sm:text-base`}>
-            Live Activity
-          </h3>
-
-          <div className="space-y-3">
-            {activity.length === 0 && (
-              <p className={theme.textSecondary}>No activity yet</p>
-            )}
-
-            {activity.map((e, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              >
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-
-                <div className="flex-1">
-                  <p className="text-sm text-white">{e.name}</p>
-                  <p className="text-xs text-gray-400">{e.chapter}</p>
-                </div>
-
-                <span className="text-xs text-gray-500">now</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md sm:max-w-xl">
         <div
-          className={`
-            flex items-center justify-between
-            px-2 sm:px-4 py-2
-            rounded-2xl
-            backdrop-blur-xl
-            border border-white/10
-            shadow-2xl
-            ${theme.sidebarBg}
-          `}
-        >
-          {navItems.map((item, i) => {
-            const active = location.pathname === item.route;
+          className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[100px]`}
+        />
 
-            return (
-              <button
-                key={i}
-                onClick={() => navigate(item.route)}
-                className={`
-                  flex flex-col items-center justify-center
-                  flex-1
-                  py-1.5
-                  rounded-xl
-                  transition-all
-                  group
-                  ${
-                    active
-                      ? `bg-linear-to-r ${theme.accentGradient} text-white`
-                      : `${theme.textPrimary} hover:bg-white/10`
-                  }
-                `}
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles
+                size={14}
+                style={{
+                  color: theme.accent,
+                }}
+              />
+
+              <p
+                className="text-[11px] font-black uppercase tracking-[0.15em]"
+                style={{
+                  color: theme.accent,
+                }}
               >
-                <div className="text-lg sm:text-xl transition-transform group-hover:scale-110">
-                  {item.icon}
-                </div>
+                Dashboard Overview
+              </p>
+            </div>
 
-                <span className="text-[9px] sm:text-[11px] mt-0.5">
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
+            <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[32px] lg:text-[36px]">
+              Welcome back
+              {user?.user_metadata?.full_name
+                ? `, ${user.user_metadata.full_name}`
+                : ""}
+              .
+            </h2>
 
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate("/admin-login");
-            }}
-            className="flex flex-col items-center flex-1 text-red-400 py-1.5"
-          >
-            <LogoutIcon className="text-lg sm:text-xl" />
-            <span className="text-[9px] sm:text-[11px] mt-0.5">Logout</span>
-          </button>
+            <p className="mt-3 max-w-xl text-[13px] leading-6 text-zinc-500 sm:text-[14px]">
+              Monitor participation,
+              performance and live quiz
+              activity across QUIZTIANS.
+            </p>
+          </div>
+
+          {/* SYSTEM STATUS */}
+
+          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/[0.05] bg-black/10 px-4 py-3.5">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/10 bg-emerald-500/[0.04]">
+              <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[#111114] bg-emerald-500" />
+
+              <CircleGauge
+                size={18}
+                className="text-emerald-500/70"
+              />
+            </div>
+
+            <div>
+              <p className="text-[12px] font-black text-zinc-200">
+                System online
+              </p>
+
+              <p className="mt-1 text-[11px] text-zinc-600">
+                Live results connected
+              </p>
+            </div>
+          </div>
         </div>
+      </motion.section>
+
+      {/* =====================================================
+          METRICS
+      ===================================================== */}
+
+      <section className="mt-5 grid grid-cols-2 gap-3 lg:mt-6 lg:grid-cols-3 lg:gap-4">
+        <MetricCard
+          title="Participants"
+          value={totalParticipants}
+          icon={Users}
+          theme={theme}
+          delay={0.05}
+        />
+
+        <MetricCard
+          title="Chapters"
+          value={chapterStats.length}
+          icon={BookOpen}
+          theme={theme}
+          delay={0.1}
+        />
+
+        <MetricCard
+          title="Average Score"
+          value={avgScore}
+          icon={Trophy}
+          theme={theme}
+          delay={0.15}
+          className="col-span-2 lg:col-span-1"
+        />
+      </section>
+
+      {/* =====================================================
+          CHARTS
+      ===================================================== */}
+
+      <section className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+        {/* ===================================================
+            CHAPTER DISTRIBUTION
+        =================================================== */}
+
+        <DashboardCard>
+          <CardHeading
+            icon={BookOpen}
+            title="Chapter Distribution"
+            description="Participation by chapter"
+            theme={theme}
+          />
+
+          {chapterStats.length === 0 ? (
+            <EmptyChart text="No chapter data available" />
+          ) : (
+            <>
+              <div className="mt-4 h-[250px] sm:h-[280px]">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
+                  <PieChart>
+                    <Pie
+                      data={chapterStats}
+                      dataKey="participants"
+                      nameKey="chapter"
+                      innerRadius={58}
+                      outerRadius={88}
+                      paddingAngle={3}
+                      stroke="transparent"
+                    >
+                      {chapterStats.map(
+                        (_, index) => (
+                          <Cell
+                            key={index}
+                            fill={
+                              chartColors[
+                                index
+                              ]
+                            }
+                          />
+                        )
+                      )}
+                    </Pie>
+
+                    <Tooltip
+                      content={
+                        <ChartTooltip />
+                      }
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* LEGEND */}
+
+              <div className="mt-2 grid gap-2">
+                {chapterStats
+                  .slice(0, 5)
+                  .map(
+                    (
+                      chapter,
+                      index
+                    ) => (
+                      <div
+                        key={
+                          chapter.chapter
+                        }
+                        className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.015] px-3.5 py-2.5"
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor:
+                                chartColors[
+                                  index
+                                ],
+                            }}
+                          />
+
+                          <span className="truncate text-[12px] font-medium text-zinc-500">
+                            {
+                              chapter.chapter
+                            }
+                          </span>
+                        </div>
+
+                        <span className="ml-3 text-[12px] font-black text-zinc-300">
+                          {
+                            chapter.participants
+                          }
+                        </span>
+                      </div>
+                    )
+                  )}
+              </div>
+            </>
+          )}
+        </DashboardCard>
+
+        {/* ===================================================
+            SCORE DISTRIBUTION
+        =================================================== */}
+
+        <DashboardCard>
+          <CardHeading
+            icon={BarChart3}
+            title="Score Distribution"
+            description="Participant performance ranges"
+            theme={theme}
+          />
+
+          <div className="mt-5 h-[300px] sm:h-[330px]">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+              <BarChart
+                data={scoreDistribution}
+                margin={{
+                  top: 10,
+                  right: 5,
+                  left: -15,
+                  bottom: 0,
+                }}
+              >
+                <CartesianGrid
+                  vertical={false}
+                  stroke="rgba(255,255,255,0.04)"
+                />
+
+                <XAxis
+                  dataKey="range"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#71717A",
+                    fontSize: 11,
+                  }}
+                />
+
+                <YAxis
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#71717A",
+                    fontSize: 11,
+                  }}
+                />
+
+                <Tooltip
+                  cursor={{
+                    fill:
+                      "rgba(255,255,255,.025)",
+                  }}
+                  content={
+                    <ChartTooltip />
+                  }
+                />
+
+                <Bar
+                  dataKey="count"
+                  fill={theme.chart}
+                  radius={[
+                    7,
+                    7,
+                    2,
+                    2,
+                  ]}
+                  maxBarSize={48}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </DashboardCard>
+      </section>
+
+      {/* =====================================================
+          LIVE ACTIVITY
+      ===================================================== */}
+
+      <section className="mt-4">
+        <DashboardCard>
+          <div className="flex items-center justify-between gap-4">
+            <CardHeading
+              icon={Activity}
+              title="Live Activity"
+              description="New quiz submissions"
+              theme={theme}
+            />
+
+            <div className="flex shrink-0 items-center gap-2 rounded-full border border-emerald-500/10 bg-emerald-500/[0.035] px-3 py-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
+
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+
+              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-500/70">
+                Live
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            {activity.length === 0 ? (
+              <div className="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.05] bg-white/[0.01] px-5 text-center">
+                <Activity
+                  size={24}
+                  className="text-zinc-700"
+                />
+
+                <p className="mt-3 text-[13px] font-bold text-zinc-500">
+                  Waiting for activity
+                </p>
+
+                <p className="mt-1 text-[11px] text-zinc-700">
+                  New quiz submissions
+                  will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/[0.04]">
+                {activity.map(
+                  (entry, index) => (
+                    <motion.div
+                      key={
+                        entry.id ||
+                        `${entry.name}-${index}`
+                      }
+                      initial={{
+                        opacity: 0,
+                        x: -8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        x: 0,
+                      }}
+                      className="group flex items-center gap-3 py-4"
+                    >
+                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.05] bg-white/[0.02]">
+                        <Users
+                          size={16}
+                          className="text-zinc-500"
+                        />
+
+                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#111114] bg-emerald-500" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-bold text-zinc-200">
+                          {entry.name ||
+                            "Participant"}
+                        </p>
+
+                        <p className="mt-1 truncate text-[11px] text-zinc-600">
+                          {entry.chapter ||
+                            "Quiz submission"}
+                        </p>
+                      </div>
+
+                      {entry.score !==
+                        undefined && (
+                        <div className="text-right">
+                          <p className="text-[13px] font-black text-zinc-300">
+                            {
+                              entry.score
+                            }
+                          </p>
+
+                          <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-700">
+                            Score
+                          </p>
+                        </div>
+                      )}
+
+                      <span className="hidden text-[11px] text-zinc-700 sm:block">
+                        now
+                      </span>
+                    </motion.div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </DashboardCard>
+      </section>
+    </>
+  );
+}
+
+// ===========================================================
+// METRIC CARD
+// ===========================================================
+
+function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  theme,
+  delay = 0,
+  className = "",
+}) {
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 10,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{ delay }}
+      whileHover={{ y: -2 }}
+      className={`relative overflow-hidden rounded-[20px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5 ${className}`}
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[55px]"
+        style={{
+          backgroundColor:
+            theme.accentSoft,
+        }}
+      />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-zinc-600">
+            {title}
+          </p>
+
+          <h3 className="mt-3 text-[32px] font-black tracking-[-0.045em] text-white sm:text-[38px]">
+            <CountUp
+              end={value}
+              duration={1.3}
+            />
+          </h3>
+        </div>
+
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+          style={{
+            borderColor:
+              `${theme.accent}20`,
+            backgroundColor:
+              theme.accentSoft,
+          }}
+        >
+          <Icon
+            size={18}
+            strokeWidth={1.8}
+            style={{
+              color: theme.accent,
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="relative mt-4 h-px overflow-hidden bg-white/[0.04]">
+        <div
+          className="h-full w-1/3"
+          style={{
+            backgroundColor:
+              theme.accent,
+            opacity: 0.6,
+          }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+// ===========================================================
+// DASHBOARD CARD
+// ===========================================================
+
+function DashboardCard({
+  children,
+  className = "",
+}) {
+  return (
+    <div
+      className={`rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5 lg:p-6 ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ===========================================================
+// CARD HEADING
+// ===========================================================
+
+function CardHeading({
+  icon: Icon,
+  title,
+  description,
+  theme,
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+        style={{
+          borderColor:
+            `${theme.accent}18`,
+          backgroundColor:
+            theme.accentSoft,
+        }}
+      >
+        <Icon
+          size={17}
+          strokeWidth={1.8}
+          style={{
+            color: theme.accent,
+          }}
+        />
+      </div>
+
+      <div>
+        <h3 className="text-[15px] font-black text-zinc-200">
+          {title}
+        </h3>
+
+        <p className="mt-1 text-[12px] text-zinc-600">
+          {description}
+        </p>
       </div>
     </div>
   );
 }
 
-function MetricCard({ title, value, icon, theme, role }) {
-  const iconColor =
-    role === "superadmin"
-      ? "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]"
-      : "opacity-70";
+// ===========================================================
+// TOOLTIP
+// ===========================================================
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}) {
+  if (
+    !active ||
+    !payload ||
+    !payload.length
+  ) {
+    return null;
+  }
+
+  const entry = payload[0];
+
+  const displayLabel =
+    label ||
+    entry?.payload?.chapter ||
+    entry?.name ||
+    "";
 
   return (
-    <motion.div
-      whileHover={{ y: -6 }}
-      className={`${theme.surface} relative p-6 rounded-2xl border border-white/10 shadow-xl`}
-    >
-      <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-purple-400 via-indigo-400 to-blue-400 rounded-t-xl"></div>
+    <div className="rounded-xl border border-white/[0.08] bg-[#18181B]/95 px-3.5 py-3 shadow-2xl backdrop-blur-xl">
+      {displayLabel && (
+        <p className="text-[11px] font-semibold text-zinc-500">
+          {displayLabel}
+        </p>
+      )}
 
-      <div className="flex justify-between items-center mb-3">
-        <span className={`text-xs uppercase ${theme.textSecondary}`}>
-          {title}
-        </span>
+      <p className="mt-1 text-[14px] font-black text-white">
+        {entry?.value ?? 0}
+      </p>
+    </div>
+  );
+}
 
-        <div className={iconColor}>{icon}</div>
-      </div>
+// ===========================================================
+// EMPTY CHART
+// ===========================================================
 
-      <h2 className={`text-4xl font-bold ${theme.textPrimary}`}>
-        <CountUp end={value} duration={1.5} />
-      </h2>
-    </motion.div>
+function EmptyChart({ text }) {
+  return (
+    <div className="mt-5 flex h-[270px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.05] bg-white/[0.01] px-5 text-center">
+      <BarChart3
+        size={26}
+        className="text-zinc-700"
+      />
+
+      <p className="mt-3 text-[12px] font-semibold text-zinc-600">
+        {text}
+      </p>
+    </div>
   );
 }

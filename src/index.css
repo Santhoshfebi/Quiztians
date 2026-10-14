@@ -36,3 +36,14 @@ body {
   /* min-width: 320px;
   min-height: 100vh; */
 /* } */
+
+
+/* Hide Admin Sidebar scrollbar */
+.admin-sidebar-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Old Edge / IE */
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}

@@ -1,26 +1,46 @@
-import { useState, useEffect, useMemo } from "react";
-import { Container, CircularProgress, Box } from "@mui/material";
-import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router-dom";
-import { Toaster, toast } from "react-hot-toast";
+import { useEffect, useMemo, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 
-import HeaderBar from "../components/HeaderBar";
-import StatsCards from "../components/StatsCards";
-import ChartsSection from "../components/ChartsSection";
-import FiltersPanel from "../components/FiltersPanel";
-import ResultsTable from "../components/ResultsTable";
-import ResetDialog from "../components/ResetDialog";
-import AdminBottomDock from "../components/AdminBottomDock";
+import { supabase } from "../supabaseClient";
+
+import AdminLayout from "../components/admin/AdminLayout";
+
+import ResultsHero from "../components/admin/results/ResultsHero";
+import ResultsStats from "../components/admin/results/ResultsStats";
+import ResultsCharts from "../components/admin/results/ResultsCharts";
+import ResultsFilters from "../components/admin/results/ResultsFilters";
+import ResultsTable from "../components/admin/results/ResultsTable";
+import ResultsLoading from "../components/admin/results/ResultsLoading";
+import SuperAdminOnlyState from "../components/admin/results/SuperAdminOnlyState";
+import ResetResultsDialog from "../components/admin/results/ResetResultsDialog";
+import ResetParticipantDialog from "../components/admin/results/ResetParticipantDialog";
+
+import {
+  createResultsCSV,
+  filterResults,
+  getDisplayRows,
+  getDuplicatePhones,
+  getResultsCSVFilename,
+  getUniqueOptions,
+} from "../utils/resultsHelpers";
+
+/* ==========================================================
+   VIEW RESULTS
+========================================================== */
 
 export default function ViewResults() {
-  const navigate = useNavigate();
+  /* ========================================================
+     DATA
+  ======================================================== */
 
-  // data states
-  const [user, setUser] = useState(null);
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // filter states
+  /* ========================================================
+     FILTERS
+  ======================================================== */
+
   const [search, setSearch] = useState("");
   const [chapterFilter, setChapterFilter] = useState([]);
   const [languageFilter, setLanguageFilter] = useState("");
@@ -28,239 +48,670 @@ export default function ViewResults() {
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [showHighestScore, setShowHighestScore] = useState(false);
 
-  // reset dialog
+  /* ========================================================
+     RESET DIALOGS
+  ======================================================== */
+
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
-  const [selectedResetChapter, setSelectedResetChapter] = useState("");
 
-  /* -------------------------
-     AUTH CHECK
-  ------------------------- */
-  useEffect(() => {
-    const checkAccess = async () => {
-      const { data } = await supabase.auth.getSession();
-      const currentUser = data.session?.user;
+  const [selectedResetChapter, setSelectedResetChapter] =
+    useState("");
 
-      if (!currentUser) return navigate("/admin-login");
-      if (currentUser.user_metadata.role !== "superadmin") {
-        toast.error("Access Denied");
-        return navigate("/admin");
+  /*
+   * Individual reset stores:
+   *
+   * {
+   *   phone,
+   *   chapter,
+   *   name
+   * }
+   */
+  const [individualReset, setIndividualReset] = useState(null);
+
+  const [resetting, setResetting] = useState(false);
+
+  /* ========================================================
+     PAGINATION
+  ======================================================== */
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  /* ========================================================
+     FETCH RESULTS
+  ======================================================== */
+
+  const fetchResults = async ({ silent = false } = {}) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("results")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        throw error;
       }
 
-      setUser(currentUser);
-    };
+      setAllRows(data || []);
+    } catch (error) {
+      console.error("Fetch results error:", error);
 
-    checkAccess();
-  }, []);
-
-  /* -------------------------
-     FETCH RESULTS
-  ------------------------- */
-  const fetchResults = async () => {
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("results")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!error) setAllRows(data);
-    setLoading(false);
+      toast.error(
+        error?.message || "Failed to load results"
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
+
+  /* ========================================================
+     INITIAL FETCH + REALTIME
+  ======================================================== */
 
   useEffect(() => {
     fetchResults();
+
     const channel = supabase
       .channel("results_changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "results" },
-        fetchResults,
+        {
+          event: "*",
+          schema: "public",
+          table: "results",
+        },
+        () => {
+          fetchResults({
+            silent: true,
+          });
+        }
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  /* -------------------------
-     RESET HANDLER
-  ------------------------- */
-  const handleResetAttempt = async (phone = null, chapter = null) => {
-    let target = "All Results";
-    if (chapter && chapter !== "All") target = `Chapter "${chapter}"`;
-    if (phone) target = `Phone "${phone}"`;
+  /* ========================================================
+     FILTER OPTIONS
+  ======================================================== */
 
-    const confirmReset = window.confirm(
-      `Are you sure you want to reset results for ${target}?`,
-    );
-    if (!confirmReset) return;
+  const chapterOptions = useMemo(
+    () => getUniqueOptions(allRows, "chapter"),
+    [allRows]
+  );
 
-    try {
-      let query = supabase.from("results").delete();
+  const languageOptions = useMemo(
+    () => getUniqueOptions(allRows, "language"),
+    [allRows]
+  );
 
-      if (chapter && chapter !== "All") query = query.eq("chapter", chapter);
-      if (phone) query = query.eq("phone", phone);
+  const placeOptions = useMemo(
+    () => getUniqueOptions(allRows, "place"),
+    [allRows]
+  );
 
-      const { error } = await query;
-      if (error) throw error;
+  /* ========================================================
+     FILTERED RESULTS
+  ======================================================== */
 
-      toast.success(`Results reset for ${target}`);
-      setResetDialogOpen(false);
-      setSelectedResetChapter("");
-      fetchResults();
-    } catch (err) {
-      toast.error(err.message || "Failed to reset results");
-    }
-  };
+  const filteredRows = useMemo(
+    () =>
+      filterResults(allRows, {
+        search,
+        chapterFilter,
+        languageFilter,
+        placeFilter,
+        showHighestScore,
+      }),
+    [
+      allRows,
+      search,
+      chapterFilter,
+      languageFilter,
+      placeFilter,
+      showHighestScore,
+    ]
+  );
 
-  /* -------------------------
-     FILTERED DATA (with showHighestScore)
-  ------------------------- */
-  const filteredRows = useMemo(() => {
-    let rows = [...allRows];
+  /* ========================================================
+     DUPLICATE PHONE NUMBERS
+  ======================================================== */
 
-    if (search)
-      rows = rows.filter((r) =>
-        [r.name, r.phone, r.chapter, r.language, r.place].some((x) =>
-          String(x || "")
-            .toLowerCase()
-            .includes(search.toLowerCase()),
-        ),
-      );
+  const duplicatePhones = useMemo(
+    () => getDuplicatePhones(filteredRows),
+    [filteredRows]
+  );
 
-    if (chapterFilter.length)
-      rows = rows.filter((r) => chapterFilter.includes(r.chapter));
+  /* ========================================================
+     DISPLAY ROWS
 
-    if (languageFilter)
-      rows = rows.filter((r) => r.language === languageFilter);
+     Duplicate mode only changes the visible table.
 
-    if (placeFilter) rows = rows.filter((r) => r.place === placeFilter);
+     filteredRows remains unchanged so CSV export continues
+     exporting the complete filtered result set.
+  ======================================================== */
 
-    // Show highest score per phone + chapter
-    if (showHighestScore) {
-      const best = {};
-      rows.forEach((r) => {
-        const key = `${r.phone}-${r.chapter}`;
-        if (!best[key] || r.score > best[key].score) best[key] = r;
-      });
-      rows = Object.values(best);
-    }
+  const displayRows = useMemo(
+    () =>
+      getDisplayRows(
+        filteredRows,
+        duplicatePhones,
+        showDuplicates
+      ),
+    [
+      filteredRows,
+      duplicatePhones,
+      showDuplicates,
+    ]
+  );
 
-    return rows;
+  /* ========================================================
+     RESET PAGINATION WHEN FILTERS CHANGE
+  ======================================================== */
+
+  useEffect(() => {
+    setPage(1);
   }, [
-    allRows,
     search,
     chapterFilter,
     languageFilter,
     placeFilter,
+    showDuplicates,
     showHighestScore,
+    pageSize,
   ]);
 
-  /* -------------------------
-     CSV EXPORT
-  ------------------------- */
-  const handleCSVExport = () => {
-    if (!filteredRows.length) return;
-    const headers = Object.keys(filteredRows[0]);
-    const csvRows = [
-      headers.join(","),
-      ...filteredRows.map((row) =>
-        headers.map((field) => `"${row[field] ?? ""}"`).join(","),
-      ),
-    ];
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "results.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  /* ========================================================
+     CLEAR FILTERS
+  ======================================================== */
+
+  const clearFilters = () => {
+    setSearch("");
+    setChapterFilter([]);
+    setLanguageFilter("");
+    setPlaceFilter("");
+    setShowDuplicates(false);
+    setShowHighestScore(false);
   };
 
-  /* -------------------------
-     LOADING
-  ------------------------- */
-  if (!user)
-    return (
-      <Box textAlign="center" mt={10} sx={{
-        py: 3,
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
-      }}>
-        Checking Access...
-      </Box>
-    );
+  /* ========================================================
+     CSV EXPORT
+  ======================================================== */
 
-  if (loading)
-    return (
-      <Box display="flex" justifyContent="center" mt={10} sx={{
-        py: 3,
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
-      }}>
-        <CircularProgress />
-      </Box>
-    );
+  const handleCSVExport = () => {
+    if (!filteredRows.length) {
+      toast.error("No results available to export");
+      return;
+    }
+
+    try {
+      /*
+       * IMPORTANT:
+       *
+       * Export filteredRows, not displayRows.
+       *
+       * "Show Duplicates" only changes what is displayed
+       * inside the results table.
+       */
+
+      const csvContent = createResultsCSV(filteredRows);
+
+      const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = getResultsCSVFilename();
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        `${filteredRows.length} results exported`
+      );
+    } catch (error) {
+      console.error("CSV export error:", error);
+
+      toast.error("Failed to export results");
+    }
+  };
+
+  /* ========================================================
+     RESET RESULTS
+
+     phone + chapter
+       -> Reset participant results only for that chapter
+
+     chapter only
+       -> Reset all results for that chapter
+
+     neither
+       -> Reset all results
+  ======================================================== */
+
+  const handleResetAttempt = async (
+    phone = null,
+    chapter = null
+  ) => {
+    if (resetting) {
+      return;
+    }
+
+    setResetting(true);
+
+    try {
+      let query = supabase
+        .from("results")
+        .delete();
+
+      /* ====================================================
+         INDIVIDUAL PARTICIPANT + CHAPTER
+      ==================================================== */
+
+      if (phone) {
+        const normalizedPhone = String(phone).trim();
+
+        const normalizedChapter = String(
+          chapter || ""
+        ).trim();
+
+        if (!normalizedPhone) {
+          throw new Error(
+            "Phone number is required."
+          );
+        }
+
+        if (!normalizedChapter) {
+          throw new Error(
+            "Chapter is required when resetting a participant."
+          );
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * Reset only:
+         *
+         * phone + chapter
+         *
+         * The participant's results in other chapters
+         * remain untouched.
+         */
+
+        query = query
+          .eq("phone", normalizedPhone)
+          .eq("chapter", normalizedChapter);
+      }
+
+      /* ====================================================
+         RESET ENTIRE CHAPTER
+      ==================================================== */
+
+      else if (
+        chapter &&
+        chapter !== "All"
+      ) {
+        query = query.eq(
+          "chapter",
+          chapter
+        );
+      }
+
+      /* ====================================================
+         RESET ALL RESULTS
+
+         When neither phone nor chapter is supplied, the
+         delete remains the intentional global reset.
+      ==================================================== */
+
+      const { error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      /* ====================================================
+         SUCCESS MESSAGE
+      ==================================================== */
+
+      if (phone && chapter) {
+        toast.success(
+          "Participant chapter result reset successfully"
+        );
+      } else if (chapter) {
+        toast.success(
+          "Chapter results reset successfully"
+        );
+      } else {
+        toast.success(
+          "All results reset successfully"
+        );
+      }
+
+      /* ====================================================
+         CLOSE RESET DIALOGS
+      ==================================================== */
+
+      setResetDialogOpen(false);
+      setSelectedResetChapter("");
+      setIndividualReset(null);
+
+      /* ====================================================
+         REFRESH RESULTS
+      ==================================================== */
+
+      await fetchResults({
+        silent: true,
+      });
+    } catch (error) {
+      console.error(
+        "Reset results error:",
+        error
+      );
+
+      toast.error(
+        error?.message || "Failed to reset result"
+      );
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  /* ========================================================
+     PAGE
+  ======================================================== */
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{
-        py: 3,
-        pb: 12,
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #0f172a 0%, #312e81 50%, #020617 100%)",
-      }}
+    <AdminLayout
+      title="Results"
+      eyebrow="Analytics"
     >
-      <Toaster />
+      {({ theme, isSuperAdmin }) => {
+        /* ==================================================
+           SUPERADMIN ACCESS
+        ================================================== */
 
-      <HeaderBar
-        onBack={() => navigate("/admin")}
-        onCSV={handleCSVExport}
-        onOpenReset={() => setResetDialogOpen(true)}
-        filteredRows={filteredRows} // optional for reference
-      />
+        if (!isSuperAdmin) {
+          return (
+            <>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  style: {
+                    background: "#18181B",
+                    color: "#F4F4F5",
+                    border:
+                      "1px solid rgba(255,255,255,.07)",
+                    borderRadius: "14px",
+                    fontSize: "13px",
+                  },
+                }}
+              />
 
-      <StatsCards allRows={allRows} />
+              <SuperAdminOnlyState
+                theme={theme}
+              />
+            </>
+          );
+        }
 
-      <ChartsSection allRows={allRows} />
+        return (
+          <>
+            {/* ===============================================
+                TOASTER
+            =============================================== */}
 
-      <FiltersPanel
-        search={search}
-        setSearch={setSearch}
-        chapterFilter={chapterFilter}
-        setChapterFilter={setChapterFilter}
-        languageFilter={languageFilter}
-        setLanguageFilter={setLanguageFilter}
-        placeFilter={placeFilter}
-        setPlaceFilter={setPlaceFilter}
-        showDuplicates={showDuplicates}
-        setShowDuplicates={setShowDuplicates}
-        showHighestScore={showHighestScore}
-        setShowHighestScore={setShowHighestScore}
-        allRows={allRows}
-      />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 3000,
 
-      <ResultsTable
-        filteredRows={filteredRows}
-        showDuplicates={showDuplicates}
-        onResetIndividual={handleResetAttempt}
-      />
+                style: {
+                  background: "#18181B",
+                  color: "#F4F4F5",
+                  border:
+                    "1px solid rgba(255,255,255,.07)",
+                  borderRadius: "14px",
+                  fontSize: "13px",
+                },
+              }}
+            />
 
-      <ResetDialog
-        open={resetDialogOpen}
-        onClose={() => setResetDialogOpen(false)}
-        selectedChapter={selectedResetChapter}
-        setSelectedChapter={setSelectedResetChapter}
-        onConfirm={(chapter) => handleResetAttempt(null, chapter)}
-        chapters={[...new Set(allRows.map((r) => r.chapter).filter(Boolean))]}
-      />
+            {/* ===============================================
+                HERO
+            =============================================== */}
 
-      <AdminBottomDock role={user?.user_metadata?.role} />
+            <ResultsHero
+              filteredCount={
+                filteredRows.length
+              }
+              totalCount={
+                allRows.length
+              }
+              refreshing={
+                refreshing
+              }
+              onRefresh={() =>
+                fetchResults({
+                  silent: true,
+                })
+              }
+              onExport={
+                handleCSVExport
+              }
+              onReset={() =>
+                setResetDialogOpen(true)
+              }
+              theme={theme}
+            />
 
-    </Container>
+            {/* ===============================================
+                RESULTS CONTENT
+            =============================================== */}
+
+            {loading ? (
+              <ResultsLoading
+                theme={theme}
+              />
+            ) : (
+              <>
+                {/* ===========================================
+                    STATS
+                =========================================== */}
+
+                <ResultsStats
+                  allRows={allRows}
+                  theme={theme}
+                />
+
+                {/* ===========================================
+                    CHARTS
+                =========================================== */}
+
+                <ResultsCharts
+                  allRows={allRows}
+                  theme={theme}
+                />
+
+                {/* ===========================================
+                    FILTERS
+                =========================================== */}
+
+                <ResultsFilters
+                  search={search}
+                  setSearch={setSearch}
+                  chapterFilter={
+                    chapterFilter
+                  }
+                  setChapterFilter={
+                    setChapterFilter
+                  }
+                  languageFilter={
+                    languageFilter
+                  }
+                  setLanguageFilter={
+                    setLanguageFilter
+                  }
+                  placeFilter={
+                    placeFilter
+                  }
+                  setPlaceFilter={
+                    setPlaceFilter
+                  }
+                  showDuplicates={
+                    showDuplicates
+                  }
+                  setShowDuplicates={
+                    setShowDuplicates
+                  }
+                  showHighestScore={
+                    showHighestScore
+                  }
+                  setShowHighestScore={
+                    setShowHighestScore
+                  }
+                  chapterOptions={
+                    chapterOptions
+                  }
+                  languageOptions={
+                    languageOptions
+                  }
+                  placeOptions={
+                    placeOptions
+                  }
+                  clearFilters={
+                    clearFilters
+                  }
+                  theme={theme}
+                />
+
+                {/* ===========================================
+                    TABLE
+                =========================================== */}
+
+                <ResultsTable
+                  rows={displayRows}
+                  filteredRows={
+                    filteredRows
+                  }
+                  duplicatePhones={
+                    duplicatePhones
+                  }
+                  showDuplicates={
+                    showDuplicates
+                  }
+                  page={page}
+                  setPage={setPage}
+                  pageSize={pageSize}
+                  setPageSize={
+                    setPageSize
+                  }
+                  onResetIndividual={(
+                    participant
+                  ) => {
+                    setIndividualReset(
+                      participant
+                    );
+                  }}
+                  theme={theme}
+                />
+              </>
+            )}
+
+            {/* ===============================================
+                RESET ALL / CHAPTER DIALOG
+            =============================================== */}
+
+            <ResetResultsDialog
+              open={
+                resetDialogOpen
+              }
+              onClose={() => {
+                if (!resetting) {
+                  setResetDialogOpen(
+                    false
+                  );
+                }
+              }}
+              selectedChapter={
+                selectedResetChapter
+              }
+              setSelectedChapter={
+                setSelectedResetChapter
+              }
+              chapters={
+                chapterOptions
+              }
+              resetting={
+                resetting
+              }
+              onConfirm={() =>
+                handleResetAttempt(
+                  null,
+                  selectedResetChapter
+                )
+              }
+              theme={theme}
+            />
+
+            {/* ===============================================
+                PARTICIPANT + CHAPTER RESET DIALOG
+            =============================================== */}
+
+            <ResetParticipantDialog
+              open={Boolean(
+                individualReset
+              )}
+              phone={
+                individualReset?.phone
+              }
+              chapter={
+                individualReset?.chapter
+              }
+              name={
+                individualReset?.name
+              }
+              resetting={
+                resetting
+              }
+              onClose={() => {
+                if (!resetting) {
+                  setIndividualReset(
+                    null
+                  );
+                }
+              }}
+              onConfirm={() =>
+                handleResetAttempt(
+                  individualReset?.phone,
+                  individualReset?.chapter
+                )
+              }
+              theme={theme}
+            />
+          </>
+        );
+      }}
+    </AdminLayout>
   );
 }
