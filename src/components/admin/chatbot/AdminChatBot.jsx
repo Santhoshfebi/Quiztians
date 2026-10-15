@@ -45,6 +45,16 @@ const CHAT_STORAGE_VERSION = 1;
 const MAX_STORED_MESSAGES = 50;
 const RESPONSE_DELAY = 450;
 
+const CHAT_TRIGGER_POSITION_KEY =
+  "quiztians-admin-chat-trigger-position-v1";
+
+const CHAT_TRIGGER_EDGE_GAP = 16;
+const CHAT_TRIGGER_DRAG_THRESHOLD = 5;
+
+// ===========================================================
+// ALLOWED ROUTES
+// ===========================================================
+
 const ALLOWED_ADMIN_ROUTES = new Set([
   "/admin",
   "/admin/add-questions",
@@ -470,6 +480,110 @@ function getFocusableElements(container) {
 }
 
 // ===========================================================
+// MOVABLE TRIGGER HELPERS
+// ===========================================================
+
+function readTriggerPosition() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw =
+      window.sessionStorage.getItem(
+        CHAT_TRIGGER_POSITION_KEY
+      );
+
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (
+      typeof parsed?.x !== "number" ||
+      typeof parsed?.y !== "number" ||
+      !Number.isFinite(parsed.x) ||
+      !Number.isFinite(parsed.y)
+    ) {
+      return null;
+    }
+
+    return {
+      x: parsed.x,
+      y: parsed.y,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveTriggerPosition(position) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      CHAT_TRIGGER_POSITION_KEY,
+      JSON.stringify(position)
+    );
+  } catch {
+    // Ignore storage failure.
+  }
+}
+
+function clampTriggerPosition(
+  position,
+  element
+) {
+  if (
+    typeof window === "undefined" ||
+    !element
+  ) {
+    return position;
+  }
+
+  const width =
+    element.offsetWidth || 54;
+
+  const height =
+    element.offsetHeight || 54;
+
+  const minX =
+    CHAT_TRIGGER_EDGE_GAP;
+
+  const minY =
+    CHAT_TRIGGER_EDGE_GAP;
+
+  const maxX = Math.max(
+    minX,
+    window.innerWidth -
+      width -
+      CHAT_TRIGGER_EDGE_GAP
+  );
+
+  const maxY = Math.max(
+    minY,
+    window.innerHeight -
+      height -
+      CHAT_TRIGGER_EDGE_GAP
+  );
+
+  return {
+    x: Math.min(
+      Math.max(position.x, minX),
+      maxX
+    ),
+
+    y: Math.min(
+      Math.max(position.y, minY),
+      maxY
+    ),
+  };
+}
+
+// ===========================================================
 // ADMIN CHATBOT
 // ===========================================================
 
@@ -541,6 +655,11 @@ export default function AdminChatBot({
   const [isTyping, setIsTyping] =
     useState(false);
 
+  const [
+    triggerPosition,
+    setTriggerPosition,
+  ] = useState(null);
+
   // =========================================================
   // REFS
   // =========================================================
@@ -564,6 +683,25 @@ export default function AdminChatBot({
 
   const isTypingRef =
     useRef(isTyping);
+
+  // Movable trigger
+  const triggerWrapperRef =
+    useRef(null);
+
+  const triggerPositionRef =
+    useRef(null);
+
+  const triggerDragRef = useRef({
+    active: false,
+    dragged: false,
+    pointerId: null,
+
+    startPointerX: 0,
+    startPointerY: 0,
+
+    startX: 0,
+    startY: 0,
+  });
 
   // =========================================================
   // KEEP REFS CURRENT
@@ -653,9 +791,6 @@ export default function AdminChatBot({
 
   // =========================================================
   // DESKTOP FOCUS
-  //
-  // Avoid automatically opening the software keyboard on
-  // mobile. Desktop users get immediate input focus.
   // =========================================================
 
   useEffect(() => {
@@ -835,7 +970,6 @@ export default function AdminChatBot({
         isSuperAdmin
       );
 
-    // Don't announce privileged page context to normal Admin.
     if (
       PAGE_CONTEXT[
         location.pathname
@@ -1025,8 +1159,6 @@ export default function AdminChatBot({
     const cleanMessage =
       text.trim();
 
-    // Ref check prevents extremely fast duplicate sends before
-    // React has committed the isTyping state update.
     if (
       !cleanMessage ||
       isTypingRef.current ||
@@ -1173,8 +1305,320 @@ export default function AdminChatBot({
     }, [messages]);
 
   // =========================================================
+  // RESTORE MOVABLE TRIGGER POSITION
+  // =========================================================
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    const frame =
+      window.requestAnimationFrame(
+        () => {
+          const element =
+            triggerWrapperRef.current;
+
+          if (!element) {
+            return;
+          }
+
+          const stored =
+            readTriggerPosition();
+
+          if (stored) {
+            const position =
+              clampTriggerPosition(
+                stored,
+                element
+              );
+
+            triggerPositionRef.current =
+              position;
+
+            setTriggerPosition(
+              position
+            );
+
+            return;
+          }
+
+          // No stored position.
+          // Keep original CSS bottom-right position.
+          triggerPositionRef.current =
+            null;
+
+          setTriggerPosition(null);
+        }
+      );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frame
+      );
+    };
+  }, [isOpen]);
+
+  // =========================================================
+  // KEEP TRIGGER INSIDE VIEWPORT
+  // =========================================================
+
+  useEffect(() => {
+    const handleResize = () => {
+      const element =
+        triggerWrapperRef.current;
+
+      const current =
+        triggerPositionRef.current;
+
+      if (!element || !current) {
+        return;
+      }
+
+      const next =
+        clampTriggerPosition(
+          current,
+          element
+        );
+
+      triggerPositionRef.current =
+        next;
+
+      setTriggerPosition(next);
+
+      saveTriggerPosition(next);
+    };
+
+    window.addEventListener(
+      "resize",
+      handleResize
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        handleResize
+      );
+    };
+  }, []);
+
+  // =========================================================
+  // MOVABLE TRIGGER — POINTER DOWN
+  // =========================================================
+
+  const handleTriggerPointerDown = (
+    event
+  ) => {
+    // Only primary/left mouse button.
+    if (
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    const element =
+      triggerWrapperRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const rect =
+      element.getBoundingClientRect();
+
+    triggerDragRef.current = {
+      active: true,
+      dragged: false,
+
+      pointerId:
+        event.pointerId,
+
+      startPointerX:
+        event.clientX,
+
+      startPointerY:
+        event.clientY,
+
+      startX:
+        rect.left,
+
+      startY:
+        rect.top,
+    };
+
+    element.setPointerCapture?.(
+      event.pointerId
+    );
+  };
+
+  // =========================================================
+  // MOVABLE TRIGGER — POINTER MOVE
+  // =========================================================
+
+  const handleTriggerPointerMove = (
+    event
+  ) => {
+    const drag =
+      triggerDragRef.current;
+
+    if (
+      !drag.active ||
+      drag.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    const deltaX =
+      event.clientX -
+      drag.startPointerX;
+
+    const deltaY =
+      event.clientY -
+      drag.startPointerY;
+
+    const distance =
+      Math.hypot(
+        deltaX,
+        deltaY
+      );
+
+    if (
+      !drag.dragged &&
+      distance <
+        CHAT_TRIGGER_DRAG_THRESHOLD
+    ) {
+      return;
+    }
+
+    drag.dragged = true;
+
+    event.preventDefault();
+
+    const element =
+      triggerWrapperRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const next =
+      clampTriggerPosition(
+        {
+          x:
+            drag.startX +
+            deltaX,
+
+          y:
+            drag.startY +
+            deltaY,
+        },
+        element
+      );
+
+    triggerPositionRef.current =
+      next;
+
+    setTriggerPosition(next);
+  };
+
+  // =========================================================
+  // MOVABLE TRIGGER — POINTER UP
+  // =========================================================
+
+  const handleTriggerPointerUp = (
+    event
+  ) => {
+    const drag =
+      triggerDragRef.current;
+
+    if (
+      !drag.active ||
+      drag.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    const wasDragged =
+      drag.dragged;
+
+    const element =
+      triggerWrapperRef.current;
+
+    if (
+      element?.hasPointerCapture?.(
+        event.pointerId
+      )
+    ) {
+      element.releasePointerCapture(
+        event.pointerId
+      );
+    }
+
+    // Save only after a real drag.
+    if (
+      wasDragged &&
+      triggerPositionRef.current
+    ) {
+      saveTriggerPosition(
+        triggerPositionRef.current
+      );
+    }
+
+    drag.active = false;
+    drag.pointerId = null;
+
+    // IMPORTANT:
+    // A normal click/tap opens the chatbot.
+    if (!wasDragged) {
+      openChat();
+    }
+  };
+
+  // =========================================================
+  // MOVABLE TRIGGER — POINTER CANCEL
+  // =========================================================
+
+  const handleTriggerPointerCancel = (
+    event
+  ) => {
+    const drag =
+      triggerDragRef.current;
+
+    if (
+      drag.pointerId !==
+      event.pointerId
+    ) {
+      return;
+    }
+
+    drag.active = false;
+    drag.dragged = false;
+    drag.pointerId = null;
+  };
+
+  // =========================================================
+  // KEYBOARD CLICK
+  // =========================================================
+
+  const handleTriggerClick = (
+    event
+  ) => {
+    // Mouse/touch activation is already handled
+    // by pointer-up above.
+    //
+    // Keyboard-generated click events have detail === 0.
+    if (event.detail !== 0) {
+      return;
+    }
+
+    openChat();
+  };
+
+  // =========================================================
   // UI
-  // STEP 4 VISUAL DESIGN PRESERVED
   // =========================================================
 
   return (
@@ -1190,16 +1634,48 @@ export default function AdminChatBot({
       </div>
 
       {/* =====================================================
-          FLOATING BUTTON
+          MOVABLE FLOATING BUTTON
+          ORIGINAL UI PRESERVED
       ===================================================== */}
 
-      <div className="fixed bottom-[92px] right-4 z-[80] lg:bottom-6 lg:right-6">
+      <div
+        ref={triggerWrapperRef}
+        onPointerDown={
+          handleTriggerPointerDown
+        }
+        onPointerMove={
+          handleTriggerPointerMove
+        }
+        onPointerUp={
+          handleTriggerPointerUp
+        }
+        onPointerCancel={
+          handleTriggerPointerCancel
+        }
+        style={
+          triggerPosition
+            ? {
+                left:
+                  triggerPosition.x,
+                top:
+                  triggerPosition.y,
+              }
+            : undefined
+        }
+        className={`fixed z-[80] touch-none ${
+          triggerPosition
+            ? ""
+            : "bottom-[92px] right-4 lg:bottom-6 lg:right-6"
+        }`}
+      >
         <AnimatePresence>
           {!isOpen && (
             <motion.button
               ref={triggerRef}
               type="button"
-              onClick={openChat}
+              onClick={
+                handleTriggerClick
+              }
               initial={{
                 opacity: 0,
                 scale: 0.8,
