@@ -51,6 +51,9 @@ export default function Welcome() {
   const [starting, setStarting] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
+  // anniversary celebration state
+  const [showAnniversary, setShowAnniversary] = useState(false);
+
   const navigate = useNavigate();
 
   /* ========================================================
@@ -100,6 +103,78 @@ export default function Welcome() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  /* ========================================================
+   1 YEAR ANNIVERSARY POPUP
+======================================================== */
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = "quiztians-one-year-celebration-v1";
+
+    try {
+      const alreadyShown =
+        window.sessionStorage.getItem(storageKey);
+
+      if (alreadyShown) return;
+
+      const timer = window.setTimeout(() => {
+        setShowAnniversary(true);
+
+        window.sessionStorage.setItem(
+          storageKey,
+          "shown"
+        );
+      }, 900);
+
+      return () => {
+        window.clearTimeout(timer);
+      };
+    } catch {
+      const timer = window.setTimeout(() => {
+        setShowAnniversary(true);
+      }, 900);
+
+      return () => {
+        window.clearTimeout(timer);
+      };
+    }
+  }, []);
+
+  /* ========================================================
+     ANNIVERSARY MODAL BEHAVIOUR
+  ======================================================== */
+
+  useEffect(() => {
+    if (!showAnniversary) return;
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setShowAnniversary(false);
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [showAnniversary]);
 
   /* ========================================================
      COUNTDOWN
@@ -929,7 +1004,7 @@ export default function Welcome() {
           </div>
 
           <span className="text-[10px] font-bold text-zinc-700">
-            NEW GRACE JESUS WITH US - HOSUR
+            NEW GRACE JESUS WITH US CHURCH - HOSUR
           </span>
 
           <span className="text-[9px] font-black uppercase tracking-[0.14em] text-zinc-700">
@@ -937,6 +1012,769 @@ export default function Welcome() {
           </span>
         </div>
       </footer>
+
+      {/* ====================================================
+    QUIZTIANS 1 YEAR ANNIVERSARY
+==================================================== */}
+
+      <AnimatePresence>
+        {showAnniversary && (
+          <motion.div
+            className="
+        fixed inset-0 z-[120]
+        flex items-end justify-center
+        overflow-y-auto
+        bg-transparent
+        sm:items-center sm:p-5
+      "
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* BACKDROP */}
+
+            <motion.button
+              type="button"
+              aria-label={
+                pageLanguage === "en"
+                  ? "Close anniversary celebration"
+                  : "ஆண்டு விழா கொண்டாட்டத்தை மூடு"
+              }
+              onClick={() => setShowAnniversary(false)}
+              className="fixed inset-0 cursor-default bg-black/80 backdrop-blur-md"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            />
+
+            {/* BACKGROUND GLOW */}
+
+            <div
+              aria-hidden="true"
+              className="
+          pointer-events-none fixed
+          left-1/2 top-1/2
+          h-[320px] w-[320px]
+          -translate-x-1/2 -translate-y-1/2
+          rounded-full
+          bg-violet-600/[0.12]
+          blur-[110px]
+          sm:h-[520px] sm:w-[520px]
+          sm:blur-[150px]
+        "
+            />
+
+            <div
+              aria-hidden="true"
+              className="
+          pointer-events-none fixed
+          right-[5%] top-[15%]
+          h-[180px] w-[180px]
+          rounded-full
+          bg-amber-400/[0.05]
+          blur-[90px]
+          sm:h-[260px] sm:w-[260px]
+        "
+            />
+
+            {/* PARTICLES */}
+
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0 overflow-hidden"
+            >
+              {[
+                { left: "8%", top: "16%", delay: 0, size: 3 },
+                { left: "18%", top: "72%", delay: 0.4, size: 2 },
+                { left: "30%", top: "10%", delay: 0.7, size: 3 },
+                { left: "72%", top: "14%", delay: 0.2, size: 3 },
+                { left: "88%", top: "31%", delay: 0.8, size: 2 },
+                { left: "82%", top: "75%", delay: 0.5, size: 3 },
+                { left: "11%", top: "46%", delay: 1, size: 2 },
+                { left: "92%", top: "58%", delay: 1.2, size: 2 },
+              ].map((particle, index) => (
+                <motion.span
+                  key={index}
+                  className="absolute rounded-full bg-amber-200"
+                  style={{
+                    left: particle.left,
+                    top: particle.top,
+                    width: particle.size,
+                    height: particle.size,
+                  }}
+                  animate={{
+                    opacity: [0.15, 0.9, 0.15],
+                    scale: [0.7, 1.6, 0.7],
+                  }}
+                  transition={{
+                    duration: 2.4,
+                    repeat: Infinity,
+                    delay: particle.delay,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* ==================================================
+          ANNIVERSARY CARD
+      ================================================== */}
+
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="anniversary-title"
+              initial={{
+                opacity: 0,
+                y: 50,
+                scale: 0.96,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+              }}
+              exit={{
+                opacity: 0,
+                y: 30,
+                scale: 0.97,
+              }}
+              transition={{
+                duration: 0.4,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="
+          relative z-10
+          flex
+          max-h-[94dvh]
+          w-full
+          flex-col
+          overflow-hidden
+          rounded-t-[28px]
+          border border-white/[0.08]
+          bg-[#101014]
+          shadow-[0_-24px_90px_rgba(0,0,0,0.7)]
+
+          sm:max-h-[92dvh]
+          sm:max-w-[500px]
+          sm:rounded-[30px]
+          sm:shadow-[0_35px_120px_rgba(0,0,0,0.75)]
+        "
+            >
+              {/* TOP ACCENT */}
+
+              <div className="absolute inset-x-0 top-0 z-20 h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent" />
+
+              {/* INTERNAL GLOWS */}
+
+              <div
+                aria-hidden="true"
+                className="
+            pointer-events-none absolute
+            left-1/2 top-[-180px]
+            h-[350px] w-[350px]
+            -translate-x-1/2
+            rounded-full
+            bg-violet-600/[0.14]
+            blur-[100px]
+          "
+              />
+
+              <div
+                aria-hidden="true"
+                className="
+            pointer-events-none absolute
+            -right-24 top-32
+            h-[220px] w-[220px]
+            rounded-full
+            bg-amber-400/[0.04]
+            blur-[90px]
+          "
+              />
+
+              {/* MOBILE HANDLE */}
+
+              <div className="relative z-10 flex shrink-0 justify-center pt-3 sm:hidden">
+                <div className="h-1 w-10 rounded-full bg-white/10" />
+              </div>
+
+              {/* CLOSE */}
+
+              <button
+                type="button"
+                onClick={() => setShowAnniversary(false)}
+                aria-label={
+                  pageLanguage === "en"
+                    ? "Close anniversary celebration"
+                    : "ஆண்டு விழா கொண்டாட்டத்தை மூடு"
+                }
+                className="
+            absolute right-3 top-3 z-30
+            flex h-9 w-9
+            items-center justify-center
+            rounded-xl
+            border border-white/[0.07]
+            bg-black/20
+            text-zinc-600
+            backdrop-blur
+            transition
+            hover:border-white/[0.12]
+            hover:bg-white/[0.05]
+            hover:text-white
+            sm:right-5 sm:top-5
+          "
+              >
+                <X size={15} />
+              </button>
+
+              {/* ==================================================
+            SCROLLABLE CONTENT
+        ================================================== */}
+
+              <div
+                className="
+    relative z-10
+    min-h-0 flex-1
+    overflow-y-auto
+    overscroll-contain
+    px-5 pb-5 pt-5
+    text-center
+
+    min-[390px]:px-6
+    sm:px-10 sm:pb-8 sm:pt-9
+
+    lg:[scrollbar-width:none]
+    lg:[-ms-overflow-style:none]
+    lg:[&::-webkit-scrollbar]:hidden
+  "
+              >
+                {/* BRAND */}
+
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    delay: 0.12,
+                    duration: 0.4,
+                  }}
+                  className="flex justify-center"
+                >
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="/branding/quiztians-q.png"
+                      alt=""
+                      className="h-7 w-7 object-contain sm:h-8 sm:w-8"
+                    />
+
+                    <img
+                      src="/branding/quiztians-wordmark.png"
+                      alt="QUIZTIANS"
+                      className="
+                  h-[26px] w-auto
+                  max-w-[135px]
+                  object-contain
+                  sm:h-[30px]
+                  sm:max-w-[150px]
+                "
+                    />
+                  </div>
+                </motion.div>
+
+                {/* ANNIVERSARY EYEBROW */}
+
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    scale: 0.94,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  transition={{
+                    delay: 0.18,
+                    duration: 0.4,
+                  }}
+                  className="mt-4 flex justify-center sm:mt-5"
+                >
+                  <div
+                    className="
+                inline-flex
+                items-center gap-2
+                rounded-full
+                border border-amber-400/15
+                bg-amber-400/[0.055]
+                px-3 py-1.5
+              "
+                  >
+                    <Sparkles
+                      size={10}
+                      className="text-amber-300"
+                    />
+
+                    <span
+                      className="
+                  text-[8px]
+                  font-black
+                  uppercase
+                  tracking-[0.16em]
+                  text-amber-200
+                  sm:text-[9px]
+                  sm:tracking-[0.18em]
+                "
+                    >
+                      {pageLanguage === "en"
+                        ? "Celebrating Our Journey"
+                        : "எங்கள் பயணத்தை கொண்டாடுகிறோம்"}
+                    </span>
+                  </div>
+                </motion.div>
+
+                {/* ==================================================
+              ANNIVERSARY ONE
+          ================================================== */}
+
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    scale: 0.75,
+                    rotate: -4,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    rotate: 0,
+                  }}
+                  transition={{
+                    delay: 0.24,
+                    duration: 0.6,
+                    type: "spring",
+                    stiffness: 130,
+                    damping: 14,
+                  }}
+                  className="
+              relative mx-auto mt-4
+              flex h-[92px] w-[92px]
+              items-center justify-center
+
+              min-[390px]:h-[100px]
+              min-[390px]:w-[100px]
+
+              sm:mt-5
+              sm:h-[116px]
+              sm:w-[116px]
+            "
+                >
+                  {/* ROTATING OUTER RING */}
+
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 20,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="
+                absolute inset-0
+                rounded-full
+                border border-dashed
+                border-amber-300/20
+              "
+                  />
+
+                  {/* SECOND RING */}
+
+                  <div
+                    className="
+                absolute inset-[7px]
+                rounded-full
+                border border-violet-400/15
+                bg-gradient-to-br
+                from-violet-500/[0.12]
+                via-white/[0.02]
+                to-amber-400/[0.07]
+                shadow-[0_0_45px_rgba(139,92,246,0.12)]
+
+                sm:inset-[8px]
+              "
+                  />
+
+                  {/* NUMBER */}
+
+                  <div className="relative">
+                    <span
+                      className="
+                  bg-gradient-to-b
+                  from-white
+                  via-amber-100
+                  to-amber-300
+                  bg-clip-text
+                  text-[54px]
+                  font-black
+                  leading-none
+                  tracking-[-0.09em]
+                  text-transparent
+
+                  min-[390px]:text-[58px]
+                  sm:text-[68px]
+                "
+                    >
+                      1
+                    </span>
+
+                    <motion.div
+                      animate={{
+                        opacity: [0.35, 1, 0.35],
+                        scale: [0.8, 1.15, 0.8],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                      }}
+                      className="
+                  absolute -right-3 top-0
+                  text-amber-300
+                  sm:-right-4 sm:top-1
+                "
+                    >
+                      <Sparkles
+                        size={13}
+                        className="sm:h-4 sm:w-4"
+                      />
+                    </motion.div>
+                  </div>
+                </motion.div>
+
+                {/* ONE YEAR */}
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.42 }}
+                  className="
+              mt-1.5
+              text-[8px]
+              font-black
+              uppercase
+              tracking-[0.26em]
+              text-amber-300/70
+              sm:mt-2
+              sm:text-[9px]
+              sm:tracking-[0.28em]
+            "
+                >
+                  {pageLanguage === "en"
+                    ? "One Year"
+                    : "ஒரு ஆண்டு"}
+                </motion.p>
+
+                {/* ==================================================
+              TITLE
+          ================================================== */}
+
+                <motion.h2
+                  id="anniversary-title"
+                  initial={{
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: 0.32,
+                    duration: 0.45,
+                  }}
+                  className="
+              mx-auto mt-3
+              max-w-[400px]
+              text-[24px]
+              font-black
+              leading-[1.08]
+              tracking-[-0.04em]
+              text-white
+
+              min-[390px]:text-[26px]
+
+              sm:mt-4
+              sm:text-[32px]
+            "
+                >
+                  {pageLanguage === "en" ? (
+                    <>
+                      Celebrating One Year
+                      <br />
+
+                      <span className="bg-gradient-to-r from-violet-300 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+                        of QUIZTIANS
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      QUIZTIANS-ன்
+                      <br />
+
+                      <span className="bg-gradient-to-r from-violet-300 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+                        முதல் ஆண்டு கொண்டாட்டம்
+                      </span>
+                    </>
+                  )}
+                </motion.h2>
+
+                {/* DESCRIPTION */}
+
+                <motion.p
+                  initial={{
+                    opacity: 0,
+                    y: 8,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: 0.42,
+                    duration: 0.45,
+                  }}
+                  className="
+              mx-auto mt-3
+              max-w-[390px]
+              text-[11px]
+              leading-[1.7]
+              text-zinc-500
+
+              sm:mt-4
+              sm:text-[12px]
+              sm:leading-6
+            "
+                >
+                  {pageLanguage === "en"
+                    ? "A year of learning, challenges, curiosity and unforgettable moments. Thank you for being part of the QUIZTIANS journey."
+                    : "கற்றல், சவால்கள், ஆர்வம் மற்றும் மறக்க முடியாத தருணங்கள் நிறைந்த ஒரு ஆண்டு. QUIZTIANS பயணத்தின் ஒரு பகுதியாக இருந்ததற்கு நன்றி."}
+                </motion.p>
+
+                {/* SMALL DIVIDER */}
+
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    scaleX: 0,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scaleX: 1,
+                  }}
+                  transition={{
+                    delay: 0.5,
+                    duration: 0.45,
+                  }}
+                  className="
+              mx-auto mt-4
+              flex max-w-[250px]
+              items-center gap-3
+              sm:mt-5
+              sm:max-w-[280px]
+            "
+                >
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.08]" />
+
+                  <Sparkles
+                    size={9}
+                    className="text-amber-300/60"
+                  />
+
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.08]" />
+                </motion.div>
+
+                {/* JOURNEY CONTINUES */}
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.56 }}
+                  className="
+              mt-3
+              text-[9px]
+              font-black
+              uppercase
+              tracking-[0.14em]
+              text-zinc-500
+              sm:mt-4
+              sm:text-[10px]
+              sm:tracking-[0.15em]
+            "
+                >
+                  {pageLanguage === "en"
+                    ? "The journey continues ✨"
+                    : "பயணம் தொடர்கிறது ✨"}
+                </motion.p>
+
+                {/* CHURCH */}
+
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: 5,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{ delay: 0.6 }}
+                  className="mt-3 sm:mt-4"
+                >
+                  <div
+                    className="
+                mx-auto
+                inline-flex
+                max-w-full
+                items-center
+                justify-center
+                rounded-xl
+                border border-white/[0.055]
+                bg-white/[0.018]
+                px-3 py-2
+                sm:px-4
+              "
+                  >
+                    <p
+                      className="
+                  text-center
+                  text-[8px]
+                  font-black
+                  uppercase
+                  leading-4
+                  tracking-[0.11em]
+                  text-zinc-600
+
+                  min-[390px]:text-[9px]
+                  sm:tracking-[0.14em]
+                "
+                    >
+                      NEW GRACE JESUS WITH US CHURCH - HOSUR
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* SECOND DIVIDER */}
+
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    scaleX: 0,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scaleX: 1,
+                  }}
+                  transition={{
+                    delay: 0.62,
+                    duration: 0.45,
+                  }}
+                  className="
+              mx-auto mt-4
+              flex max-w-[250px]
+              items-center gap-3
+              sm:mt-5
+              sm:max-w-[280px]
+            "
+                >
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.08]" />
+
+                  <Sparkles
+                    size={9}
+                    className="text-amber-300/60"
+                  />
+
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.08]" />
+                </motion.div>
+
+                {/* CTA */}
+
+                <motion.button
+                  type="button"
+                  onClick={() =>
+                    setShowAnniversary(false)
+                  }
+                  initial={{
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: 0.66,
+                    duration: 0.45,
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  className="
+              group mx-auto mt-4
+              flex min-h-[50px]
+              w-full max-w-[310px]
+              items-center justify-center
+              gap-2.5
+              rounded-2xl
+              bg-gradient-to-r
+              from-violet-600
+              via-violet-500
+              to-indigo-500
+              px-5
+              text-[11px]
+              font-black
+              text-white
+              shadow-[0_14px_40px_-15px_rgba(124,58,237,0.8)]
+              transition
+
+              hover:-translate-y-0.5
+              hover:shadow-[0_20px_55px_-16px_rgba(124,58,237,0.95)]
+
+              sm:mt-5
+              sm:min-h-[54px]
+              sm:px-6
+              sm:text-[12px]
+            "
+                >
+                  <Sparkles size={13} />
+
+                  {pageLanguage === "en"
+                    ? "Let's Celebrate"
+                    : "கொண்டாடுவோம்"}
+
+                  <ArrowRight
+                    size={13}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                </motion.button>
+
+                {/* FOOT NOTE */}
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.72 }}
+                  className="
+              mt-3
+              text-[7px]
+              font-black
+              uppercase
+              tracking-[0.15em]
+              text-zinc-800
+              sm:mt-4
+              sm:text-[8px]
+              sm:tracking-[0.16em]
+            "
+                >
+                  QUIZTIANS • 1ST ANNIVERSARY
+                </motion.p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ====================================================
           REGISTRATION MODAL
