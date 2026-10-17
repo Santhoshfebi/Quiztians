@@ -12,6 +12,7 @@ import {
   FileQuestion,
   RefreshCw,
   Save,
+  Search,
   Settings2,
   Sparkles,
   Timer,
@@ -40,6 +41,8 @@ export default function QuizConfig() {
 
   const [allChapters, setAllChapters] = useState([]);
   const [activeChapters, setActiveChapters] = useState([]);
+
+  const [chapterSearch, setChapterSearch] = useState("");
 
   const [configId, setConfigId] = useState(null);
 
@@ -296,6 +299,18 @@ export default function QuizConfig() {
         : [...previous, chapter]
     );
   };
+
+  const filteredChapters = useMemo(() => {
+    const query = chapterSearch.trim().toLowerCase();
+
+    if (!query) {
+      return allChapters;
+    }
+
+    return allChapters.filter((chapter) =>
+      String(chapter).toLowerCase().includes(query)
+    );
+  }, [allChapters, chapterSearch]);
 
   const allSelected =
     allChapters.length > 0 &&
@@ -954,53 +969,120 @@ export default function QuizConfig() {
                   </div>
 
                   {/* =========================================
-                      CHAPTER GRID
-                  ========================================= */}
+    CHAPTER SEARCH
+========================================= */}
 
-                  {allChapters.length >
-                    0 ? (
-                    <div
-                      className="admin-hidden-scrollbar mt-4 max-h-[380px] overflow-y-auto pr-1"
-                      style={{
-                        scrollbarWidth:
-                          "none",
-                        msOverflowStyle:
-                          "none",
-                      }}
-                    >
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                        {allChapters.map(
-                          (
-                            chapter
-                          ) => (
-                            <ChapterButton
-                              key={
-                                chapter
-                              }
-                              chapter={
-                                chapter
-                              }
-                              count={
-                                chapterCounts[
-                                chapter
-                                ] || 0
-                              }
-                              active={activeChapters.includes(
-                                chapter
-                              )}
-                              onClick={() =>
-                                toggleChapter(
-                                  chapter
-                                )
-                              }
-                              theme={
-                                theme
-                              }
-                            />
-                          )
-                        )}
-                      </div>
+                  <div className="mt-4">
+                    <div className="relative">
+                      <Search
+                        size={16}
+                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600"
+                      />
+
+                      <input
+                        type="text"
+                        value={chapterSearch}
+                        onChange={(event) =>
+                          setChapterSearch(event.target.value)
+                        }
+                        placeholder="Search chapters..."
+                        aria-label="Search chapters"
+                        className="h-11 w-full rounded-2xl border border-white/[0.07] bg-[#0D0D10] pl-11 pr-11 text-[13px] font-semibold text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-white/[0.14] focus:bg-[#101013]"
+                      />
+
+                      {chapterSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setChapterSearch("")}
+                          aria-label="Clear chapter search"
+                          className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.05] hover:text-zinc-300"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
+
+                    {chapterSearch && (
+                      <div className="mt-2 flex items-center justify-between gap-3 px-1">
+                        <p className="text-[10px] font-medium text-zinc-700">
+                          {filteredChapters.length}{" "}
+                          {filteredChapters.length === 1
+                            ? "chapter"
+                            : "chapters"}{" "}
+                          found
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => setChapterSearch("")}
+                          className="text-[10px] font-bold transition hover:opacity-80"
+                          style={{
+                            color: theme.accent,
+                          }}
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* =========================================
+    CHAPTER GRID
+========================================= */}
+
+                  {allChapters.length > 0 ? (
+                    filteredChapters.length > 0 ? (
+                      <div
+                        className="admin-hidden-scrollbar mt-4 max-h-[380px] overflow-y-auto pr-1"
+                        style={{
+                          scrollbarWidth: "none",
+                          msOverflowStyle: "none",
+                        }}
+                      >
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                          {filteredChapters.map((chapter) => (
+                            <ChapterButton
+                              key={chapter}
+                              chapter={chapter}
+                              count={chapterCounts[chapter] || 0}
+                              active={activeChapters.includes(chapter)}
+                              onClick={() =>
+                                toggleChapter(chapter)
+                              }
+                              theme={theme}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-2xl border border-dashed border-white/[0.06] bg-[#0D0D10] px-5 py-10 text-center">
+                        <Search
+                          size={22}
+                          className="mx-auto text-zinc-700"
+                        />
+
+                        <p className="mt-3 text-[13px] font-bold text-zinc-500">
+                          No matching chapters
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-zinc-700">
+                          No chapters match "{chapterSearch}".
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => setChapterSearch("")}
+                          className="mt-4 rounded-xl border px-3.5 py-2 text-[11px] font-bold transition hover:-translate-y-0.5"
+                          style={{
+                            borderColor: `${theme.accent}20`,
+                            backgroundColor: theme.accentSoft,
+                            color: theme.accent,
+                          }}
+                        >
+                          Clear Search
+                        </button>
+                      </div>
+                    )
                   ) : (
                     <div className="mt-4 rounded-2xl border border-dashed border-white/[0.06] bg-[#0D0D10] px-5 py-10 text-center">
                       <BookOpen
@@ -1013,13 +1095,11 @@ export default function QuizConfig() {
                       </p>
 
                       <p className="mt-1 text-[11px] text-zinc-700">
-                        Add questions
-                        before configuring
-                        the quiz.
+                        Add questions before configuring the quiz.
                       </p>
                     </div>
                   )}
-
+                  
                   {/* =========================================
                       SAVE
                   ========================================= */}
@@ -1035,9 +1115,9 @@ export default function QuizConfig() {
                         handleSave
                       }
                       className={`flex min-h-[50px] w-full items-center justify-center gap-2.5 rounded-2xl px-5 text-[14px] font-black transition ${isFormValid &&
-                          !saving
-                          ? "text-white hover:-translate-y-0.5"
-                          : "cursor-not-allowed border border-white/[0.04] bg-white/[0.025] text-zinc-700"
+                        !saving
+                        ? "text-white hover:-translate-y-0.5"
+                        : "cursor-not-allowed border border-white/[0.04] bg-white/[0.025] text-zinc-700"
                         }`}
                       style={
                         isFormValid &&
@@ -1197,8 +1277,8 @@ function ChapterButton({
       <div className="min-w-0 flex-1">
         <p
           className={`truncate text-[12px] font-black ${active
-              ? "text-zinc-100"
-              : "text-zinc-400"
+            ? "text-zinc-100"
+            : "text-zinc-400"
             }`}
         >
           {chapter}
@@ -1216,8 +1296,8 @@ function ChapterButton({
 
       <div
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${active
-            ? ""
-            : "border-white/[0.07]"
+          ? ""
+          : "border-white/[0.07]"
           }`}
         style={
           active
@@ -1270,8 +1350,8 @@ function ConfigurationSummary({
 
           <span
             className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] ${isFormValid
-                ? "border-emerald-500/10 bg-emerald-500/[0.04] text-emerald-500/70"
-                : "border-amber-500/10 bg-amber-500/[0.04] text-amber-500/70"
+              ? "border-emerald-500/10 bg-emerald-500/[0.04] text-emerald-500/70"
+              : "border-amber-500/10 bg-amber-500/[0.04] text-amber-500/70"
               }`}
           >
             {isFormValid
@@ -1453,8 +1533,8 @@ function ConfigurationSummary({
 
             <p
               className={`text-right text-[11px] font-bold ${lastSaved
-                  ? "text-emerald-500/70"
-                  : "text-zinc-700"
+                ? "text-emerald-500/70"
+                : "text-zinc-700"
                 }`}
             >
               {lastSaved
@@ -1519,8 +1599,8 @@ function StatusCard({
 
           <p
             className={`mt-1.5 break-words text-[16px] font-black ${success
-                ? "text-emerald-400"
-                : "text-zinc-200"
+              ? "text-emerald-400"
+              : "text-zinc-200"
               }`}
           >
             {value}
@@ -1579,8 +1659,8 @@ function StatCard({
       <div className="mt-3 flex items-end gap-2">
         <p
           className={`text-[28px] font-black tracking-[-0.04em] sm:text-[31px] ${accent
-              ? ""
-              : "text-zinc-100"
+            ? ""
+            : "text-zinc-100"
             }`}
           style={
             accent
@@ -1665,8 +1745,8 @@ function SummaryMetric({
 
       <p
         className={`mt-1.5 truncate font-black text-zinc-300 ${small
-            ? "text-[11px]"
-            : "text-[16px]"
+          ? "text-[11px]"
+          : "text-[16px]"
           }`}
       >
         {value}
