@@ -209,7 +209,7 @@ export default function AddQuestions() {
 
   const handleCorrectAnswer = (option) => {
     /*
-      This intentionally preserves your original behavior:
+      Preserve existing behavior:
       selecting A/B/C/D applies the same option position
       to both English and Tamil.
     */
@@ -316,20 +316,10 @@ export default function AddQuestions() {
 
       toast.success("Question added!");
 
-      /*
-        Keep chapter selected so multiple questions can be
-        entered into the same chapter quickly.
-
-        Your original page also did not clear chapter.
-      */
-
+      // Keep chapter selected for quick batch entry.
       resetForm();
 
-      /*
-        If this was a brand-new chapter, make it immediately
-        available in the chapter suggestions.
-      */
-
+      // Add a newly-created chapter to suggestions.
       setAllChapters((prev) => {
         const cleanChapter = chapter.trim();
 
@@ -378,28 +368,27 @@ export default function AddQuestions() {
               duration: 3500,
 
               style: {
-                background: "#18181B",
-                color: "#F4F4F5",
-                border:
-                  "1px solid rgba(255,255,255,0.08)",
+                background: "#FFFFFF",
+                color: "#18181B",
+                border: "1px solid #E4E4E7",
                 borderRadius: "14px",
                 fontSize: "13px",
                 fontWeight: 600,
                 boxShadow:
-                  "0 20px 50px rgba(0,0,0,0.35)",
+                  "0 18px 45px rgba(24,24,27,0.12)",
               },
 
               success: {
                 iconTheme: {
-                  primary: "#22C55E",
-                  secondary: "#18181B",
+                  primary: "#16A34A",
+                  secondary: "#FFFFFF",
                 },
               },
 
               error: {
                 iconTheme: {
-                  primary: "#EF4444",
-                  secondary: "#18181B",
+                  primary: "#DC2626",
+                  secondary: "#FFFFFF",
                 },
               },
             }}
@@ -418,10 +407,22 @@ export default function AddQuestions() {
               opacity: 1,
               y: 0,
             }}
-            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 shadow-[0_10px_30px_rgba(24,24,27,0.07)] sm:p-6 lg:p-7"
           >
             <div
-              className={`pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full ${theme.glow} blur-[100px]`}
+              className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full blur-[100px]"
+              style={{
+                backgroundColor: `${theme.accent}10`,
+              }}
+            />
+
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.025]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
+                backgroundSize: "34px 34px",
+              }}
             />
 
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -444,18 +445,18 @@ export default function AddQuestions() {
                   </p>
                 </div>
 
-                <h2 className="mt-3 text-[25px] font-black tracking-[-0.035em] text-white sm:text-[29px]">
+                <h2 className="mt-3 text-[25px] font-black tracking-[-0.035em] text-zinc-900 sm:text-[29px]">
                   Create a new quiz question
                 </h2>
 
-                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-zinc-500">
+                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-zinc-600">
                   Build the English and Tamil versions
                   together, select the correct answer and
                   review everything before publishing.
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/[0.05] bg-black/10 px-4 py-3">
+              <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3">
                 <div
                   className="flex h-10 w-10 items-center justify-center rounded-xl border"
                   style={{
@@ -473,11 +474,11 @@ export default function AddQuestions() {
                 </div>
 
                 <div>
-                  <p className="text-[12px] font-black text-zinc-200">
+                  <p className="text-[12px] font-black text-zinc-900">
                     Bilingual question
                   </p>
 
-                  <p className="mt-1 text-[11px] text-zinc-600">
+                  <p className="mt-1 text-[11px] text-zinc-500">
                     English + Tamil
                   </p>
                 </div>
@@ -506,12 +507,8 @@ export default function AddQuestions() {
               transition={{
                 delay: 0.05,
               }}
-              className="rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5 lg:p-6"
+              className="rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5 lg:p-6"
             >
-              {/* =============================================
-                  CARD HEADER
-              ============================================= */}
-
               <SectionHeading
                 icon={FileQuestion}
                 title="Question Details"
@@ -519,9 +516,7 @@ export default function AddQuestions() {
                 theme={theme}
               />
 
-              {/* =============================================
-                  CHAPTER
-              ============================================= */}
+              {/* CHAPTER */}
 
               <div className="mt-6">
                 <ChapterInput
@@ -532,18 +527,16 @@ export default function AddQuestions() {
                 />
               </div>
 
-              {/* =============================================
-                  LANGUAGE TABS
-              ============================================= */}
+              {/* LANGUAGE */}
 
               <div className="mt-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-[13px] font-black text-zinc-200">
+                    <p className="text-[13px] font-black text-zinc-900">
                       Language
                     </p>
 
-                    <p className="mt-1 text-[11px] text-zinc-600">
+                    <p className="mt-1 text-[11px] text-zinc-500">
                       Complete both translations before
                       publishing.
                     </p>
@@ -573,9 +566,7 @@ export default function AddQuestions() {
                 />
               </div>
 
-              {/* =============================================
-                  LANGUAGE CONTENT
-              ============================================= */}
+              {/* LANGUAGE CONTENT */}
 
               <AnimatePresence mode="wait">
                 <motion.div
@@ -597,8 +588,6 @@ export default function AddQuestions() {
                   }}
                   className="mt-6"
                 >
-                  {/* QUESTION */}
-
                   <FieldLabel
                     label={
                       tabIndex === 0
@@ -627,7 +616,7 @@ export default function AddQuestions() {
                         ? "Enter the question in English..."
                         : "தமிழில் கேள்வியை உள்ளிடவும்..."
                     }
-                    className="mt-2 w-full resize-none rounded-2xl border border-white/[0.07] bg-[#0D0D10] px-4 py-3.5 text-[14px] leading-6 text-zinc-100 outline-none transition placeholder:text-zinc-700 focus:border-white/[0.14] focus:bg-[#101013]"
+                    className="mt-2 w-full resize-none rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3.5 text-[14px] leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(24,24,27,0.025)]"
                   />
 
                   {/* OPTIONS */}
@@ -635,17 +624,17 @@ export default function AddQuestions() {
                   <div className="mt-6">
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[13px] font-black text-zinc-200">
+                        <p className="text-[13px] font-black text-zinc-900">
                           Answer options
                         </p>
 
-                        <p className="mt-1 text-[11px] text-zinc-600">
+                        <p className="mt-1 text-[11px] text-zinc-500">
                           Enter all four choices for this
                           language.
                         </p>
                       </div>
 
-                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-700">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">
                         4 options
                       </span>
                     </div>
@@ -675,13 +664,13 @@ export default function AddQuestions() {
 
                   {/* CORRECT ANSWER */}
 
-                  <div className="mt-6 rounded-2xl border border-white/[0.05] bg-[#0D0D10] p-4 sm:p-5">
+                  <div className="mt-6 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] p-4 sm:p-5">
                     <div>
-                      <p className="text-[13px] font-black text-zinc-200">
+                      <p className="text-[13px] font-black text-zinc-900">
                         Select correct answer
                       </p>
 
-                      <p className="mt-1 text-[11px] leading-5 text-zinc-600">
+                      <p className="mt-1 text-[11px] leading-5 text-zinc-500">
                         The same option position is used for
                         both English and Tamil.
                       </p>
@@ -704,8 +693,8 @@ export default function AddQuestions() {
                               )
                             }
                             className={`relative flex h-12 items-center justify-center rounded-xl border text-[14px] font-black transition ${selected
-                                ? "text-white"
-                                : "border-white/[0.06] bg-white/[0.02] text-zinc-500 hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-zinc-200"
+                                ? ""
+                                : "border-zinc-200 bg-white text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
                               }`}
                             style={
                               selected
@@ -741,9 +730,7 @@ export default function AddQuestions() {
                 </motion.div>
               </AnimatePresence>
 
-              {/* =============================================
-                  COMPLETION
-              ============================================= */}
+              {/* COMPLETION */}
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <LanguageProgress
@@ -759,9 +746,7 @@ export default function AddQuestions() {
                 />
               </div>
 
-              {/* =============================================
-                  SUBMIT
-              ============================================= */}
+              {/* SUBMIT */}
 
               <button
                 type="button"
@@ -769,7 +754,7 @@ export default function AddQuestions() {
                 onClick={handleAddQuestion}
                 className={`mt-5 flex w-full items-center justify-center gap-2.5 rounded-2xl px-5 py-4 text-[14px] font-black transition ${allFieldsFilled && !loading
                     ? "text-white shadow-lg hover:-translate-y-0.5"
-                    : "cursor-not-allowed border border-white/[0.04] bg-white/[0.025] text-zinc-700"
+                    : "cursor-not-allowed border border-zinc-200 bg-zinc-100 text-zinc-400"
                   }`}
                 style={
                   allFieldsFilled && !loading
@@ -777,7 +762,7 @@ export default function AddQuestions() {
                       background: `linear-gradient(90deg, ${theme.accent}, ${theme.chartSecondary ||
                         theme.accent
                         })`,
-                      boxShadow: `0 12px 30px ${theme.accent}18`,
+                      boxShadow: `0 12px 30px ${theme.accent}20`,
                     }
                     : undefined
                 }
@@ -785,22 +770,19 @@ export default function AddQuestions() {
                 {loading ? (
                   <>
                     <LoadingSpinner />
-
                     Adding question...
                   </>
                 ) : (
                   <>
                     <Plus size={18} />
-
                     Add Question
-
                     <ArrowRight size={16} />
                   </>
                 )}
               </button>
 
               {!allFieldsFilled && (
-                <p className="mt-3 text-center text-[11px] leading-5 text-zinc-700">
+                <p className="mt-3 text-center text-[11px] leading-5 text-zinc-400">
                   Complete the chapter, both languages,
                   all answer options and the correct
                   answer to continue.
@@ -858,7 +840,8 @@ function ChapterInput({
 
   const wrapperRef = useRef(null);
 
-  const normalizedValue = value.trim().toLowerCase();
+  const normalizedValue =
+    value.trim().toLowerCase();
 
   const filteredChapters = useMemo(() => {
     if (!normalizedValue) {
@@ -912,7 +895,7 @@ function ChapterInput({
       <div className="relative mt-2">
         <BookOpen
           size={17}
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"
         />
 
         <input
@@ -924,14 +907,16 @@ function ChapterInput({
             setOpen(true);
           }}
           placeholder="Select or enter a chapter"
-          className="h-12 w-full rounded-2xl border border-white/[0.07] bg-[#0D0D10] pl-11 pr-11 text-[13px] font-medium text-zinc-100 outline-none transition placeholder:text-zinc-700 focus:border-white/[0.14] focus:bg-[#101013]"
+          className="h-12 w-full rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] pl-11 pr-11 text-[13px] font-medium text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(24,24,27,0.025)]"
         />
 
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() =>
+            setOpen((prev) => !prev)
+          }
           aria-label="Show chapters"
-          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.04] hover:text-zinc-300"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
         >
           <ChevronDown
             size={16}
@@ -941,9 +926,7 @@ function ChapterInput({
         </button>
       </div>
 
-      {/* =====================================================
-          DROPDOWN
-      ===================================================== */}
+      {/* DROPDOWN */}
 
       <AnimatePresence>
         {open &&
@@ -968,7 +951,7 @@ function ChapterInput({
               transition={{
                 duration: 0.15,
               }}
-              className="admin-hidden-scrollbar absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[230px] overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#161619] p-2 shadow-2xl"
+              className="admin-hidden-scrollbar absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[230px] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_18px_50px_rgba(24,24,27,0.14)]"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
@@ -983,7 +966,7 @@ function ChapterInput({
                       onChange(item);
                       setOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
                   >
                     <BookOpen
                       size={14}
@@ -1021,7 +1004,7 @@ function ChapterInput({
                   <>
                     {filteredChapters.length >
                       0 && (
-                        <div className="my-1 border-t border-white/[0.05]" />
+                        <div className="my-1 border-t border-zinc-200" />
                       )}
 
                     <button
@@ -1029,7 +1012,7 @@ function ChapterInput({
                       onClick={() =>
                         setOpen(false)
                       }
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-white/[0.04]"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-zinc-100"
                     >
                       <div
                         className="flex h-7 w-7 items-center justify-center rounded-lg"
@@ -1044,11 +1027,11 @@ function ChapterInput({
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-[11px] text-zinc-600">
+                        <p className="text-[11px] text-zinc-500">
                           Use new chapter
                         </p>
 
-                        <p className="truncate text-[12px] font-bold text-zinc-300">
+                        <p className="truncate text-[12px] font-bold text-zinc-900">
                           {value.trim()}
                         </p>
                       </div>
@@ -1089,7 +1072,7 @@ function LanguageTabs({
   ];
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.05] bg-[#0D0D10] p-1.5">
+    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] p-1.5">
       {tabs.map((tab) => {
         const active =
           tabIndex === tab.index;
@@ -1102,19 +1085,25 @@ function LanguageTabs({
               setTabIndex(tab.index)
             }
             className={`relative flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-[12px] font-black transition ${active
-                ? "text-white"
-                : "text-zinc-600 hover:text-zinc-300"
+                ? ""
+                : "text-zinc-500 hover:bg-white/70 hover:text-zinc-900"
               }`}
+            style={
+              active
+                ? {
+                  color: theme.accent,
+                }
+                : undefined
+            }
           >
             {active && (
               <motion.div
                 layoutId="add-question-language"
-                className="absolute inset-0 rounded-xl border"
+                className="absolute inset-0 rounded-xl border bg-white shadow-sm"
                 style={{
-                  backgroundColor:
-                    theme.accentSoft,
                   borderColor:
-                    `${theme.accent}20`,
+                    `${theme.accent}25`,
+                  boxShadow: `0 4px 14px ${theme.accent}0D`,
                 }}
               />
             )}
@@ -1131,7 +1120,8 @@ function LanguageTabs({
                   }
                   : {
                     backgroundColor:
-                      "rgba(255,255,255,.03)",
+                      "#E4E4E7",
+                    color: "#52525B",
                   }
               }
             >
@@ -1145,7 +1135,7 @@ function LanguageTabs({
             {tab.complete && (
               <CheckCircle2
                 size={14}
-                className="relative text-emerald-500"
+                className="relative text-emerald-600"
               />
             )}
           </button>
@@ -1168,11 +1158,15 @@ function OptionInput({
 }) {
   return (
     <div
-      className="rounded-2xl border bg-[#0D0D10] p-3 transition"
+      className="rounded-2xl border bg-[#F8FAFC] p-3 transition"
       style={{
         borderColor: selected
           ? `${theme.accent}35`
-          : "rgba(255,255,255,.055)",
+          : "#E4E4E7",
+
+        boxShadow: selected
+          ? `0 5px 18px ${theme.accent}0A`
+          : "none",
       }}
     >
       <div className="mb-2 flex items-center justify-between">
@@ -1190,26 +1184,25 @@ function OptionInput({
                     theme.accentSoft,
                 }
                 : {
-                  color: "#71717A",
+                  color: "#52525B",
                   borderColor:
-                    "rgba(255,255,255,.06)",
+                    "#E4E4E7",
                   backgroundColor:
-                    "rgba(255,255,255,.02)",
+                    "#FFFFFF",
                 }
             }
           >
             {label}
           </div>
 
-          <span className="text-[11px] font-bold text-zinc-600">
+          <span className="text-[11px] font-bold text-zinc-500">
             Option {label}
           </span>
         </div>
 
         {selected && (
-          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-500">
+          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-600">
             <Check size={11} />
-
             Correct
           </span>
         )}
@@ -1222,7 +1215,7 @@ function OptionInput({
           onChange(e.target.value)
         }
         placeholder={`Enter option ${label}`}
-        className="h-10 w-full rounded-xl border border-white/[0.05] bg-[#111114] px-3 text-[13px] text-zinc-100 outline-none transition placeholder:text-zinc-700 focus:border-white/[0.12]"
+        className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-[13px] text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(24,24,27,0.025)]"
       />
     </div>
   );
@@ -1243,10 +1236,10 @@ function LivePreview({
   theme,
 }) {
   return (
-    <div className="overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]">
+    <div className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
       {/* HEADER */}
 
-      <div className="border-b border-white/[0.05] px-4 py-4 sm:px-5">
+      <div className="border-b border-zinc-200/80 px-4 py-4 sm:px-5">
         <div className="flex items-center justify-between gap-3">
           <SectionHeading
             icon={Save}
@@ -1255,7 +1248,7 @@ function LivePreview({
             theme={theme}
           />
 
-          <span className="shrink-0 rounded-full border border-emerald-500/10 bg-emerald-500/[0.04] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-500/70">
+          <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-700">
             Live
           </span>
         </div>
@@ -1266,15 +1259,15 @@ function LivePreview({
       <div className="p-4 sm:p-5">
         {/* CHAPTER */}
 
-        <div className="rounded-xl border border-white/[0.05] bg-[#0D0D10] px-3.5 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-700">
+        <div className="rounded-xl border border-zinc-200/90 bg-[#F8FAFC] px-3.5 py-3">
+          <p className="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400">
             Chapter
           </p>
 
           <p
             className={`mt-1.5 text-[13px] font-bold ${chapter
-                ? "text-zinc-300"
-                : "text-zinc-700"
+                ? "text-zinc-900"
+                : "text-zinc-400"
               }`}
           >
             {chapter || "No chapter selected"}
@@ -1295,14 +1288,14 @@ function LivePreview({
         {/* DIVIDER */}
 
         <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-white/[0.05]" />
+          <div className="h-px flex-1 bg-zinc-200" />
 
           <Languages
             size={14}
-            className="text-zinc-700"
+            className="text-zinc-400"
           />
 
-          <div className="h-px flex-1 bg-white/[0.05]" />
+          <div className="h-px flex-1 bg-zinc-200" />
         </div>
 
         {/* TAMIL */}
@@ -1350,7 +1343,7 @@ function PreviewLanguage({
           {languageCode}
         </span>
 
-        <p className="text-[12px] font-black text-zinc-300">
+        <p className="text-[12px] font-black text-zinc-800">
           {label}
         </p>
       </div>
@@ -1359,11 +1352,11 @@ function PreviewLanguage({
 
       <div className="mt-3">
         {question.trim() ? (
-          <p className="whitespace-pre-wrap text-[14px] font-semibold leading-6 text-zinc-200">
+          <p className="whitespace-pre-wrap text-[14px] font-semibold leading-6 text-zinc-900">
             {question}
           </p>
         ) : (
-          <p className="text-[13px] italic text-zinc-700">
+          <p className="text-[13px] italic text-zinc-400">
             Question will appear here...
           </p>
         )}
@@ -1380,21 +1373,15 @@ function PreviewLanguage({
             return (
               <div
                 key={option.label}
-                className="flex items-start gap-3 rounded-xl border px-3 py-3"
-                style={{
-                  borderColor: selected
-                    ? "rgba(34,197,94,.18)"
-                    : "rgba(255,255,255,.05)",
-
-                  backgroundColor: selected
-                    ? "rgba(34,197,94,.045)"
-                    : "rgba(255,255,255,.015)",
-                }}
+                className={`flex items-start gap-3 rounded-xl border px-3 py-3 ${selected
+                    ? "border-emerald-200 bg-emerald-50/70"
+                    : "border-zinc-200/90 bg-[#F8FAFC]"
+                  }`}
               >
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${selected
-                      ? "bg-emerald-500/10 text-emerald-400"
-                      : "bg-white/[0.035] text-zinc-600"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "border border-zinc-200 bg-white text-zinc-500"
                     }`}
                 >
                   {selected ? (
@@ -1407,8 +1394,8 @@ function PreviewLanguage({
                 <div className="min-w-0 flex-1">
                   <p
                     className={`break-words text-[12px] leading-5 ${selected
-                        ? "font-semibold text-emerald-300/90"
-                        : "font-medium text-zinc-500"
+                        ? "font-semibold text-emerald-800"
+                        : "font-medium text-zinc-600"
                       }`}
                   >
                     {option.value}
@@ -1416,7 +1403,7 @@ function PreviewLanguage({
                 </div>
 
                 {selected && (
-                  <span className="mt-0.5 shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-500/70">
+                  <span className="mt-0.5 shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-600">
                     Correct
                   </span>
                 )}
@@ -1424,8 +1411,8 @@ function PreviewLanguage({
             );
           })
         ) : (
-          <div className="rounded-xl border border-dashed border-white/[0.05] px-4 py-5 text-center">
-            <p className="text-[11px] text-zinc-700">
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-[#F8FAFC] px-4 py-5 text-center">
+            <p className="text-[11px] text-zinc-400">
               Options will appear here
             </p>
           </div>
@@ -1446,21 +1433,15 @@ function LanguageProgress({
 }) {
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border px-3 py-3"
-      style={{
-        borderColor: complete
-          ? "rgba(34,197,94,.12)"
-          : "rgba(255,255,255,.05)",
-
-        backgroundColor: complete
-          ? "rgba(34,197,94,.025)"
-          : "rgba(255,255,255,.012)",
-      }}
+      className={`flex items-center gap-3 rounded-xl border px-3 py-3 ${complete
+          ? "border-emerald-200 bg-emerald-50/70"
+          : "border-zinc-200/90 bg-[#F8FAFC]"
+        }`}
     >
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${complete
-            ? "bg-emerald-500/10 text-emerald-500"
-            : "bg-white/[0.025] text-zinc-700"
+            ? "bg-emerald-100 text-emerald-700"
+            : "border border-zinc-200 bg-white text-zinc-400"
           }`}
       >
         {complete ? (
@@ -1471,14 +1452,14 @@ function LanguageProgress({
       </div>
 
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-bold text-zinc-400">
+        <p className="truncate text-[11px] font-bold text-zinc-700">
           {label}
         </p>
 
         <p
           className={`mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${complete
-              ? "text-emerald-500/70"
-              : "text-zinc-700"
+              ? "text-emerald-600"
+              : "text-zinc-400"
             }`}
         >
           {complete
@@ -1501,8 +1482,8 @@ function CompletionBadge({
   return (
     <div
       className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${complete
-          ? "border-emerald-500/10 bg-emerald-500/[0.04] text-emerald-500/70"
-          : "border-white/[0.05] bg-white/[0.02] text-zinc-700"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-zinc-200 bg-[#F8FAFC] text-zinc-400"
         }`}
     >
       {complete && <Check size={10} />}
@@ -1529,7 +1510,8 @@ function SectionHeading({
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
         style={{
-          borderColor: `${theme.accent}18`,
+          borderColor:
+            `${theme.accent}20`,
           backgroundColor:
             theme.accentSoft,
         }}
@@ -1544,11 +1526,11 @@ function SectionHeading({
       </div>
 
       <div className="min-w-0">
-        <h3 className="text-[15px] font-black text-zinc-200">
+        <h3 className="text-[15px] font-black text-zinc-900">
           {title}
         </h3>
 
-        <p className="mt-1 text-[11px] text-zinc-600 sm:text-[12px]">
+        <p className="mt-1 text-[11px] text-zinc-500 sm:text-[12px]">
           {description}
         </p>
       </div>
@@ -1565,11 +1547,11 @@ function FieldLabel({
   required = false,
 }) {
   return (
-    <label className="flex items-center gap-1 text-[12px] font-bold text-zinc-400">
+    <label className="flex items-center gap-1 text-[12px] font-bold text-zinc-700">
       {label}
 
       {required && (
-        <span className="text-red-400/70">
+        <span className="text-red-500">
           *
         </span>
       )}

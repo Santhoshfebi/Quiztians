@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { motion } from "framer-motion";
+
 import {
   Activity,
   BookOpen,
@@ -32,22 +38,37 @@ export default function AdminActivityLogs() {
   ======================================================== */
 
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
   /* ========================================================
      FILTERS
   ======================================================== */
 
-  const [search, setSearch] = useState("");
-  const [moduleFilter, setModuleFilter] = useState("all");
-  const [actionFilter, setActionFilter] = useState("all");
+  const [search, setSearch] =
+    useState("");
+
+  const [
+    moduleFilter,
+    setModuleFilter,
+  ] = useState("all");
+
+  const [
+    actionFilter,
+    setActionFilter,
+  ] = useState("all");
 
   /* ========================================================
      PAGINATION
   ======================================================== */
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] =
+    useState(1);
+
+  const [
+    pageSize,
+    setPageSize,
+  ] = useState(10);
 
   /* ========================================================
      FETCH LOGS
@@ -57,8 +78,13 @@ export default function AdminActivityLogs() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("admin_activity_logs")
+      const {
+        data,
+        error,
+      } = await supabase
+        .from(
+          "admin_activity_logs"
+        )
         .select("*")
         .order("created_at", {
           ascending: false,
@@ -97,11 +123,16 @@ export default function AdminActivityLogs() {
     return [
       ...new Set(
         logs
-          .map((log) => log.module)
+          .map(
+            (log) =>
+              log.module
+          )
           .filter(Boolean)
       ),
     ].sort((a, b) =>
-      String(a).localeCompare(String(b))
+      String(a).localeCompare(
+        String(b)
+      )
     );
   }, [logs]);
 
@@ -109,11 +140,16 @@ export default function AdminActivityLogs() {
     return [
       ...new Set(
         logs
-          .map((log) => log.action)
+          .map(
+            (log) =>
+              log.action
+          )
           .filter(Boolean)
       ),
     ].sort((a, b) =>
-      String(a).localeCompare(String(b))
+      String(a).localeCompare(
+        String(b)
+      )
     );
   }, [logs]);
 
@@ -121,80 +157,91 @@ export default function AdminActivityLogs() {
      FILTERED LOGS
   ======================================================== */
 
-  const filteredLogs = useMemo(() => {
-    const query = search
-      .trim()
-      .toLowerCase();
+  const filteredLogs =
+    useMemo(() => {
+      const query = search
+        .trim()
+        .toLowerCase();
 
-    return logs.filter((log) => {
-      const matchesSearch =
-        !query ||
-        [
-          log.admin_email,
-          log.admin_name,
-          log.action,
-          log.module,
-          log.description,
-        ].some((value) =>
-          String(value || "")
-            .toLowerCase()
-            .includes(query)
-        );
+      return logs.filter(
+        (log) => {
+          const matchesSearch =
+            !query ||
+            [
+              log.admin_email,
+              log.admin_name,
+              log.action,
+              log.module,
+              log.description,
+            ].some((value) =>
+              String(
+                value || ""
+              )
+                .toLowerCase()
+                .includes(query)
+            );
 
-      const matchesModule =
-        moduleFilter === "all" ||
-        log.module === moduleFilter;
+          const matchesModule =
+            moduleFilter ===
+              "all" ||
+            log.module ===
+              moduleFilter;
 
-      const matchesAction =
-        actionFilter === "all" ||
-        log.action === actionFilter;
+          const matchesAction =
+            actionFilter ===
+              "all" ||
+            log.action ===
+              actionFilter;
 
-      return (
-        matchesSearch &&
-        matchesModule &&
-        matchesAction
+          return (
+            matchesSearch &&
+            matchesModule &&
+            matchesAction
+          );
+        }
       );
-    });
-  }, [
-    logs,
-    search,
-    moduleFilter,
-    actionFilter,
-  ]);
+    }, [
+      logs,
+      search,
+      moduleFilter,
+      actionFilter,
+    ]);
 
   /* ========================================================
      PAGINATION CALCULATIONS
   ======================================================== */
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      filteredLogs.length /
-      pageSize
-    )
-  );
-
-  const paginatedLogs = useMemo(() => {
-    const start =
-      (page - 1) *
-      pageSize;
-
-    return filteredLogs.slice(
-      start,
-      start + pageSize
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredLogs.length /
+          pageSize
+      )
     );
-  }, [
-    filteredLogs,
-    page,
-    pageSize,
-  ]);
+
+  const paginatedLogs =
+    useMemo(() => {
+      const start =
+        (page - 1) *
+        pageSize;
+
+      return filteredLogs.slice(
+        start,
+        start + pageSize
+      );
+    }, [
+      filteredLogs,
+      page,
+      pageSize,
+    ]);
 
   const firstVisible =
     filteredLogs.length === 0
       ? 0
       : (page - 1) *
-      pageSize +
-      1;
+          pageSize +
+        1;
 
   const lastVisible =
     Math.min(
@@ -311,10 +358,24 @@ export default function AdminActivityLogs() {
               opacity: 1,
               y: 0,
             }}
-            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 shadow-[0_10px_30px_rgba(24,24,27,0.07)] sm:p-6 lg:p-7"
           >
             <div
-              className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[110px]`}
+              className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full blur-[110px]"
+              style={{
+                backgroundColor:
+                  `${theme.accent}0D`,
+              }}
+            />
+
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.025]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
+                backgroundSize:
+                  "32px 32px",
+              }}
             />
 
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -335,28 +396,34 @@ export default function AdminActivityLogs() {
                         theme.accent,
                     }}
                   >
-                    Administrative Audit
+                    Administrative
+                    Audit
                   </p>
                 </div>
 
-                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[32px] lg:text-[36px]">
+                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px] lg:text-[36px]">
                   Activity Logs
                 </h2>
 
                 <p className="mt-2 max-w-xl text-[13px] leading-6 text-zinc-500 sm:text-[14px]">
-                  Review administrative
-                  actions across questions,
-                  quiz configuration and
-                  admin user management.
+                  Review
+                  administrative
+                  actions across
+                  questions, quiz
+                  configuration and
+                  admin user
+                  management.
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <MiniBadge>
+                  <AccentBadge
+                    theme={theme}
+                  >
                     {
                       filteredLogs.length
                     }{" "}
                     visible
-                  </MiniBadge>
+                  </AccentBadge>
 
                   <MiniBadge>
                     {logs.length} total
@@ -365,7 +432,7 @@ export default function AdminActivityLogs() {
               </div>
 
               <div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-sm"
                 style={{
                   borderColor:
                     `${theme.accent}20`,
@@ -375,7 +442,9 @@ export default function AdminActivityLogs() {
                     theme.accent,
                 }}
               >
-                <Activity size={22} />
+                <Activity
+                  size={22}
+                />
               </div>
             </div>
           </motion.section>
@@ -440,14 +509,14 @@ export default function AdminActivityLogs() {
                   FILTERS
               ============================================== */}
 
-              <section className="mt-4 rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5">
+              <section className="mt-4 rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                   {/* SEARCH */}
 
                   <div className="relative min-w-0 flex-1">
                     <Search
                       size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
                     />
 
                     <input
@@ -462,7 +531,7 @@ export default function AdminActivityLogs() {
                         )
                       }
                       placeholder="Search admin, email, action, module or description..."
-                      className="h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-10 pr-10 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-white/[0.14]"
+                      className="h-11 w-full rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-10 text-[13px] font-medium text-zinc-800 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                     />
 
                     {search && (
@@ -472,12 +541,10 @@ export default function AdminActivityLogs() {
                         onClick={() =>
                           setSearch("")
                         }
-                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.05] hover:text-zinc-300"
+                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900"
                       >
                         <X
-                          size={
-                            14
-                          }
+                          size={14}
                         />
                       </button>
                     )}
@@ -501,9 +568,7 @@ export default function AdminActivityLogs() {
                       </option>
 
                       {modules.map(
-                        (
-                          module
-                        ) => (
+                        (module) => (
                           <option
                             key={
                               module
@@ -512,9 +577,7 @@ export default function AdminActivityLogs() {
                               module
                             }
                           >
-                            {
-                              module
-                            }
+                            {module}
                           </option>
                         )
                       )}
@@ -527,9 +590,7 @@ export default function AdminActivityLogs() {
                       onChange={
                         setActionFilter
                       }
-                      icon={
-                        Activity
-                      }
+                      icon={Activity}
                       theme={theme}
                     >
                       <option value="all">
@@ -537,9 +598,7 @@ export default function AdminActivityLogs() {
                       </option>
 
                       {actions.map(
-                        (
-                          action
-                        ) => (
+                        (action) => (
                           <option
                             key={
                               action
@@ -548,9 +607,7 @@ export default function AdminActivityLogs() {
                               action
                             }
                           >
-                            {
-                              action
-                            }
+                            {action}
                           </option>
                         )
                       )}
@@ -562,63 +619,63 @@ export default function AdminActivityLogs() {
 
                 {(search ||
                   activeFilterCount >
-                  0) && (
-                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-4">
-                      <span className="text-[11px] font-bold text-zinc-600">
-                        Active filters
-                      </span>
+                    0) && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-200/80 pt-4">
+                    <span className="text-[11px] font-bold text-zinc-500">
+                      Active filters
+                    </span>
 
-                      {search && (
-                        <FilterChip
-                          label={`Search: ${search}`}
-                          onRemove={() =>
-                            setSearch("")
-                          }
-                          theme={theme}
-                        />
-                      )}
-
-                      {moduleFilter !==
-                        "all" && (
-                          <FilterChip
-                            label={
-                              moduleFilter
-                            }
-                            onRemove={() =>
-                              setModuleFilter(
-                                "all"
-                              )
-                            }
-                            theme={theme}
-                          />
-                        )}
-
-                      {actionFilter !==
-                        "all" && (
-                          <FilterChip
-                            label={
-                              actionFilter
-                            }
-                            onRemove={() =>
-                              setActionFilter(
-                                "all"
-                              )
-                            }
-                            theme={theme}
-                          />
-                        )}
-
-                      <button
-                        type="button"
-                        onClick={
-                          clearFilters
+                    {search && (
+                      <FilterChip
+                        label={`Search: ${search}`}
+                        onRemove={() =>
+                          setSearch("")
                         }
-                        className="ml-auto text-[11px] font-black text-zinc-500 transition hover:text-white"
-                      >
-                        Clear all
-                      </button>
-                    </div>
-                  )}
+                        theme={theme}
+                      />
+                    )}
+
+                    {moduleFilter !==
+                      "all" && (
+                      <FilterChip
+                        label={
+                          moduleFilter
+                        }
+                        onRemove={() =>
+                          setModuleFilter(
+                            "all"
+                          )
+                        }
+                        theme={theme}
+                      />
+                    )}
+
+                    {actionFilter !==
+                      "all" && (
+                      <FilterChip
+                        label={
+                          actionFilter
+                        }
+                        onRemove={() =>
+                          setActionFilter(
+                            "all"
+                          )
+                        }
+                        theme={theme}
+                      />
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={
+                        clearFilters
+                      }
+                      className="ml-auto text-[11px] font-black text-zinc-500 transition hover:text-zinc-900"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
               </section>
 
               {/* ==============================================
@@ -630,10 +687,10 @@ export default function AdminActivityLogs() {
                     ACTIVITY RECORDS
                 ============================================ */}
 
-                <div className="min-w-0 overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]">
+                <div className="min-w-0 overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
                   {/* HEADER */}
 
-                  <div className="flex flex-col gap-3 border-b border-white/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                  <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                     <div>
                       <div className="flex items-center gap-2">
                         <FileText
@@ -644,19 +701,18 @@ export default function AdminActivityLogs() {
                           }}
                         />
 
-                        <h3 className="text-[15px] font-black text-zinc-100">
-                          Activity Records
+                        <h3 className="text-[15px] font-black text-zinc-900">
+                          Activity
+                          Records
                         </h3>
                       </div>
 
-                      <p className="mt-1 text-[12px] text-zinc-600">
+                      <p className="mt-1 text-[12px] text-zinc-500">
                         {
                           filteredLogs.length
                         }{" "}
                         of{" "}
-                        {
-                          logs.length
-                        }{" "}
+                        {logs.length}{" "}
                         activities shown
                       </p>
                     </div>
@@ -664,7 +720,7 @@ export default function AdminActivityLogs() {
                     {/* PAGE SIZE */}
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-zinc-600">
+                      <span className="text-[11px] font-bold text-zinc-500">
                         Rows
                       </span>
 
@@ -684,28 +740,28 @@ export default function AdminActivityLogs() {
                               )
                             )
                           }
-                          className="h-9 appearance-none rounded-lg border border-white/[0.07] bg-[#141418] pl-3 pr-8 text-[11px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+                          className="h-9 appearance-none rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-3 pr-8 text-[11px] font-bold text-zinc-700 outline-none transition [color-scheme:light] hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                         >
                           <option
-                            value={
-                              10
-                            }
+                            value={10}
                           >
                             10
                           </option>
 
                           <option
-                            value={
-                              50
-                            }
+                            value={25}
+                          >
+                            25
+                          </option>
+
+                          <option
+                            value={50}
                           >
                             50
                           </option>
 
                           <option
-                            value={
-                              100
-                            }
+                            value={100}
                           >
                             100
                           </option>
@@ -713,7 +769,7 @@ export default function AdminActivityLogs() {
 
                         <ChevronDown
                           size={12}
-                          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
                         />
                       </div>
                     </div>
@@ -734,7 +790,7 @@ export default function AdminActivityLogs() {
                       </colgroup>
 
                       <thead>
-                        <tr className="border-b border-white/[0.05] bg-white/[0.015]">
+                        <tr className="border-b border-zinc-200/80 bg-[#F8FAFC]">
                           <TableHeading>
                             Admin
                           </TableHeading>
@@ -759,7 +815,7 @@ export default function AdminActivityLogs() {
 
                       <tbody>
                         {filteredLogs.length ===
-                          0 ? (
+                        0 ? (
                           <tr>
                             <td
                               colSpan={
@@ -776,9 +832,7 @@ export default function AdminActivityLogs() {
                           </tr>
                         ) : (
                           paginatedLogs.map(
-                            (
-                              log
-                            ) => (
+                            (log) => (
                               <ActivityRow
                                 key={
                                   log.id
@@ -801,9 +855,9 @@ export default function AdminActivityLogs() {
                       MOBILE / TABLET
                   ========================================== */}
 
-                  <div className="divide-y divide-white/[0.05] lg:hidden">
+                  <div className="divide-y divide-zinc-200/80 lg:hidden">
                     {filteredLogs.length ===
-                      0 ? (
+                    0 ? (
                       <div className="p-6">
                         <EmptyLogs
                           theme={
@@ -813,9 +867,7 @@ export default function AdminActivityLogs() {
                       </div>
                     ) : (
                       paginatedLogs.map(
-                        (
-                          log
-                        ) => (
+                        (log) => (
                           <MobileActivityCard
                             key={
                               log.id
@@ -861,8 +913,8 @@ export default function AdminActivityLogs() {
                     TIMELINE
                 ============================================ */}
 
-                <aside className="min-w-0 rounded-[22px] border border-white/[0.06] bg-[#111114]">
-                  <div className="border-b border-white/[0.05] p-4 sm:p-5">
+                <aside className="min-w-0 overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
+                  <div className="border-b border-zinc-200/80 p-4 sm:p-5">
                     <div className="flex items-center gap-2">
                       <Clock3
                         size={15}
@@ -872,20 +924,21 @@ export default function AdminActivityLogs() {
                         }}
                       />
 
-                      <h3 className="text-[15px] font-black text-zinc-100">
+                      <h3 className="text-[15px] font-black text-zinc-900">
                         Timeline
                       </h3>
                     </div>
 
-                    <p className="mt-1 text-[12px] text-zinc-600">
-                      Recent administrative
+                    <p className="mt-1 text-[12px] text-zinc-500">
+                      Recent
+                      administrative
                       activity
                     </p>
                   </div>
 
                   <div className="max-h-[720px] overflow-y-auto p-4 sm:p-5">
                     {filteredLogs.length ===
-                      0 ? (
+                    0 ? (
                       <EmptyTimeline
                         theme={
                           theme
@@ -911,7 +964,7 @@ export default function AdminActivityLogs() {
                               last={
                                 index ===
                                 filteredLogs.length -
-                                1
+                                  1
                               }
                             />
                           )
@@ -951,33 +1004,48 @@ function ActivityStatCard({
         y: 0,
       }}
       transition={{
-        delay:
-          index * 0.04,
+        delay: index * 0.04,
       }}
       whileHover={{
         y: -2,
       }}
-      className="min-w-0 rounded-[18px] border border-white/[0.055] bg-[#111114] p-4"
+      className="relative min-w-0 overflow-hidden rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] transition duration-200 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.09)]"
     >
       <div
-        className="flex h-10 w-10 items-center justify-center rounded-xl"
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-0 blur-[45px] transition-opacity duration-200 group-hover:opacity-100"
         style={{
           backgroundColor:
+            `${theme.accent}0D`,
+        }}
+      />
+
+      <div
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl border"
+        style={{
+          borderColor:
+            `${theme.accent}18`,
+          backgroundColor:
             theme.accentSoft,
-          color:
-            theme.accent,
+          color: theme.accent,
         }}
       >
         <Icon size={17} />
       </div>
 
-      <p className="mt-4 text-[12px] font-bold leading-4 text-zinc-500">
+      <p className="relative mt-4 text-[12px] font-bold leading-4 text-zinc-500">
         {title}
       </p>
 
-      <p className="mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-100 sm:text-[32px]">
+      <p className="relative mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px]">
         {value}
       </p>
+
+      <div
+        className="absolute bottom-0 left-0 h-[2px] w-full opacity-40"
+        style={{
+          background: `linear-gradient(90deg, ${theme.accent}, transparent)`,
+        }}
+      />
     </motion.div>
   );
 }
@@ -999,29 +1067,25 @@ function FilterSelect({
         size={15}
         className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
         style={{
-          color:
-            theme.accent,
+          color: theme.accent,
         }}
       />
 
       <select
         value={value}
-        onChange={(
-          event
-        ) =>
+        onChange={(event) =>
           onChange(
-            event.target
-              .value
+            event.target.value
           )
         }
-        className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#141418] pl-10 pr-9 text-[12px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+        className="h-11 w-full appearance-none rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-9 text-[12px] font-bold text-zinc-700 outline-none transition [color-scheme:light] hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
       >
         {children}
       </select>
 
       <ChevronDown
         size={14}
-        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
       />
     </div>
   );
@@ -1044,8 +1108,7 @@ function FilterChip({
           `${theme.accent}20`,
         backgroundColor:
           theme.accentSoft,
-        color:
-          theme.accent,
+        color: theme.accent,
       }}
     >
       <span className="truncate">
@@ -1055,10 +1118,8 @@ function FilterChip({
       <button
         type="button"
         aria-label={`Remove ${label} filter`}
-        onClick={
-          onRemove
-        }
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-white/[0.08]"
+        onClick={onRemove}
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-black/[0.05]"
       >
         <X size={10} />
       </button>
@@ -1074,7 +1135,7 @@ function TableHeading({
   children,
 }) {
   return (
-    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-600 first:pl-4 last:pr-4 2xl:px-4">
+    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-500 first:pl-4 last:pr-4 2xl:px-4">
       {children}
     </th>
   );
@@ -1089,7 +1150,7 @@ function ActivityRow({
   theme,
 }) {
   return (
-    <tr className="border-b border-white/[0.045] transition last:border-b-0 hover:bg-white/[0.018]">
+    <tr className="border-b border-zinc-200/70 bg-white transition last:border-b-0 hover:bg-[#F8FAFC]">
       {/* ADMIN */}
 
       <td className="px-3 py-4 pl-4 2xl:px-4">
@@ -1103,9 +1164,7 @@ function ActivityRow({
 
       <td className="px-3 py-4 2xl:px-4">
         <ActionBadge
-          action={
-            log.action
-          }
+          action={log.action}
         />
       </td>
 
@@ -1113,7 +1172,7 @@ function ActivityRow({
 
       <td className="px-3 py-4 2xl:px-4">
         <span
-          className="block truncate text-[12px] font-bold text-zinc-400"
+          className="block truncate text-[12px] font-bold text-zinc-700"
           title={
             log.module ||
             "N/A"
@@ -1128,7 +1187,7 @@ function ActivityRow({
 
       <td className="px-3 py-4 2xl:px-4">
         <p
-          className="line-clamp-2 text-[12px] leading-5 text-zinc-500"
+          className="line-clamp-2 text-[12px] leading-5 text-zinc-600"
           title={
             log.description ||
             "No description"
@@ -1161,7 +1220,7 @@ function MobileActivityCard({
   theme,
 }) {
   return (
-    <article className="p-4 sm:p-5">
+    <article className="bg-white p-4 transition hover:bg-[#FCFCFD] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <AdminIdentity
           log={log}
@@ -1169,18 +1228,16 @@ function MobileActivityCard({
         />
 
         <ActionBadge
-          action={
-            log.action
-          }
+          action={log.action}
         />
       </div>
 
-      <div className="mt-4 rounded-xl border border-white/[0.05] bg-white/[0.018] p-3">
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+      <div className="mt-4 rounded-xl border border-zinc-200/80 bg-[#F8FAFC] p-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.08em] text-zinc-400">
           Description
         </p>
 
-        <p className="mt-1.5 text-[13px] leading-5 text-zinc-400">
+        <p className="mt-1.5 text-[13px] leading-5 text-zinc-700">
           {log.description ||
             "No description"}
         </p>
@@ -1195,8 +1252,8 @@ function MobileActivityCard({
           }
         />
 
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+        <div className="min-w-0 rounded-xl border border-zinc-200/80 bg-[#F8FAFC] p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.08em] text-zinc-400">
             Time
           </p>
 
@@ -1239,14 +1296,13 @@ function AdminIdentity({
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-[12px] font-black"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-[12px] font-black shadow-sm"
         style={{
           borderColor:
             `${theme.accent}18`,
           backgroundColor:
             theme.accentSoft,
-          color:
-            theme.accent,
+          color: theme.accent,
         }}
       >
         {initial}
@@ -1254,14 +1310,14 @@ function AdminIdentity({
 
       <div className="min-w-0">
         <p
-          className="truncate text-[13px] font-black text-zinc-200"
+          className="truncate text-[13px] font-black text-zinc-900"
           title={name}
         >
           {name}
         </p>
 
         <p
-          className="mt-0.5 truncate text-[11px] text-zinc-600"
+          className="mt-0.5 truncate text-[11px] text-zinc-500"
           title={email}
         >
           {email}
@@ -1279,9 +1335,7 @@ function ActionBadge({
   action,
 }) {
   const styles =
-    getActionStyles(
-      action
-    );
+    getActionStyles(action);
 
   return (
     <span
@@ -1306,7 +1360,7 @@ function DateDisplay({
 }) {
   if (!date) {
     return (
-      <span className="text-[11px] text-zinc-600">
+      <span className="text-[11px] text-zinc-400">
         N/A
       </span>
     );
@@ -1321,7 +1375,7 @@ function DateDisplay({
     )
   ) {
     return (
-      <span className="text-[11px] text-zinc-600">
+      <span className="text-[11px] text-zinc-400">
         N/A
       </span>
     );
@@ -1348,11 +1402,11 @@ function DateDisplay({
 
   return (
     <div className="min-w-0">
-      <p className="truncate text-[11px] font-bold text-zinc-400">
+      <p className="truncate text-[11px] font-bold text-zinc-700">
         {dateText}
       </p>
 
-      <p className="mt-0.5 truncate text-[10px] text-zinc-600">
+      <p className="mt-0.5 truncate text-[10px] text-zinc-400">
         {timeText}
       </p>
     </div>
@@ -1368,13 +1422,13 @@ function MobileDetail({
   value,
 }) {
   return (
-    <div className="min-w-0">
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+    <div className="min-w-0 rounded-xl border border-zinc-200/80 bg-[#F8FAFC] p-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.08em] text-zinc-400">
         {label}
       </p>
 
       <p
-        className="mt-1.5 truncate text-[12px] font-bold text-zinc-400"
+        className="mt-1.5 truncate text-[12px] font-bold text-zinc-700"
         title={value}
       >
         {value}
@@ -1395,16 +1449,16 @@ function TimelineItem({
   return (
     <div className="relative flex gap-3 pb-5 last:pb-0">
       {!last && (
-        <div className="absolute bottom-0 left-[5px] top-[14px] w-px bg-white/[0.06]" />
+        <div className="absolute bottom-0 left-[5px] top-[14px] w-px bg-zinc-200" />
       )}
 
       <div className="relative z-10 pt-1">
         <span
-          className="block h-[11px] w-[11px] rounded-full border-2 border-[#111114]"
+          className="block h-[11px] w-[11px] rounded-full border-2 border-white"
           style={{
             backgroundColor:
               theme.accent,
-            boxShadow: `0 0 16px ${theme.accent}40`,
+            boxShadow: `0 0 0 3px ${theme.accent}12`,
           }}
         />
       </div>
@@ -1417,13 +1471,13 @@ function TimelineItem({
             }
           />
 
-          <span className="truncate text-[11px] font-bold text-zinc-600">
+          <span className="truncate text-[11px] font-bold text-zinc-500">
             {log.module ||
               "N/A"}
           </span>
         </div>
 
-        <p className="mt-2 text-[12px] leading-5 text-zinc-400">
+        <p className="mt-2 text-[12px] leading-5 text-zinc-700">
           {log.description ||
             "No description"}
         </p>
@@ -1431,10 +1485,10 @@ function TimelineItem({
         <div className="mt-2 flex min-w-0 items-center gap-1.5">
           <UserRound
             size={11}
-            className="shrink-0 text-zinc-700"
+            className="shrink-0 text-zinc-400"
           />
 
-          <span className="truncate text-[11px] font-bold text-zinc-600">
+          <span className="truncate text-[11px] font-bold text-zinc-500">
             {log.admin_name ||
               log.admin_email ||
               "Unknown admin"}
@@ -1466,27 +1520,25 @@ function ActivityPagination({
   totalItems,
   theme,
 }) {
-  if (
-    totalItems === 0
-  ) {
+  if (totalItems === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-white/[0.05] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t border-zinc-200/80 bg-[#FCFCFD] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
       {/* RANGE */}
 
-      <p className="text-[11px] font-bold text-zinc-600">
+      <p className="text-[11px] font-bold text-zinc-500">
         Showing{" "}
-        <span className="text-zinc-400">
+        <span className="font-black text-zinc-900">
           {firstVisible}
         </span>
         {" – "}
-        <span className="text-zinc-400">
+        <span className="font-black text-zinc-900">
           {lastVisible}
         </span>{" "}
         of{" "}
-        <span className="text-zinc-400">
+        <span className="font-black text-zinc-900">
           {totalItems}
         </span>
       </p>
@@ -1515,13 +1567,10 @@ function ActivityPagination({
           }
           onClick={() =>
             setPage(
-              (
-                current
-              ) =>
+              (current) =>
                 Math.max(
                   1,
-                  current -
-                  1
+                  current - 1
                 )
             )
           }
@@ -1532,7 +1581,7 @@ function ActivityPagination({
         </PaginationButton>
 
         <div
-          className="flex h-9 min-w-[76px] items-center justify-center rounded-lg border px-3 text-[11px] font-black"
+          className="flex h-9 min-w-[76px] items-center justify-center rounded-xl border px-3 text-[11px] font-black shadow-sm"
           style={{
             borderColor:
               `${theme.accent}20`,
@@ -1554,13 +1603,10 @@ function ActivityPagination({
           }
           onClick={() =>
             setPage(
-              (
-                current
-              ) =>
+              (current) =>
                 Math.min(
                   totalPages,
-                  current +
-                  1
+                  current + 1
                 )
             )
           }
@@ -1608,7 +1654,7 @@ function PaginationButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] text-zinc-400 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200/90 bg-white text-zinc-500 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
     >
       {children}
     </button>
@@ -1640,11 +1686,11 @@ function EmptyLogs({
         />
       </div>
 
-      <p className="mt-3 text-[13px] font-black text-zinc-300">
+      <p className="mt-3 text-[13px] font-black text-zinc-800">
         No activity logs found
       </p>
 
-      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-600">
+      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-500">
         Try adjusting your
         search or filter
         selection.
@@ -1663,8 +1709,10 @@ function EmptyTimeline({
   return (
     <div className="flex min-h-[180px] flex-col items-center justify-center text-center">
       <div
-        className="flex h-10 w-10 items-center justify-center rounded-xl"
+        className="flex h-10 w-10 items-center justify-center rounded-xl border"
         style={{
+          borderColor:
+            `${theme.accent}18`,
           backgroundColor:
             theme.accentSoft,
           color:
@@ -1676,11 +1724,11 @@ function EmptyTimeline({
         />
       </div>
 
-      <p className="mt-3 text-[12px] font-black text-zinc-400">
+      <p className="mt-3 text-[12px] font-black text-zinc-800">
         No timeline data
       </p>
 
-      <p className="mt-1 text-[11px] text-zinc-600">
+      <p className="mt-1 text-[11px] text-zinc-500">
         Activity will appear
         here when available.
       </p>
@@ -1696,7 +1744,31 @@ function MiniBadge({
   children,
 }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-1.5 text-[11px] font-bold text-zinc-500">
+    <span className="inline-flex items-center rounded-full border border-zinc-200/90 bg-[#F8FAFC] px-3 py-1.5 text-[11px] font-bold text-zinc-600">
+      {children}
+    </span>
+  );
+}
+
+/* ==========================================================
+   ACCENT BADGE
+========================================================== */
+
+function AccentBadge({
+  children,
+  theme,
+}) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-black"
+      style={{
+        borderColor:
+          `${theme.accent}20`,
+        backgroundColor:
+          theme.accentSoft,
+        color: theme.accent,
+      }}
+    >
       {children}
     </span>
   );
@@ -1718,7 +1790,7 @@ function getActionStyles(
       "DELETE"
     )
   ) {
-    return "border-red-500/15 bg-red-500/[0.07] text-red-400";
+    return "border-red-200 bg-red-50 text-red-700";
   }
 
   if (
@@ -1729,7 +1801,7 @@ function getActionStyles(
       "ADD"
     )
   ) {
-    return "border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-400";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
   if (
@@ -1740,7 +1812,7 @@ function getActionStyles(
       "EDIT"
     )
   ) {
-    return "border-blue-500/15 bg-blue-500/[0.07] text-blue-400";
+    return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
   if (
@@ -1748,10 +1820,10 @@ function getActionStyles(
       "DISABLE"
     )
   ) {
-    return "border-orange-500/15 bg-orange-500/[0.07] text-orange-400";
+    return "border-orange-200 bg-orange-50 text-orange-700";
   }
 
-  return "border-violet-500/15 bg-violet-500/[0.07] text-violet-400";
+  return "border-violet-200 bg-violet-50 text-violet-700";
 }
 
 /* ==========================================================
@@ -1769,27 +1841,24 @@ function ActivityLogsLoading({
         {Array.from({
           length: 4,
         }).map(
-          (
-            _,
-            index
-          ) => (
+          (_, index) => (
             <div
-              key={
-                index
-              }
-              className="h-[138px] animate-pulse rounded-[18px] border border-white/[0.05] bg-[#111114] p-4"
+              key={index}
+              className="h-[138px] animate-pulse rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.06)]"
             >
               <div
-                className="h-10 w-10 rounded-xl opacity-30"
+                className="h-10 w-10 rounded-xl border opacity-60"
                 style={{
+                  borderColor:
+                    `${theme.accent}12`,
                   backgroundColor:
                     theme.accentSoft,
                 }}
               />
 
-              <div className="mt-4 h-3 w-24 rounded bg-white/[0.04]" />
+              <div className="mt-4 h-3 w-24 rounded-full bg-zinc-200/80" />
 
-              <div className="mt-3 h-7 w-16 rounded bg-white/[0.05]" />
+              <div className="mt-3 h-7 w-16 rounded-lg bg-zinc-200/70" />
             </div>
           )
         )}
@@ -1797,11 +1866,11 @@ function ActivityLogsLoading({
 
       {/* FILTERS */}
 
-      <div className="animate-pulse rounded-[22px] border border-white/[0.05] bg-[#111114] p-4 sm:p-5">
+      <div className="animate-pulse rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.06)] sm:p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
         </div>
       </div>
 
@@ -1810,36 +1879,39 @@ function ActivityLogsLoading({
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.75fr)]">
         {/* TABLE */}
 
-        <div className="overflow-hidden rounded-[22px] border border-white/[0.05] bg-[#111114]">
-          <div className="border-b border-white/[0.04] p-5">
-            <div className="h-4 w-36 rounded bg-white/[0.05]" />
+        <div className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.06)]">
+          <div className="border-b border-zinc-200/80 p-5">
+            <div className="h-4 w-36 rounded-full bg-zinc-200/80" />
 
-            <div className="mt-2 h-3 w-48 rounded bg-white/[0.03]" />
+            <div className="mt-2 h-3 w-48 rounded-full bg-zinc-100" />
           </div>
 
-          <div className="space-y-2 p-4">
+          <div className="divide-y divide-zinc-200/70">
             {Array.from({
               length: 7,
             }).map(
-              (
-                _,
-                index
-              ) => (
+              (_, index) => (
                 <div
-                  key={
-                    index
-                  }
-                  className="flex h-16 animate-pulse items-center gap-3 rounded-xl px-2"
+                  key={index}
+                  className="flex h-16 animate-pulse items-center gap-3 px-4"
                 >
-                  <div className="h-9 w-9 shrink-0 rounded-xl bg-white/[0.04]" />
+                  <div
+                    className="h-9 w-9 shrink-0 rounded-xl border opacity-60"
+                    style={{
+                      borderColor:
+                        `${theme.accent}10`,
+                      backgroundColor:
+                        theme.accentSoft,
+                    }}
+                  />
 
                   <div className="min-w-0 flex-1">
-                    <div className="h-3 w-32 rounded bg-white/[0.05]" />
+                    <div className="h-3 w-32 rounded-full bg-zinc-200/80" />
 
-                    <div className="mt-2 h-2.5 w-20 rounded bg-white/[0.025]" />
+                    <div className="mt-2 h-2.5 w-20 rounded-full bg-zinc-100" />
                   </div>
 
-                  <div className="hidden h-7 w-20 rounded-lg bg-white/[0.035] sm:block" />
+                  <div className="hidden h-7 w-20 rounded-lg bg-[#F8FAFC] sm:block" />
                 </div>
               )
             )}
@@ -1848,33 +1920,34 @@ function ActivityLogsLoading({
 
         {/* TIMELINE */}
 
-        <div className="min-h-[430px] animate-pulse rounded-[22px] border border-white/[0.05] bg-[#111114] p-5">
-          <div className="h-4 w-24 rounded bg-white/[0.05]" />
+        <div className="min-h-[430px] animate-pulse rounded-[22px] border border-zinc-200/90 bg-white p-5 shadow-[0_8px_24px_rgba(24,24,27,0.06)]">
+          <div className="h-4 w-24 rounded-full bg-zinc-200/80" />
 
-          <div className="mt-2 h-3 w-40 rounded bg-white/[0.03]" />
+          <div className="mt-2 h-3 w-40 rounded-full bg-zinc-100" />
 
           <div className="mt-7 space-y-6">
             {Array.from({
               length: 5,
             }).map(
-              (
-                _,
-                index
-              ) => (
+              (_, index) => (
                 <div
-                  key={
-                    index
-                  }
+                  key={index}
                   className="flex gap-3"
                 >
-                  <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-white/[0.05]" />
+                  <div
+                    className="mt-1 h-3 w-3 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor:
+                        `${theme.accent}30`,
+                    }}
+                  />
 
                   <div className="flex-1">
-                    <div className="h-3 w-24 rounded bg-white/[0.05]" />
+                    <div className="h-3 w-24 rounded-full bg-zinc-200/80" />
 
-                    <div className="mt-2 h-2.5 w-full rounded bg-white/[0.025]" />
+                    <div className="mt-2 h-2.5 w-full rounded-full bg-zinc-100" />
 
-                    <div className="mt-2 h-2.5 w-2/3 rounded bg-white/[0.025]" />
+                    <div className="mt-2 h-2.5 w-2/3 rounded-full bg-zinc-100" />
                   </div>
                 </div>
               )

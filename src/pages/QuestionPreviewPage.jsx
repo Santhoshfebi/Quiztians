@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 
 import {
-  ArrowDown,
   ArrowUp,
   BookOpen,
   Check,
@@ -271,10 +270,10 @@ export default function QuestionPreviewPage() {
   const totalQuestionsForChapter =
     selectedChapter
       ? questions.filter(
-        (question) =>
-          question.chapter ===
-          selectedChapter
-      ).length
+          (question) =>
+            question.chapter ===
+            selectedChapter
+        ).length
       : filteredQuestions.length;
 
   const hasActiveFilters =
@@ -399,28 +398,28 @@ export default function QuestionPreviewPage() {
               duration: 3500,
 
               style: {
-                background: "#18181B",
-                color: "#F4F4F5",
+                background: "#FFFFFF",
+                color: "#18181B",
                 border:
-                  "1px solid rgba(255,255,255,0.08)",
+                  "1px solid #E4E4E7",
                 borderRadius: "14px",
                 fontSize: "13px",
                 fontWeight: 600,
                 boxShadow:
-                  "0 20px 50px rgba(0,0,0,.4)",
+                  "0 18px 45px rgba(24,24,27,.12)",
               },
 
               success: {
                 iconTheme: {
-                  primary: "#22C55E",
-                  secondary: "#18181B",
+                  primary: "#16A34A",
+                  secondary: "#FFFFFF",
                 },
               },
 
               error: {
                 iconTheme: {
-                  primary: "#EF4444",
-                  secondary: "#18181B",
+                  primary: "#DC2626",
+                  secondary: "#FFFFFF",
                 },
               },
             }}
@@ -439,10 +438,24 @@ export default function QuestionPreviewPage() {
               opacity: 1,
               y: 0,
             }}
-            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 shadow-[0_10px_30px_rgba(24,24,27,0.07)] sm:p-6 lg:p-7"
           >
             <div
-              className={`pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full ${theme.glow} blur-[100px]`}
+              className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full blur-[100px]"
+              style={{
+                backgroundColor:
+                  `${theme.accent}10`,
+              }}
+            />
+
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.025]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
+                backgroundSize:
+                  "34px 34px",
+              }}
             />
 
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -467,11 +480,11 @@ export default function QuestionPreviewPage() {
                   </p>
                 </div>
 
-                <h2 className="mt-3 text-[26px] font-black tracking-[-0.035em] text-white sm:text-[30px] lg:text-[34px]">
+                <h2 className="mt-3 text-[26px] font-black tracking-[-0.035em] text-zinc-900 sm:text-[30px] lg:text-[34px]">
                   Review your quiz questions
                 </h2>
 
-                <p className="mt-2 max-w-xl text-[13px] leading-6 text-zinc-500 sm:text-[14px]">
+                <p className="mt-2 max-w-xl text-[13px] leading-6 text-zinc-600 sm:text-[14px]">
                   Search, filter and review
                   every English and Tamil
                   question before it goes
@@ -479,7 +492,7 @@ export default function QuestionPreviewPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   disabled={refreshing}
@@ -489,7 +502,7 @@ export default function QuestionPreviewPage() {
                       isRefresh: true,
                     })
                   }
-                  className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-[12px] font-bold text-zinc-400 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-white px-4 text-[12px] font-bold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw
                     size={15}
@@ -503,7 +516,7 @@ export default function QuestionPreviewPage() {
                   Refresh
                 </button>
 
-                <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-[#0D0D10] px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3">
                   <div
                     className="flex h-10 w-10 items-center justify-center rounded-xl border"
                     style={{
@@ -523,11 +536,11 @@ export default function QuestionPreviewPage() {
                   </div>
 
                   <div>
-                    <p className="text-[12px] font-black text-zinc-200">
+                    <p className="text-[12px] font-black text-zinc-900">
                       Bilingual
                     </p>
 
-                    <p className="mt-1 text-[11px] text-zinc-600">
+                    <p className="mt-1 text-[11px] text-zinc-500">
                       English + Tamil
                     </p>
                   </div>
@@ -590,7 +603,7 @@ export default function QuestionPreviewPage() {
             transition={{
               delay: 0.05,
             }}
-            className="relative z-20 mt-4 rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5"
+            className="relative z-20 mt-4 rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5"
           >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
               {/* =============================================
@@ -610,7 +623,7 @@ export default function QuestionPreviewPage() {
                         !previous
                     )
                   }
-                  className="mt-2 flex h-12 w-full items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#0D0D10] px-4 text-left transition hover:border-white/[0.12]"
+                  className="mt-2 flex h-12 w-full items-center gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 text-left transition hover:border-zinc-300 hover:bg-white"
                 >
                   <BookOpen
                     size={17}
@@ -618,22 +631,23 @@ export default function QuestionPreviewPage() {
                       color:
                         selectedChapter
                           ? theme.accent
-                          : "#52525B",
+                          : "#71717A",
                     }}
                   />
 
                   <span
-                    className={`min-w-0 flex-1 truncate text-[13px] font-semibold ${selectedChapter
-                        ? "text-zinc-200"
-                        : "text-zinc-600"
-                      }`}
+                    className={`min-w-0 flex-1 truncate text-[13px] font-semibold ${
+                      selectedChapter
+                        ? "text-zinc-900"
+                        : "text-zinc-500"
+                    }`}
                   >
                     {selectedChapter ||
                       "All chapters"}
                   </span>
 
                   {selectedChapter && (
-                    <span className="rounded-full border border-white/[0.05] bg-white/[0.03] px-2 py-1 text-[10px] font-bold text-zinc-500">
+                    <span className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] font-bold text-zinc-600">
                       {chapterCounts[
                         selectedChapter
                       ] || 0}
@@ -642,10 +656,11 @@ export default function QuestionPreviewPage() {
 
                   <ChevronDown
                     size={16}
-                    className={`text-zinc-600 transition-transform ${chapterMenuOpen
+                    className={`text-zinc-500 transition-transform ${
+                      chapterMenuOpen
                         ? "rotate-180"
                         : ""
-                      }`}
+                    }`}
                   />
                 </button>
 
@@ -686,15 +701,15 @@ export default function QuestionPreviewPage() {
                         transition={{
                           duration: 0.15,
                         }}
-                        className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#161619] shadow-2xl"
+                        className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_50px_rgba(24,24,27,0.14)]"
                       >
                         {/* SEARCH CHAPTER */}
 
-                        <div className="border-b border-white/[0.05] p-3">
+                        <div className="border-b border-zinc-200/80 p-3">
                           <div className="relative">
                             <Search
                               size={15}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600"
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
                             />
 
                             <input
@@ -713,7 +728,7 @@ export default function QuestionPreviewPage() {
                                 )
                               }
                               placeholder="Search chapters..."
-                              className="h-10 w-full rounded-xl border border-white/[0.06] bg-[#0D0D10] pl-9 pr-3 text-[12px] text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-white/[0.12]"
+                              className="h-10 w-full rounded-xl border border-zinc-200 bg-[#F8FAFC] pl-9 pr-3 text-[12px] text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                             />
                           </div>
                         </div>
@@ -744,10 +759,11 @@ export default function QuestionPreviewPage() {
                                 false
                               );
                             }}
-                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${!selectedChapter
-                                ? "bg-white/[0.05]"
-                                : "hover:bg-white/[0.035]"
-                              }`}
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                              !selectedChapter
+                                ? "bg-zinc-100"
+                                : "hover:bg-zinc-50"
+                            }`}
                           >
                             <div
                               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -755,7 +771,7 @@ export default function QuestionPreviewPage() {
                                 backgroundColor:
                                   !selectedChapter
                                     ? theme.accentSoft
-                                    : "rgba(255,255,255,.025)",
+                                    : "#F4F4F5",
                               }}
                             >
                               <FileQuestion
@@ -764,24 +780,23 @@ export default function QuestionPreviewPage() {
                                   color:
                                     !selectedChapter
                                       ? theme.accent
-                                      : "#52525B",
+                                      : "#71717A",
                                 }}
                               />
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <p className="text-[12px] font-bold text-zinc-300">
+                              <p className="text-[12px] font-bold text-zinc-900">
                                 All chapters
                               </p>
 
-                              <p className="mt-0.5 text-[10px] text-zinc-600">
-                                Complete
-                                question
+                              <p className="mt-0.5 text-[10px] text-zinc-500">
+                                Complete question
                                 library
                               </p>
                             </div>
 
-                            <span className="text-[11px] font-bold text-zinc-600">
+                            <span className="text-[11px] font-bold text-zinc-500">
                               {
                                 questions.length
                               }
@@ -813,10 +828,11 @@ export default function QuestionPreviewPage() {
                                       false
                                     );
                                   }}
-                                  className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
-                                      ? "bg-white/[0.05]"
-                                      : "hover:bg-white/[0.035]"
-                                    }`}
+                                  className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                                    active
+                                      ? "bg-zinc-100"
+                                      : "hover:bg-zinc-50"
+                                  }`}
                                 >
                                   <div
                                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -824,7 +840,7 @@ export default function QuestionPreviewPage() {
                                       backgroundColor:
                                         active
                                           ? theme.accentSoft
-                                          : "rgba(255,255,255,.025)",
+                                          : "#F4F4F5",
                                     }}
                                   >
                                     <BookOpen
@@ -835,23 +851,24 @@ export default function QuestionPreviewPage() {
                                         color:
                                           active
                                             ? theme.accent
-                                            : "#52525B",
+                                            : "#71717A",
                                       }}
                                     />
                                   </div>
 
                                   <span
-                                    className={`min-w-0 flex-1 truncate text-[12px] font-semibold ${active
-                                        ? "text-zinc-100"
-                                        : "text-zinc-400"
-                                      }`}
+                                    className={`min-w-0 flex-1 truncate text-[12px] font-semibold ${
+                                      active
+                                        ? "text-zinc-900"
+                                        : "text-zinc-600"
+                                    }`}
                                   >
                                     {
                                       chapter
                                     }
                                   </span>
 
-                                  <span className="text-[10px] font-bold text-zinc-600">
+                                  <span className="text-[10px] font-bold text-zinc-500">
                                     {chapterCounts[
                                       chapter
                                     ] ||
@@ -877,13 +894,13 @@ export default function QuestionPreviewPage() {
 
                           {filteredChapters.length ===
                             0 && (
-                              <div className="px-4 py-8 text-center">
-                                <p className="text-[12px] font-semibold text-zinc-600">
-                                  No chapters
-                                  found
-                                </p>
-                              </div>
-                            )}
+                            <div className="px-4 py-8 text-center">
+                              <p className="text-[12px] font-semibold text-zinc-500">
+                                No chapters
+                                found
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     </>
@@ -903,7 +920,7 @@ export default function QuestionPreviewPage() {
                 <div className="relative mt-2">
                   <Search
                     size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"
                   />
 
                   <input
@@ -915,7 +932,7 @@ export default function QuestionPreviewPage() {
                       )
                     }
                     placeholder="Search English or Tamil question..."
-                    className="h-12 w-full rounded-2xl border border-white/[0.07] bg-[#0D0D10] pl-11 pr-11 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-white/[0.14] focus:bg-[#101013]"
+                    className="h-12 w-full rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] pl-11 pr-11 text-[13px] font-medium text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                   />
 
                   {searchTerm && (
@@ -925,7 +942,7 @@ export default function QuestionPreviewPage() {
                         setSearchTerm("")
                       }
                       aria-label="Clear search"
-                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.04] hover:text-zinc-300"
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                     >
                       <X size={15} />
                     </button>
@@ -943,7 +960,7 @@ export default function QuestionPreviewPage() {
                   !hasActiveFilters
                 }
                 onClick={clearFilters}
-                className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 text-[12px] font-bold text-zinc-500 transition hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-zinc-200/90 bg-white px-4 text-[12px] font-bold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 disabled:shadow-none"
               >
                 <X size={14} />
 
@@ -954,8 +971,8 @@ export default function QuestionPreviewPage() {
             {/* ACTIVE FILTER */}
 
             {selectedChapter && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-4">
-                <span className="text-[11px] font-semibold text-zinc-600">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-200/80 pt-4">
+                <span className="text-[11px] font-semibold text-zinc-500">
                   Active filter:
                 </span>
 
@@ -969,7 +986,7 @@ export default function QuestionPreviewPage() {
                   className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold"
                   style={{
                     borderColor:
-                      `${theme.accent}20`,
+                      `${theme.accent}25`,
                     backgroundColor:
                       theme.accentSoft,
                     color:
@@ -992,26 +1009,31 @@ export default function QuestionPreviewPage() {
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-600">
+              <p
+                className="text-[11px] font-black uppercase tracking-[0.14em]"
+                style={{
+                  color: theme.accent,
+                }}
+              >
                 Question Library
               </p>
 
-              <h3 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-zinc-100">
+              <h3 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-zinc-900">
                 {selectedChapter
                   ? selectedChapter
                   : "All Questions"}
               </h3>
             </div>
 
-            <p className="text-[12px] font-medium text-zinc-600">
+            <p className="text-[12px] font-medium text-zinc-500">
               Showing{" "}
-              <span className="font-black text-zinc-300">
+              <span className="font-black text-zinc-900">
                 {
                   filteredQuestions.length
                 }
               </span>{" "}
               of{" "}
-              <span className="font-black text-zinc-300">
+              <span className="font-black text-zinc-900">
                 {questions.length}
               </span>{" "}
               questions
@@ -1097,7 +1119,7 @@ export default function QuestionPreviewPage() {
                 type="button"
                 onClick={scrollToTop}
                 aria-label="Back to top"
-                className="fixed bottom-[92px] right-4 z-30 flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-[#18181B]/95 text-zinc-300 shadow-2xl backdrop-blur-xl transition hover:bg-[#202024] hover:text-white lg:bottom-6 lg:right-6"
+                className="fixed bottom-[92px] right-4 z-30 flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 shadow-[0_10px_30px_rgba(24,24,27,0.12)] backdrop-blur-xl transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 lg:bottom-6 lg:right-6"
               >
                 <ArrowUp size={17} />
               </motion.button>
@@ -1158,7 +1180,7 @@ function QuestionCard({
       key: key.toUpperCase(),
       value:
         question[
-        `option_${key}_en`
+          `option_${key}_en`
         ] || "",
     }));
 
@@ -1167,7 +1189,7 @@ function QuestionCard({
       key: key.toUpperCase(),
       value:
         question[
-        `option_${key}_ta`
+          `option_${key}_ta`
         ] || "",
     }));
 
@@ -1184,19 +1206,19 @@ function QuestionCard({
       transition={{
         duration: 0.25,
       }}
-      className="overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]"
+      className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)] transition-shadow duration-200 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.09)]"
     >
       {/* =====================================================
           CARD HEADER
       ===================================================== */}
 
-      <div className="flex flex-col gap-4 border-b border-white/[0.05] px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 border-b border-zinc-200/80 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-[12px] font-black"
             style={{
               borderColor:
-                `${theme.accent}20`,
+                `${theme.accent}25`,
               backgroundColor:
                 theme.accentSoft,
               color: theme.accent,
@@ -1218,13 +1240,13 @@ function QuestionCard({
                 }}
               />
 
-              <p className="truncate text-[13px] font-black text-zinc-200">
+              <p className="truncate text-[13px] font-black text-zinc-900">
                 {question.chapter ||
                   "Uncategorized"}
               </p>
             </div>
 
-            <p className="mt-1 text-[11px] text-zinc-600">
+            <p className="mt-1 text-[11px] text-zinc-500">
               Question ID #
               {question.id}
             </p>
@@ -1237,7 +1259,7 @@ function QuestionCard({
           <button
             type="button"
             onClick={onEdit}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-amber-500/10 bg-amber-500/[0.035] px-4 text-[12px] font-bold text-amber-400/80 transition hover:border-amber-500/20 hover:bg-amber-500/[0.07] hover:text-amber-300 sm:flex-none"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 text-[12px] font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 sm:flex-none"
           >
             <Edit3 size={14} />
 
@@ -1248,7 +1270,7 @@ function QuestionCard({
             type="button"
             disabled={deleting}
             onClick={onDelete}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/10 bg-red-500/[0.035] px-4 text-[12px] font-bold text-red-400/80 transition hover:border-red-500/20 hover:bg-red-500/[0.07] hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-[12px] font-bold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
           >
             {deleting ? (
               <LoadingSpinner />
@@ -1299,7 +1321,7 @@ function QuestionCard({
                   !previous
               )
             }
-            className="flex w-full items-center justify-between rounded-xl border border-white/[0.05] bg-[#0D0D10] px-4 py-3 text-left transition hover:border-white/[0.09]"
+            className="flex w-full items-center justify-between rounded-xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3 text-left transition hover:border-zinc-300 hover:bg-zinc-100/70"
           >
             <div className="flex items-center gap-3">
               <div
@@ -1317,11 +1339,11 @@ function QuestionCard({
               </div>
 
               <div>
-                <p className="text-[12px] font-black text-zinc-300">
+                <p className="text-[12px] font-black text-zinc-900">
                   Answer Options
                 </p>
 
-                <p className="mt-0.5 text-[10px] text-zinc-600">
+                <p className="mt-0.5 text-[10px] text-zinc-500">
                   English and Tamil
                   choices
                 </p>
@@ -1330,10 +1352,11 @@ function QuestionCard({
 
             <ChevronDown
               size={16}
-              className={`text-zinc-600 transition-transform ${expanded
+              className={`text-zinc-500 transition-transform ${
+                expanded
                   ? "rotate-180"
                   : ""
-                }`}
+              }`}
             />
           </button>
 
@@ -1391,14 +1414,14 @@ function QuestionCard({
             CORRECT ANSWER
         =================================================== */}
 
-        <div className="mt-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.025] p-4">
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
           <div className="flex items-center gap-2">
             <CheckCircle2
               size={16}
-              className="shrink-0 text-emerald-500"
+              className="shrink-0 text-emerald-600"
             />
 
-            <p className="text-[12px] font-black text-emerald-400/90">
+            <p className="text-[12px] font-black text-emerald-800">
               Correct Answer
             </p>
           </div>
@@ -1435,7 +1458,7 @@ function QuestionLanguageBlock({
   theme,
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.05] bg-[#0D0D10] p-4">
+    <div className="rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] p-4">
       <div className="flex items-center gap-2">
         <span
           className="flex h-7 min-w-7 items-center justify-center rounded-lg px-1.5 text-[9px] font-black"
@@ -1448,12 +1471,12 @@ function QuestionLanguageBlock({
           {code}
         </span>
 
-        <p className="text-[11px] font-black uppercase tracking-[0.08em] text-zinc-600">
+        <p className="text-[11px] font-black uppercase tracking-[0.08em] text-zinc-500">
           {label}
         </p>
       </div>
 
-      <p className="mt-3 whitespace-pre-wrap break-words text-[14px] font-semibold leading-6 text-zinc-200">
+      <p className="mt-3 whitespace-pre-wrap break-words text-[14px] font-semibold leading-6 text-zinc-900">
         {question || "—"}
       </p>
     </div>
@@ -1472,7 +1495,7 @@ function OptionsBlock({
   theme,
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.05] bg-[#0D0D10] p-4">
+    <div className="rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] p-4">
       <div className="flex items-center gap-2">
         <span
           className="flex h-7 min-w-7 items-center justify-center rounded-lg px-1.5 text-[9px] font-black"
@@ -1485,7 +1508,7 @@ function OptionsBlock({
           {code}
         </span>
 
-        <p className="text-[12px] font-black text-zinc-400">
+        <p className="text-[12px] font-black text-zinc-700">
           {label} Options
         </p>
       </div>
@@ -1494,28 +1517,24 @@ function OptionsBlock({
         {options.map((option) => {
           const correct =
             option.value ===
-            correctAnswer &&
+              correctAnswer &&
             Boolean(option.value);
 
           return (
             <div
               key={option.key}
-              className="flex items-start gap-3 rounded-xl border px-3 py-2.5"
-              style={{
-                borderColor: correct
-                  ? "rgba(34,197,94,.18)"
-                  : "rgba(255,255,255,.045)",
-
-                backgroundColor: correct
-                  ? "rgba(34,197,94,.04)"
-                  : "rgba(255,255,255,.012)",
-              }}
+              className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${
+                correct
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-zinc-200 bg-white"
+              }`}
             >
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${correct
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-white/[0.03] text-zinc-600"
-                  }`}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${
+                  correct
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "border border-zinc-200 bg-[#F8FAFC] text-zinc-500"
+                }`}
               >
                 {correct ? (
                   <Check size={13} />
@@ -1525,16 +1544,17 @@ function OptionsBlock({
               </span>
 
               <p
-                className={`min-w-0 flex-1 break-words pt-1 text-[12px] leading-5 ${correct
-                    ? "font-semibold text-emerald-300/90"
-                    : "font-medium text-zinc-500"
-                  }`}
+                className={`min-w-0 flex-1 break-words pt-1 text-[12px] leading-5 ${
+                  correct
+                    ? "font-semibold text-emerald-800"
+                    : "font-medium text-zinc-600"
+                }`}
               >
                 {option.value || "—"}
               </p>
 
               {correct && (
-                <span className="mt-1 shrink-0 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-500/70">
+                <span className="mt-1 shrink-0 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-600">
                   Correct
                 </span>
               )}
@@ -1555,12 +1575,12 @@ function CorrectAnswer({
   answer,
 }) {
   return (
-    <div className="rounded-xl border border-emerald-500/[0.07] bg-black/10 px-3 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-500/50">
+    <div className="rounded-xl border border-emerald-200/80 bg-white/80 px-3 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-600">
         {language}
       </p>
 
-      <p className="mt-1.5 break-words text-[12px] font-bold leading-5 text-emerald-300/80">
+      <p className="mt-1.5 break-words text-[12px] font-bold leading-5 text-emerald-800">
         {answer || "—"}
       </p>
     </div>
@@ -1578,17 +1598,29 @@ function StatCard({
   theme,
 }) {
   return (
-    <div className="rounded-[18px] border border-white/[0.055] bg-[#111114] p-4 sm:p-5">
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 8,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      className="rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.09)] sm:p-5"
+    >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-bold text-zinc-600">
+        <p className="text-[11px] font-bold text-zinc-500">
           {label}
         </p>
 
         <div
-          className="flex h-8 w-8 items-center justify-center rounded-lg"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border"
           style={{
             backgroundColor:
               theme.accentSoft,
+            borderColor:
+              `${theme.accent}20`,
             color: theme.accent,
           }}
         >
@@ -1596,10 +1628,10 @@ function StatCard({
         </div>
       </div>
 
-      <p className="mt-3 text-[28px] font-black tracking-[-0.04em] text-zinc-100 sm:text-[32px]">
+      <p className="mt-3 text-[28px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px]">
         {value}
       </p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1625,11 +1657,11 @@ function DeleteQuestionModal({
       exit={{
         opacity: 0,
       }}
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-zinc-950/45 px-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (
           event.target ===
-          event.currentTarget &&
+            event.currentTarget &&
           !loading
         ) {
           onCancel();
@@ -1655,16 +1687,16 @@ function DeleteQuestionModal({
         transition={{
           duration: 0.18,
         }}
-        className="w-full max-w-[460px] overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#141418] shadow-2xl"
+        className="w-full max-w-[460px] overflow-hidden rounded-[22px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(24,24,27,0.22)]"
       >
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-red-500/15 bg-red-500/[0.06] text-red-400">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600">
               <Trash2 size={18} />
             </div>
 
             <div className="min-w-0">
-              <p className="text-[18px] font-black tracking-[-0.02em] text-white">
+              <p className="text-[18px] font-black tracking-[-0.02em] text-zinc-900">
                 Delete question?
               </p>
 
@@ -1676,7 +1708,7 @@ function DeleteQuestionModal({
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-white/[0.05] bg-[#0D0D10] p-4">
+          <div className="mt-5 rounded-xl border border-zinc-200/90 bg-[#F8FAFC] p-4">
             <div className="flex items-center gap-2">
               <BookOpen
                 size={13}
@@ -1692,7 +1724,7 @@ function DeleteQuestionModal({
               </p>
             </div>
 
-            <p className="mt-2 line-clamp-3 text-[13px] font-semibold leading-5 text-zinc-300">
+            <p className="mt-2 line-clamp-3 text-[13px] font-semibold leading-5 text-zinc-800">
               {question.question_en}
             </p>
           </div>
@@ -1702,7 +1734,7 @@ function DeleteQuestionModal({
               type="button"
               disabled={loading}
               onClick={onCancel}
-              className="h-11 rounded-xl border border-white/[0.07] bg-white/[0.02] text-[12px] font-bold text-zinc-400 transition hover:bg-white/[0.05] hover:text-white disabled:opacity-40"
+              className="h-11 rounded-xl border border-zinc-200 bg-white text-[12px] font-bold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-40"
             >
               Cancel
             </button>
@@ -1711,7 +1743,7 @@ function DeleteQuestionModal({
               type="button"
               disabled={loading}
               onClick={onConfirm}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.09] text-[12px] font-black text-red-400 transition hover:bg-red-500/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 text-[12px] font-black text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -1749,13 +1781,13 @@ function EmptyQuestions({
       animate={{
         opacity: 1,
       }}
-      className="rounded-[22px] border border-dashed border-white/[0.07] bg-[#111114] px-5 py-16 text-center"
+      className="rounded-[22px] border border-dashed border-zinc-300 bg-white px-5 py-16 text-center shadow-[0_8px_24px_rgba(24,24,27,0.05)]"
     >
       <div
         className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border"
         style={{
           borderColor:
-            `${theme.accent}15`,
+            `${theme.accent}20`,
           backgroundColor:
             theme.accentSoft,
         }}
@@ -1768,11 +1800,11 @@ function EmptyQuestions({
         />
       </div>
 
-      <h3 className="mt-5 text-[17px] font-black text-zinc-200">
+      <h3 className="mt-5 text-[17px] font-black text-zinc-900">
         No questions found
       </h3>
 
-      <p className="mx-auto mt-2 max-w-sm text-[13px] leading-6 text-zinc-600">
+      <p className="mx-auto mt-2 max-w-sm text-[13px] leading-6 text-zinc-500">
         {hasFilters
           ? "No questions match the current chapter or search filters."
           : "There are no questions in the library yet."}
@@ -1782,7 +1814,7 @@ function EmptyQuestions({
         <button
           type="button"
           onClick={onClear}
-          className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-2.5 text-[12px] font-bold text-zinc-300 transition hover:bg-white/[0.06]"
+          className="mt-5 rounded-xl border border-zinc-200 bg-[#F8FAFC] px-4 py-2.5 text-[12px] font-bold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-100"
         >
           Clear Filters
         </button>
@@ -1801,9 +1833,9 @@ function QuestionsLoading({ theme }) {
       {[1, 2, 3].map((item) => (
         <div
           key={item}
-          className="overflow-hidden rounded-[22px] border border-white/[0.05] bg-[#111114]"
+          className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.05)]"
         >
-          <div className="flex items-center gap-3 border-b border-white/[0.04] p-4 sm:p-5">
+          <div className="flex items-center gap-3 border-b border-zinc-200/80 p-4 sm:p-5">
             <div
               className="h-10 w-10 animate-pulse rounded-xl"
               style={{
@@ -1813,16 +1845,16 @@ function QuestionsLoading({ theme }) {
             />
 
             <div className="flex-1">
-              <div className="h-3 w-32 animate-pulse rounded-full bg-white/[0.05]" />
+              <div className="h-3 w-32 animate-pulse rounded-full bg-zinc-200" />
 
-              <div className="mt-2 h-2.5 w-20 animate-pulse rounded-full bg-white/[0.03]" />
+              <div className="mt-2 h-2.5 w-20 animate-pulse rounded-full bg-zinc-100" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 p-4 sm:p-5 lg:grid-cols-2">
-            <div className="h-28 animate-pulse rounded-2xl bg-white/[0.025]" />
+            <div className="h-28 animate-pulse rounded-2xl border border-zinc-200/70 bg-[#F8FAFC]" />
 
-            <div className="h-28 animate-pulse rounded-2xl bg-white/[0.025]" />
+            <div className="h-28 animate-pulse rounded-2xl border border-zinc-200/70 bg-[#F8FAFC]" />
           </div>
         </div>
       ))}
@@ -1836,7 +1868,7 @@ function QuestionsLoading({ theme }) {
 
 function FieldLabel({ children }) {
   return (
-    <label className="text-[12px] font-bold text-zinc-500">
+    <label className="text-[12px] font-bold text-zinc-700">
       {children}
     </label>
   );

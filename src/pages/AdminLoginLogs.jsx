@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { motion } from "framer-motion";
+
 import {
   CheckCircle2,
   ChevronDown,
@@ -225,10 +231,26 @@ export default function AdminLoginLogs() {
               opacity: 1,
               y: 0,
             }}
-            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 shadow-[0_10px_30px_rgba(24,24,27,0.07)] sm:p-6 lg:p-7"
           >
+            {/* ROLE GLOW */}
+
             <div
-              className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[110px]`}
+              className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full blur-[110px]"
+              style={{
+                backgroundColor: `${theme.accent}0D`,
+              }}
+            />
+
+            {/* SUBTLE GRID */}
+
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.025]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
+                backgroundSize: "32px 32px",
+              }}
             />
 
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -251,7 +273,7 @@ export default function AdminLoginLogs() {
                   </p>
                 </div>
 
-                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[32px] lg:text-[36px]">
+                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px] lg:text-[36px]">
                   Admin Login Logs
                 </h2>
 
@@ -262,9 +284,9 @@ export default function AdminLoginLogs() {
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <MiniBadge>
+                  <AccentBadge theme={theme}>
                     {filteredLogs.length} visible
-                  </MiniBadge>
+                  </AccentBadge>
 
                   <MiniBadge>
                     {logs.length} total
@@ -273,7 +295,7 @@ export default function AdminLoginLogs() {
               </div>
 
               <div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-sm"
                 style={{
                   borderColor: `${theme.accent}20`,
                   backgroundColor: theme.accentSoft,
@@ -335,14 +357,14 @@ export default function AdminLoginLogs() {
                   FILTERS
               ============================================== */}
 
-              <section className="mt-4 rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5">
+              <section className="mt-4 rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center">
                   {/* SEARCH */}
 
                   <div className="relative min-w-0 flex-1">
                     <Search
                       size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
                     />
 
                     <input
@@ -352,7 +374,7 @@ export default function AdminLoginLogs() {
                         setSearch(event.target.value)
                       }
                       placeholder="Search email, role, status, device or browser..."
-                      className="h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-10 pr-10 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-white/[0.14]"
+                      className="h-11 w-full rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-10 text-[13px] font-medium text-zinc-800 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                     />
 
                     {search && (
@@ -360,7 +382,7 @@ export default function AdminLoginLogs() {
                         type="button"
                         aria-label="Clear search"
                         onClick={() => setSearch("")}
-                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.05] hover:text-zinc-300"
+                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900"
                       >
                         <X size={14} />
                       </button>
@@ -383,7 +405,7 @@ export default function AdminLoginLogs() {
                       onChange={(event) =>
                         setRoleFilter(event.target.value)
                       }
-                      className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#141418] pl-10 pr-9 text-[12px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+                      className="h-11 w-full appearance-none rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-9 text-[12px] font-bold text-zinc-700 outline-none transition [color-scheme:light] hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                     >
                       <option value="all">
                         All Roles
@@ -400,7 +422,7 @@ export default function AdminLoginLogs() {
 
                     <ChevronDown
                       size={14}
-                      className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                      className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
                     />
                   </div>
                 </div>
@@ -408,8 +430,8 @@ export default function AdminLoginLogs() {
                 {/* ACTIVE FILTERS */}
 
                 {(search || roleFilter !== "all") && (
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-4">
-                    <span className="text-[11px] font-bold text-zinc-600">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-200/80 pt-4">
+                    <span className="text-[11px] font-bold text-zinc-500">
                       Active filters
                     </span>
 
@@ -438,7 +460,7 @@ export default function AdminLoginLogs() {
                     <button
                       type="button"
                       onClick={clearFilters}
-                      className="ml-auto text-[11px] font-black text-zinc-500 transition hover:text-white"
+                      className="ml-auto text-[11px] font-black text-zinc-500 transition hover:text-zinc-900"
                     >
                       Clear all
                     </button>
@@ -450,10 +472,10 @@ export default function AdminLoginLogs() {
                   LOGIN RECORDS
               ============================================== */}
 
-              <section className="mt-4 overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]">
+              <section className="mt-4 overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
                 {/* HEADER */}
 
-                <div className="flex flex-col gap-3 border-b border-white/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   <div>
                     <div className="flex items-center gap-2">
                       <Clock3
@@ -463,12 +485,12 @@ export default function AdminLoginLogs() {
                         }}
                       />
 
-                      <h3 className="text-[15px] font-black text-zinc-100">
+                      <h3 className="text-[15px] font-black text-zinc-900">
                         Login Records
                       </h3>
                     </div>
 
-                    <p className="mt-1 text-[12px] text-zinc-600">
+                    <p className="mt-1 text-[12px] text-zinc-500">
                       {filteredLogs.length} of {logs.length}{" "}
                       login records shown
                     </p>
@@ -477,7 +499,7 @@ export default function AdminLoginLogs() {
                   {/* PAGE SIZE */}
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-zinc-600">
+                    <span className="text-[11px] font-bold text-zinc-500">
                       Rows
                     </span>
 
@@ -489,16 +511,17 @@ export default function AdminLoginLogs() {
                             Number(event.target.value)
                           )
                         }
-                        className="h-9 appearance-none rounded-lg border border-white/[0.07] bg-[#141418] pl-3 pr-8 text-[11px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+                        className="h-9 appearance-none rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-3 pr-8 text-[11px] font-bold text-zinc-700 outline-none transition [color-scheme:light] hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                       >
                         <option value={10}>10</option>
+                        <option value={25}>25</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                       </select>
 
                       <ChevronDown
                         size={12}
-                        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
                       />
                     </div>
                   </div>
@@ -520,7 +543,7 @@ export default function AdminLoginLogs() {
                     </colgroup>
 
                     <thead>
-                      <tr className="border-b border-white/[0.05] bg-white/[0.015]">
+                      <tr className="border-b border-zinc-200/80 bg-[#F8FAFC]">
                         <TableHeading>
                           Email
                         </TableHeading>
@@ -574,7 +597,7 @@ export default function AdminLoginLogs() {
                     MOBILE / TABLET
                 ========================================== */}
 
-                <div className="divide-y divide-white/[0.05] lg:hidden">
+                <div className="divide-y divide-zinc-200/80 lg:hidden">
                   {filteredLogs.length === 0 ? (
                     <div className="p-6">
                       <EmptyLogs theme={theme} />
@@ -639,11 +662,21 @@ function LoginStatCard({
       whileHover={{
         y: -2,
       }}
-      className="min-w-0 rounded-[18px] border border-white/[0.055] bg-[#111114] p-4"
+      className="group relative min-w-0 overflow-hidden rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] transition duration-200 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.09)]"
     >
+      {/* HOVER GLOW */}
+
       <div
-        className="flex h-10 w-10 items-center justify-center rounded-xl"
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-0 blur-[45px] transition-opacity duration-200 group-hover:opacity-100"
         style={{
+          backgroundColor: `${theme.accent}0D`,
+        }}
+      />
+
+      <div
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl border"
+        style={{
+          borderColor: `${theme.accent}18`,
           backgroundColor: theme.accentSoft,
           color: theme.accent,
         }}
@@ -651,13 +684,20 @@ function LoginStatCard({
         <Icon size={17} />
       </div>
 
-      <p className="mt-4 text-[12px] font-bold leading-4 text-zinc-500">
+      <p className="relative mt-4 text-[12px] font-bold leading-4 text-zinc-500">
         {title}
       </p>
 
-      <p className="mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-100 sm:text-[32px]">
+      <p className="relative mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px]">
         {value}
       </p>
+
+      <div
+        className="absolute bottom-0 left-0 h-[2px] w-full opacity-40"
+        style={{
+          background: `linear-gradient(90deg, ${theme.accent}, transparent)`,
+        }}
+      />
     </motion.div>
   );
 }
@@ -671,7 +711,7 @@ function LoginLogRow({
   theme,
 }) {
   return (
-    <tr className="border-b border-white/[0.045] transition last:border-b-0 hover:bg-white/[0.018]">
+    <tr className="border-b border-zinc-200/70 bg-white transition last:border-b-0 hover:bg-[#F8FAFC]">
       {/* EMAIL */}
 
       <td className="px-3 py-4 pl-4 2xl:px-4">
@@ -710,7 +750,7 @@ function LoginLogRow({
 
       <td className="px-3 py-4 2xl:px-4">
         <p
-          className="truncate text-[12px] font-bold text-zinc-400"
+          className="truncate text-[12px] font-bold text-zinc-600"
           title={log.browser || "Unknown"}
         >
           {log.browser || "Unknown"}
@@ -737,7 +777,7 @@ function MobileLoginCard({
   theme,
 }) {
   return (
-    <article className="p-4 sm:p-5">
+    <article className="bg-white p-4 transition hover:bg-[#FCFCFD] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <EmailIdentity
           email={log.email}
@@ -749,7 +789,7 @@ function MobileLoginCard({
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl border border-white/[0.05] bg-white/[0.018] p-3.5">
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-zinc-200/80 bg-[#F8FAFC] p-3.5">
         <MobileDetail label="Role">
           <RoleBadge
             role={log.role}
@@ -765,7 +805,7 @@ function MobileLoginCard({
 
         <MobileDetail label="Browser">
           <p
-            className="truncate text-[12px] font-bold text-zinc-400"
+            className="truncate text-[12px] font-bold text-zinc-600"
             title={log.browser || "Unknown"}
           >
             {log.browser || "Unknown"}
@@ -801,7 +841,7 @@ function EmailIdentity({
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-[12px] font-black"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-[12px] font-black shadow-sm"
         style={{
           borderColor: `${theme.accent}18`,
           backgroundColor: theme.accentSoft,
@@ -813,13 +853,13 @@ function EmailIdentity({
 
       <div className="min-w-0">
         <p
-          className="truncate text-[13px] font-black text-zinc-200"
+          className="truncate text-[13px] font-black text-zinc-900"
           title={normalizedEmail || "Unknown"}
         >
           {normalizedEmail || "Unknown"}
         </p>
 
-        <p className="mt-0.5 text-[11px] text-zinc-600">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           Administrator
         </p>
       </div>
@@ -877,10 +917,11 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.04em] ${success
-          ? "border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-400"
-          : "border-red-500/15 bg-red-500/[0.07] text-red-400"
-        }`}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.04em] ${
+        success
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-red-200 bg-red-50 text-red-700"
+      }`}
     >
       {success ? (
         <CheckCircle2 size={11} />
@@ -922,11 +963,11 @@ function DeviceDisplay({
     <div className="flex min-w-0 items-center gap-2">
       <Icon
         size={13}
-        className="shrink-0 text-zinc-600"
+        className="shrink-0 text-zinc-400"
       />
 
       <span
-        className="truncate text-[12px] font-bold text-zinc-400"
+        className="truncate text-[12px] font-bold text-zinc-600"
         title={device || "Unknown"}
       >
         {device || "Unknown"}
@@ -944,7 +985,7 @@ function DateDisplay({
 }) {
   if (!date) {
     return (
-      <span className="text-[11px] text-zinc-600">
+      <span className="text-[11px] text-zinc-400">
         N/A
       </span>
     );
@@ -956,7 +997,7 @@ function DateDisplay({
     Number.isNaN(value.getTime())
   ) {
     return (
-      <span className="text-[11px] text-zinc-600">
+      <span className="text-[11px] text-zinc-400">
         N/A
       </span>
     );
@@ -983,11 +1024,11 @@ function DateDisplay({
 
   return (
     <div className="min-w-0">
-      <p className="truncate text-[11px] font-bold text-zinc-400">
+      <p className="truncate text-[11px] font-bold text-zinc-700">
         {dateText}
       </p>
 
-      <p className="mt-0.5 truncate text-[10px] text-zinc-600">
+      <p className="mt-0.5 truncate text-[10px] text-zinc-400">
         {timeText}
       </p>
     </div>
@@ -1003,8 +1044,8 @@ function MobileDetail({
   children,
 }) {
   return (
-    <div className="min-w-0">
-      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-600">
+    <div className="min-w-0 rounded-xl border border-zinc-200/70 bg-white p-3">
+      <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-zinc-400">
         {label}
       </p>
 
@@ -1041,7 +1082,7 @@ function FilterChip({
         type="button"
         aria-label={`Remove ${label} filter`}
         onClick={onRemove}
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-white/[0.08]"
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-black/[0.05]"
       >
         <X size={10} />
       </button>
@@ -1057,7 +1098,7 @@ function TableHeading({
   children,
 }) {
   return (
-    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-600 first:pl-4 last:pr-4 2xl:px-4">
+    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-500 first:pl-4 last:pr-4 2xl:px-4">
       {children}
     </th>
   );
@@ -1081,18 +1122,18 @@ function LoginPagination({
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-white/[0.05] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-[11px] font-bold text-zinc-600">
+    <div className="flex flex-col gap-3 border-t border-zinc-200/80 bg-[#FCFCFD] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-[11px] font-bold text-zinc-500">
         Showing{" "}
-        <span className="text-zinc-400">
+        <span className="font-black text-zinc-900">
           {firstVisible}
         </span>
         {" – "}
-        <span className="text-zinc-400">
+        <span className="font-black text-zinc-900">
           {lastVisible}
         </span>{" "}
         of{" "}
-        <span className="text-zinc-400">
+        <span className="font-black text-zinc-900">
           {totalItems}
         </span>
       </p>
@@ -1119,7 +1160,7 @@ function LoginPagination({
         </PaginationButton>
 
         <div
-          className="flex h-9 min-w-[76px] items-center justify-center rounded-lg border px-3 text-[11px] font-black"
+          className="flex h-9 min-w-[76px] items-center justify-center rounded-xl border px-3 text-[11px] font-black shadow-sm"
           style={{
             borderColor: `${theme.accent}20`,
             backgroundColor: theme.accentSoft,
@@ -1175,7 +1216,7 @@ function PaginationButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] text-zinc-400 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200/90 bg-white text-zinc-500 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
     >
       {children}
     </button>
@@ -1202,11 +1243,11 @@ function EmptyLogs({
         <LogIn size={17} />
       </div>
 
-      <p className="mt-3 text-[13px] font-black text-zinc-300">
+      <p className="mt-3 text-[13px] font-black text-zinc-800">
         No login logs found
       </p>
 
-      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-600">
+      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-500">
         Try adjusting your search or
         role filter.
       </p>
@@ -1222,7 +1263,29 @@ function MiniBadge({
   children,
 }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-1.5 text-[11px] font-bold text-zinc-500">
+    <span className="inline-flex items-center rounded-full border border-zinc-200/90 bg-[#F8FAFC] px-3 py-1.5 text-[11px] font-bold text-zinc-600">
+      {children}
+    </span>
+  );
+}
+
+/* ==========================================================
+   ACCENT BADGE
+========================================================== */
+
+function AccentBadge({
+  children,
+  theme,
+}) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-black"
+      style={{
+        borderColor: `${theme.accent}20`,
+        backgroundColor: theme.accentSoft,
+        color: theme.accent,
+      }}
+    >
       {children}
     </span>
   );
@@ -1245,66 +1308,102 @@ function LoginLogsLoading({
         }).map((_, index) => (
           <div
             key={index}
-            className="h-[138px] animate-pulse rounded-[18px] border border-white/[0.05] bg-[#111114] p-4"
+            className="h-[138px] animate-pulse rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.06)]"
           >
             <div
-              className="h-10 w-10 rounded-xl opacity-30"
+              className="h-10 w-10 rounded-xl border opacity-60"
               style={{
-                backgroundColor:
-                  theme.accentSoft,
+                borderColor: `${theme.accent}12`,
+                backgroundColor: theme.accentSoft,
               }}
             />
 
-            <div className="mt-4 h-3 w-24 rounded bg-white/[0.04]" />
+            <div className="mt-4 h-3 w-24 rounded-full bg-zinc-200/80" />
 
-            <div className="mt-3 h-7 w-16 rounded bg-white/[0.05]" />
+            <div className="mt-3 h-7 w-16 rounded-lg bg-zinc-200/70" />
           </div>
         ))}
       </div>
 
       {/* FILTERS */}
 
-      <div className="animate-pulse rounded-[22px] border border-white/[0.05] bg-[#111114] p-4 sm:p-5">
+      <div className="animate-pulse rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.06)] sm:p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
+          <div className="h-11 rounded-xl border border-zinc-100 bg-[#F8FAFC]" />
+
+          <div className="h-11 rounded-xl border border-zinc-100 bg-[#F8FAFC]" />
         </div>
       </div>
 
       {/* TABLE */}
 
-      <div className="overflow-hidden rounded-[22px] border border-white/[0.05] bg-[#111114]">
-        <div className="flex items-center justify-between border-b border-white/[0.04] p-5">
-          <div>
-            <div className="h-4 w-32 rounded bg-white/[0.05]" />
+      <div className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.06)]">
+        {/* HEADER */}
 
-            <div className="mt-2 h-3 w-48 rounded bg-white/[0.03]" />
+        <div className="flex items-center justify-between border-b border-zinc-200/80 p-5">
+          <div>
+            <div className="h-4 w-32 rounded-full bg-zinc-200/80" />
+
+            <div className="mt-2 h-3 w-48 rounded-full bg-zinc-100" />
           </div>
 
-          <div className="h-9 w-16 rounded-lg bg-white/[0.035]" />
+          <div className="h-9 w-16 rounded-xl bg-[#F8FAFC]" />
         </div>
 
-        <div className="space-y-1 p-4">
+        {/* DESKTOP TABLE HEADER */}
+
+        <div className="hidden h-11 items-center gap-4 border-b border-zinc-200/70 bg-[#F8FAFC] px-4 lg:flex">
+          <div className="h-2.5 w-[23%] rounded-full bg-zinc-200/70" />
+          <div className="h-2.5 w-[11%] rounded-full bg-zinc-200/70" />
+          <div className="h-2.5 w-[17%] rounded-full bg-zinc-200/70" />
+          <div className="h-2.5 w-[12%] rounded-full bg-zinc-200/70" />
+          <div className="h-2.5 w-[14%] rounded-full bg-zinc-200/70" />
+          <div className="h-2.5 w-[11%] rounded-full bg-zinc-200/70" />
+        </div>
+
+        {/* ROWS */}
+
+        <div className="divide-y divide-zinc-200/70">
           {Array.from({
             length: 7,
           }).map((_, index) => (
             <div
               key={index}
-              className="flex h-16 animate-pulse items-center gap-4 rounded-xl px-2"
+              className="flex h-[72px] animate-pulse items-center gap-4 px-4"
             >
-              <div className="h-9 w-9 shrink-0 rounded-xl bg-white/[0.04]" />
+              <div
+                className="h-9 w-9 shrink-0 rounded-xl border opacity-60"
+                style={{
+                  borderColor: `${theme.accent}10`,
+                  backgroundColor: theme.accentSoft,
+                }}
+              />
 
               <div className="min-w-0 flex-1">
-                <div className="h-3 w-40 rounded bg-white/[0.05]" />
+                <div className="h-3 w-40 max-w-full rounded-full bg-zinc-200/80" />
 
-                <div className="mt-2 h-2.5 w-24 rounded bg-white/[0.025]" />
+                <div className="mt-2 h-2.5 w-24 rounded-full bg-zinc-100" />
               </div>
 
-              <div className="hidden h-7 w-20 rounded-lg bg-white/[0.035] sm:block" />
+              <div className="hidden h-7 w-20 rounded-lg bg-[#F8FAFC] sm:block" />
 
-              <div className="hidden h-7 w-20 rounded-lg bg-white/[0.025] md:block" />
+              <div className="hidden h-7 w-24 rounded-lg bg-[#F8FAFC] md:block" />
+
+              <div className="hidden h-7 w-20 rounded-lg bg-[#F8FAFC] lg:block" />
             </div>
           ))}
+        </div>
+
+        {/* PAGINATION */}
+
+        <div className="flex items-center justify-between border-t border-zinc-200/80 bg-[#FCFCFD] px-4 py-4">
+          <div className="h-3 w-36 rounded-full bg-zinc-200/70" />
+
+          <div className="flex gap-2">
+            <div className="h-9 w-9 rounded-xl bg-zinc-100" />
+            <div className="h-9 w-20 rounded-xl bg-zinc-100" />
+            <div className="h-9 w-9 rounded-xl bg-zinc-100" />
+          </div>
         </div>
       </div>
     </div>

@@ -499,11 +499,12 @@ export default function AdminUsers() {
             toastOptions={{
               duration: 4000,
               style: {
-                background: "#141418",
-                color: "#f4f4f5",
+                background: "#FFFFFF",
+                color: "#18181B",
                 border:
-                  "1px solid rgba(255,255,255,0.08)",
+                  "1px solid #E4E4E7",
                 borderRadius: "14px",
+                boxShadow: "0 10px 30px rgba(24,24,27,0.10)",
               },
             }}
           />
@@ -521,10 +522,11 @@ export default function AdminUsers() {
               opacity: 1,
               y: 0,
             }}
-            className="relative overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#111114] p-5 sm:p-6 lg:p-7"
+            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white shadow-[0_10px_30px_rgba(24,24,27,0.07)] p-5 sm:p-6 lg:p-7"
           >
             <div
-              className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[110px]`}
+              className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full blur-[110px]"
+              style={{ backgroundColor: `${theme.accent}0D` }}
             />
 
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -547,7 +549,7 @@ export default function AdminUsers() {
                   </p>
                 </div>
 
-                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[32px] lg:text-[36px]">
+                <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px] lg:text-[36px]">
                   Admin Management
                 </h2>
 
@@ -653,8 +655,8 @@ export default function AdminUsers() {
                   INVITE ADMIN
               ============================================== */}
 
-              <section className="mt-4 overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]">
-                <div className="border-b border-white/[0.05] p-4 sm:p-5">
+              <section className="mt-4 overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_10px_30px_rgba(24,24,27,0.07)]">
+                <div className="border-b border-zinc-200/80 p-4 sm:p-5">
                   <div className="flex items-start gap-3">
                     <div
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -668,11 +670,11 @@ export default function AdminUsers() {
                     </div>
 
                     <div>
-                      <h3 className="text-[15px] font-black text-zinc-100">
+                      <h3 className="text-[15px] font-black text-zinc-900">
                         Send Admin Invitation
                       </h3>
 
-                      <p className="mt-1 text-[12px] leading-5 text-zinc-600">
+                      <p className="mt-1 text-[12px] leading-5 text-zinc-500">
                         Invite a new administrator and
                         assign their access role.
                       </p>
@@ -692,7 +694,7 @@ export default function AdminUsers() {
                       <div className="relative">
                         <UserCog
                           size={15}
-                          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500"
                         />
 
                         <input
@@ -704,7 +706,7 @@ export default function AdminUsers() {
                           }
                           placeholder="Full name"
                           autoComplete="name"
-                          className="h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-10 pr-4 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-white/[0.14]"
+                          className="h-11 w-full rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-4 text-[13px] font-medium text-zinc-800 outline-none transition placeholder:text-zinc-500 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                         />
                       </div>
                     </FormField>
@@ -716,7 +718,7 @@ export default function AdminUsers() {
                       <div className="relative">
                         <Mail
                           size={15}
-                          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500"
                         />
 
                         <input
@@ -728,7 +730,7 @@ export default function AdminUsers() {
                           }
                           placeholder="admin@example.com"
                           autoComplete="email"
-                          className="h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-10 pr-4 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-white/[0.14]"
+                          className="h-11 w-full rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-4 text-[13px] font-medium text-zinc-800 outline-none transition placeholder:text-zinc-500 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                         />
                       </div>
                     </FormField>
@@ -752,7 +754,7 @@ export default function AdminUsers() {
                           onChange={(event) =>
                             setRole(event.target.value)
                           }
-                          className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#141418] pl-10 pr-9 text-[12px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+                          className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#F8FAFC] pl-10 pr-9 text-[12px] font-bold text-zinc-700 outline-none transition hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                         >
                           <option value="admin">
                             Admin
@@ -765,7 +767,7 @@ export default function AdminUsers() {
 
                         <ChevronDown
                           size={14}
-                          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500"
                         />
                       </div>
                     </FormField>
@@ -798,14 +800,14 @@ export default function AdminUsers() {
                   FILTERS
               ============================================== */}
 
-              <section className="mt-4 rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5">
+              <section className="mt-4 rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_10px_30px_rgba(24,24,27,0.07)] p-4 sm:p-5">
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_200px_200px_200px]">
                   {/* SEARCH */}
 
                   <div className="relative min-w-0">
                     <Search
                       size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500"
                     />
 
                     <input
@@ -815,7 +817,7 @@ export default function AdminUsers() {
                         setSearch(event.target.value)
                       }
                       placeholder="Search name, email, role or invitation status..."
-                      className="h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-10 pr-10 text-[13px] font-medium text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-white/[0.14]"
+                      className="h-11 w-full rounded-xl border border-zinc-200/90 bg-[#F8FAFC] pl-10 pr-10 text-[13px] font-medium text-zinc-800 outline-none transition placeholder:text-zinc-500 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                     />
 
                     {search && (
@@ -823,7 +825,7 @@ export default function AdminUsers() {
                         type="button"
                         aria-label="Clear search"
                         onClick={() => setSearch("")}
-                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-white/[0.05] hover:text-zinc-300"
+                        className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700"
                       >
                         <X size={14} />
                       </button>
@@ -885,8 +887,8 @@ export default function AdminUsers() {
                 {/* ACTIVE FILTERS */}
 
                 {(search || activeFilterCount > 0) && (
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.05] pt-4">
-                    <span className="text-[11px] font-bold text-zinc-600">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-200/80 pt-4">
+                    <span className="text-[11px] font-bold text-zinc-500">
                       Active filters
                     </span>
 
@@ -955,10 +957,10 @@ export default function AdminUsers() {
                   ADMIN USERS
               ============================================== */}
 
-              <section className="mt-4 overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#111114]">
+              <section className="mt-4 overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_10px_30px_rgba(24,24,27,0.07)]">
                 {/* HEADER */}
 
-                <div className="flex flex-col gap-3 border-b border-white/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   <div>
                     <div className="flex items-center gap-2">
                       <UsersRound
@@ -968,12 +970,12 @@ export default function AdminUsers() {
                         }}
                       />
 
-                      <h3 className="text-[15px] font-black text-zinc-100">
+                      <h3 className="text-[15px] font-black text-zinc-900">
                         Admin Users
                       </h3>
                     </div>
 
-                    <p className="mt-1 text-[12px] text-zinc-600">
+                    <p className="mt-1 text-[12px] text-zinc-500">
                       {filteredAdmins.length} of{" "}
                       {admins.length} administrator
                       accounts shown
@@ -983,7 +985,7 @@ export default function AdminUsers() {
                   {/* PAGE SIZE */}
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-zinc-600">
+                    <span className="text-[11px] font-bold text-zinc-500">
                       Rows
                     </span>
 
@@ -995,7 +997,7 @@ export default function AdminUsers() {
                             Number(event.target.value)
                           )
                         }
-                        className="h-9 appearance-none rounded-lg border border-white/[0.07] bg-[#141418] pl-3 pr-8 text-[11px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+                        className="h-9 appearance-none rounded-lg border border-white/[0.07] bg-[#F8FAFC] pl-3 pr-8 text-[11px] font-bold text-zinc-700 outline-none transition hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
                       >
                         <option value={10}>10</option>
                         <option value={50}>50</option>
@@ -1004,7 +1006,7 @@ export default function AdminUsers() {
 
                       <ChevronDown
                         size={12}
-                        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500"
                       />
                     </div>
                   </div>
@@ -1027,7 +1029,7 @@ export default function AdminUsers() {
                     </colgroup>
 
                     <thead>
-                      <tr className="border-b border-white/[0.05] bg-white/[0.015]">
+                      <tr className="border-b border-zinc-200/80 bg-[#F8FAFC]">
                         <TableHeading>
                           Administrator
                         </TableHeading>
@@ -1098,7 +1100,7 @@ export default function AdminUsers() {
                     MOBILE / TABLET
                 ========================================== */}
 
-                <div className="divide-y divide-white/[0.05] xl:hidden">
+                <div className="divide-y divide-zinc-200/80 xl:hidden">
                   {filteredAdmins.length === 0 ? (
                     <div className="p-6">
                       <EmptyAdmins theme={theme} />
@@ -1187,7 +1189,7 @@ function AdminStatCard({
       whileHover={{
         y: -2,
       }}
-      className="min-w-0 rounded-[18px] border border-white/[0.055] bg-[#111114] p-4"
+      className="group relative min-w-0 overflow-hidden rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] transition duration-200 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.09)]"
     >
       <div
         className="flex h-10 w-10 items-center justify-center rounded-xl"
@@ -1203,7 +1205,7 @@ function AdminStatCard({
         {title}
       </p>
 
-      <p className="mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-100 sm:text-[32px]">
+      <p className="mt-1.5 text-[30px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px]">
         {value}
       </p>
     </motion.div>
@@ -1223,7 +1225,7 @@ function FormField({
     <div className="min-w-0">
       <label
         htmlFor={htmlFor}
-        className="mb-2 block text-[11px] font-black uppercase tracking-[0.08em] text-zinc-600"
+        className="mb-2 block text-[11px] font-black uppercase tracking-[0.08em] text-zinc-500"
       >
         {label}
       </label>
@@ -1259,14 +1261,14 @@ function FilterSelect({
         onChange={(event) =>
           onChange(event.target.value)
         }
-        className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#141418] pl-10 pr-9 text-[12px] font-bold text-zinc-300 outline-none transition focus:border-white/[0.14]"
+        className="h-11 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#F8FAFC] pl-10 pr-9 text-[12px] font-bold text-zinc-700 outline-none transition hover:border-zinc-300 focus:border-zinc-400 focus:bg-white"
       >
         {children}
       </select>
 
       <ChevronDown
         size={14}
-        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600"
+        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500"
       />
     </div>
   );
@@ -1298,7 +1300,7 @@ function FilterChip({
         type="button"
         aria-label={`Remove ${label} filter`}
         onClick={onRemove}
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-white/[0.08]"
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition hover:bg-black/[0.05]"
       >
         <X size={10} />
       </button>
@@ -1314,7 +1316,7 @@ function TableHeading({
   children,
 }) {
   return (
-    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-600 first:pl-4 last:pr-4 2xl:px-4">
+    <th className="px-3 py-3.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-zinc-500 first:pl-4 last:pr-4 2xl:px-4">
       {children}
     </th>
   );
@@ -1336,7 +1338,7 @@ function AdminRow({
     admin.id === currentUserId;
 
   return (
-    <tr className="border-b border-white/[0.045] transition last:border-b-0 hover:bg-white/[0.018]">
+    <tr className="border-b border-zinc-200/70 transition last:border-b-0 hover:bg-[#F8FAFC]">
       {/* ADMIN */}
 
       <td className="px-3 py-4 pl-4 2xl:px-4">
@@ -1441,7 +1443,7 @@ function MobileAdminCard({
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-white/[0.05] bg-white/[0.018] p-3.5">
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-white/[0.05] bg-[#F8FAFC] p-3.5">
         <MobileDetail label="Invited">
           <DateDisplay
             date={admin.invited_at}
@@ -1506,7 +1508,7 @@ function AdminIdentity({
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
           <p
-            className="truncate text-[13px] font-black text-zinc-200"
+            className="truncate text-[13px] font-black text-zinc-800"
             title={name}
           >
             {name}
@@ -1528,7 +1530,7 @@ function AdminIdentity({
         </div>
 
         <p
-          className="mt-0.5 truncate text-[11px] text-zinc-600"
+          className="mt-0.5 truncate text-[11px] text-zinc-500"
           title={email}
         >
           {email}
@@ -1583,8 +1585,8 @@ function AccountBadge({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.04em] ${active
-          ? "border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-400"
-          : "border-red-500/15 bg-red-500/[0.07] text-red-400"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-red-200 bg-red-50 text-red-700"
         }`}
     >
       {active ? (
@@ -1614,8 +1616,8 @@ function InviteBadge({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.04em] ${accepted
-          ? "border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-400"
-          : "border-amber-500/15 bg-amber-500/[0.07] text-amber-400"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-amber-200 bg-amber-50 text-amber-700"
         }`}
     >
       {accepted ? (
@@ -1647,7 +1649,7 @@ function AdminActions({
         className={`${mobile ? "w-full" : "inline-flex"
           }`}
       >
-        <span className="inline-flex h-9 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 text-[10px] font-black uppercase tracking-[0.04em] text-zinc-600">
+        <span className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200/90 bg-[#F8FAFC] px-3 text-[10px] font-black uppercase tracking-[0.04em] text-zinc-500">
           Current User
         </span>
       </div>
@@ -1667,8 +1669,8 @@ function AdminActions({
         onClick={() => onToggle(admin)}
         className={`flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-[10px] font-black uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50 ${mobile ? "flex-1" : ""
           } ${admin.is_active
-            ? "border-amber-500/15 bg-amber-500/[0.07] text-amber-400 hover:bg-amber-500/[0.12]"
-            : "border-emerald-500/15 bg-emerald-500/[0.07] text-emerald-400 hover:bg-emerald-500/[0.12]"
+            ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-500/[0.12]"
+            : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-500/[0.12]"
           }`}
       >
         {updating ? (
@@ -1690,7 +1692,7 @@ function AdminActions({
         type="button"
         disabled={updating}
         onClick={() => onDelete(admin)}
-        className={`flex h-9 items-center justify-center gap-1.5 rounded-lg border border-red-500/15 bg-red-500/[0.07] px-3 text-[10px] font-black uppercase tracking-[0.04em] text-red-400 transition hover:bg-red-500/[0.12] disabled:cursor-not-allowed disabled:opacity-50 ${mobile ? "flex-1" : ""
+        className={`flex h-9 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-[10px] font-black uppercase tracking-[0.04em] text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 ${mobile ? "flex-1" : ""
           }`}
       >
         <Trash2 size={12} />
@@ -1709,7 +1711,7 @@ function DateDisplay({
 }) {
   if (!date) {
     return (
-      <span className="text-[11px] text-zinc-600">
+      <span className="text-[11px] text-zinc-500">
         N/A
       </span>
     );
@@ -1719,7 +1721,7 @@ function DateDisplay({
 
   if (Number.isNaN(value.getTime())) {
     return (
-      <span className="text-[11px] text-zinc-600">
+      <span className="text-[11px] text-zinc-500">
         N/A
       </span>
     );
@@ -1740,11 +1742,11 @@ function DateDisplay({
 
   return (
     <div className="min-w-0">
-      <p className="truncate text-[11px] font-bold text-zinc-400">
+      <p className="truncate text-[11px] font-bold text-zinc-500">
         {dateText}
       </p>
 
-      <p className="mt-0.5 truncate text-[10px] text-zinc-600">
+      <p className="mt-0.5 truncate text-[10px] text-zinc-500">
         {timeText}
       </p>
     </div>
@@ -1761,7 +1763,7 @@ function MobileDetail({
 }) {
   return (
     <div className="min-w-0">
-      <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-zinc-600">
+      <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </p>
 
@@ -1790,18 +1792,18 @@ function AdminPagination({
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-white/[0.05] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-[11px] font-bold text-zinc-600">
+    <div className="flex flex-col gap-3 border-t border-zinc-200/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-[11px] font-bold text-zinc-500">
         Showing{" "}
-        <span className="text-zinc-400">
+        <span className="text-zinc-500">
           {firstVisible}
         </span>
         {" – "}
-        <span className="text-zinc-400">
+        <span className="text-zinc-500">
           {lastVisible}
         </span>{" "}
         of{" "}
-        <span className="text-zinc-400">
+        <span className="text-zinc-500">
           {totalItems}
         </span>
       </p>
@@ -1882,7 +1884,7 @@ function PaginationButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] text-zinc-400 transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.06] bg-[#F8FAFC] text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-100 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
     >
       {children}
     </button>
@@ -2020,7 +2022,7 @@ function AccessState({
   description,
 }) {
   return (
-    <section className="mt-4 flex min-h-[360px] items-center justify-center rounded-[22px] border border-white/[0.06] bg-[#111114] p-6">
+    <section className="mt-4 flex min-h-[360px] items-center justify-center rounded-[22px] border border-zinc-200/90 bg-white p-6 shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
       <div className="max-w-md text-center">
         <div
           className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border"
@@ -2033,11 +2035,11 @@ function AccessState({
           <Icon size={19} />
         </div>
 
-        <h3 className="mt-4 text-[17px] font-black text-zinc-200">
+        <h3 className="mt-4 text-[17px] font-black text-zinc-900">
           {title}
         </h3>
 
-        <p className="mt-2 text-[13px] leading-6 text-zinc-600">
+        <p className="mt-2 text-[13px] leading-6 text-zinc-500">
           {description}
         </p>
       </div>
@@ -2065,11 +2067,11 @@ function EmptyAdmins({
         <UsersRound size={17} />
       </div>
 
-      <p className="mt-3 text-[13px] font-black text-zinc-300">
+      <p className="mt-3 text-[13px] font-black text-zinc-800">
         No administrators found
       </p>
 
-      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-600">
+      <p className="mt-1 max-w-xs text-[12px] leading-5 text-zinc-500">
         Try adjusting your search or filter
         selection.
       </p>
@@ -2085,7 +2087,7 @@ function MiniBadge({
   children,
 }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-1.5 text-[11px] font-bold text-zinc-500">
+    <span className="inline-flex items-center rounded-full border border-zinc-200/90 bg-[#F8FAFC] px-3 py-1.5 text-[11px] font-bold text-zinc-600">
       {children}
     </span>
   );
@@ -2118,7 +2120,7 @@ function AdminUsersLoading({
         }).map((_, index) => (
           <div
             key={index}
-            className="h-[138px] animate-pulse rounded-[18px] border border-white/[0.05] bg-[#111114] p-4"
+            className="h-[138px] animate-pulse rounded-[18px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)] p-4"
           >
             <div
               className="h-10 w-10 rounded-xl opacity-30"
@@ -2128,52 +2130,52 @@ function AdminUsersLoading({
               }}
             />
 
-            <div className="mt-4 h-3 w-24 rounded bg-white/[0.04]" />
+            <div className="mt-4 h-3 w-24 rounded bg-zinc-200/80" />
 
-            <div className="mt-3 h-7 w-16 rounded bg-white/[0.05]" />
+            <div className="mt-3 h-7 w-16 rounded bg-zinc-200/70" />
           </div>
         ))}
       </div>
 
       {/* INVITE FORM */}
 
-      <div className="animate-pulse overflow-hidden rounded-[22px] border border-white/[0.05] bg-[#111114]">
-        <div className="border-b border-white/[0.04] p-5">
-          <div className="h-4 w-40 rounded bg-white/[0.05]" />
+      <div className="animate-pulse overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
+        <div className="border-b border-zinc-200/80 p-5">
+          <div className="h-4 w-40 rounded bg-zinc-200/70" />
 
-          <div className="mt-2 h-3 w-64 max-w-full rounded bg-white/[0.03]" />
+          <div className="mt-2 h-3 w-64 max-w-full rounded bg-zinc-100" />
         </div>
 
         <div className="grid grid-cols-1 gap-4 p-5 lg:grid-cols-4">
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.05]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-zinc-200/70" />
         </div>
       </div>
 
       {/* FILTERS */}
 
-      <div className="animate-pulse rounded-[22px] border border-white/[0.05] bg-[#111114] p-4 sm:p-5">
+      <div className="animate-pulse rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)] p-4 sm:p-5">
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-4">
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
-          <div className="h-11 rounded-xl bg-white/[0.035]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
+          <div className="h-11 rounded-xl bg-[#F8FAFC]" />
         </div>
       </div>
 
       {/* USERS */}
 
-      <div className="overflow-hidden rounded-[22px] border border-white/[0.05] bg-[#111114]">
-        <div className="flex items-center justify-between border-b border-white/[0.04] p-5">
+      <div className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
+        <div className="flex items-center justify-between border-b border-zinc-200/80 p-5">
           <div>
-            <div className="h-4 w-28 rounded bg-white/[0.05]" />
+            <div className="h-4 w-28 rounded bg-zinc-200/70" />
 
-            <div className="mt-2 h-3 w-48 rounded bg-white/[0.03]" />
+            <div className="mt-2 h-3 w-48 rounded bg-zinc-100" />
           </div>
 
-          <div className="h-9 w-16 rounded-lg bg-white/[0.035]" />
+          <div className="h-9 w-16 rounded-lg bg-[#F8FAFC]" />
         </div>
 
         <div className="space-y-1 p-4">
@@ -2184,17 +2186,17 @@ function AdminUsersLoading({
               key={index}
               className="flex h-16 animate-pulse items-center gap-4 rounded-xl px-2"
             >
-              <div className="h-10 w-10 shrink-0 rounded-xl bg-white/[0.04]" />
+              <div className="h-10 w-10 shrink-0 rounded-xl bg-zinc-200/80" />
 
               <div className="min-w-0 flex-1">
-                <div className="h-3 w-32 rounded bg-white/[0.05]" />
+                <div className="h-3 w-32 rounded bg-zinc-200/70" />
 
-                <div className="mt-2 h-2.5 w-44 max-w-full rounded bg-white/[0.025]" />
+                <div className="mt-2 h-2.5 w-44 max-w-full rounded bg-[#F8FAFC]" />
               </div>
 
-              <div className="hidden h-7 w-20 rounded-lg bg-white/[0.035] sm:block" />
+              <div className="hidden h-7 w-20 rounded-lg bg-[#F8FAFC] sm:block" />
 
-              <div className="hidden h-7 w-20 rounded-lg bg-white/[0.025] lg:block" />
+              <div className="hidden h-7 w-20 rounded-lg bg-[#F8FAFC] lg:block" />
             </div>
           ))}
         </div>

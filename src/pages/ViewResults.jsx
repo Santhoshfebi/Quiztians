@@ -75,7 +75,7 @@ export default function ViewResults() {
   ======================================================== */
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
 
   /* ========================================================
      FETCH RESULTS

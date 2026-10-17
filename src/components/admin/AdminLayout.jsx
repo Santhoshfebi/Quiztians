@@ -376,35 +376,35 @@ export default function AdminLayout({
     // =========================================================
 
     return (
-        <div className="min-h-screen bg-[#09090B] text-white">
+        <div className="min-h-screen bg-[#F5F6F8] text-zinc-900">
             {/* =====================================================
-          HIDE WEBKIT SCROLLBARS
-      ===================================================== */}
+                HIDE WEBKIT SCROLLBARS
+            ===================================================== */}
 
             <style>
                 {`
-          .admin-hidden-scrollbar {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-          }
+                    .admin-hidden-scrollbar {
+                        scrollbar-width: none;
+                        -ms-overflow-style: none;
+                    }
 
-          .admin-hidden-scrollbar::-webkit-scrollbar {
-            display: none;
-            width: 0;
-            height: 0;
-          }
-        `}
+                    .admin-hidden-scrollbar::-webkit-scrollbar {
+                        display: none;
+                        width: 0;
+                        height: 0;
+                    }
+                `}
             </style>
 
             {/* =====================================================
-          BACKGROUND
-      ===================================================== */}
+                BACKGROUND
+            ===================================================== */}
 
             <AdminBackground theme={theme} />
 
             {/* =====================================================
-          DESKTOP SIDEBAR
-      ===================================================== */}
+                DESKTOP SIDEBAR
+            ===================================================== */}
 
             <DesktopSidebar
                 user={user}
@@ -417,8 +417,8 @@ export default function AdminLayout({
             />
 
             {/* =====================================================
-          MOBILE DRAWER
-      ===================================================== */}
+                MOBILE DRAWER
+            ===================================================== */}
 
             <AnimatePresence>
                 {mobileMenuOpen && (
@@ -436,13 +436,13 @@ export default function AdminLayout({
             </AnimatePresence>
 
             {/* =====================================================
-          MAIN
-      ===================================================== */}
+                MAIN
+            ===================================================== */}
 
             <div className="relative min-h-screen lg:pl-[270px]">
                 {/* ===================================================
-            HEADER
-        =================================================== */}
+                    HEADER
+                =================================================== */}
 
                 {showHeader && (
                     <AdminHeader
@@ -458,8 +458,8 @@ export default function AdminLayout({
                 )}
 
                 {/* ===================================================
-            PAGE CONTENT
-        =================================================== */}
+                    PAGE CONTENT
+                =================================================== */}
 
                 <main
                     className={`mx-auto w-full max-w-[1500px] px-4 pb-32 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pb-10 lg:pt-8 xl:px-10 ${contentClassName}`}
@@ -477,8 +477,8 @@ export default function AdminLayout({
             </div>
 
             {/* =====================================================
-          MOBILE BOTTOM NAVIGATION
-      ===================================================== */}
+                MOBILE BOTTOM NAVIGATION
+            ===================================================== */}
 
             <MobileBottomNav
                 theme={theme}
@@ -489,8 +489,8 @@ export default function AdminLayout({
             />
 
             {/* =====================================================
-          ADMIN CHATBOT
-      ===================================================== */}
+                ADMIN CHATBOT
+            ===================================================== */}
 
             <AdminChatBot
                 theme={theme}
@@ -507,17 +507,26 @@ export default function AdminLayout({
 function AdminBackground({ theme }) {
     return (
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
+            {/* ROLE ACCENT GLOW */}
+
             <div
-                className={`absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full ${theme.glow} blur-[160px]`}
+                className="absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full blur-[170px]"
+                style={{
+                    backgroundColor: `${theme.accent}0D`,
+                }}
             />
 
-            <div className="absolute -bottom-48 right-[-120px] h-[520px] w-[520px] rounded-full bg-indigo-600/[0.035] blur-[170px]" />
+            {/* SECONDARY GLOW */}
+
+            <div className="absolute -bottom-48 right-[-120px] h-[520px] w-[520px] rounded-full bg-indigo-400/[0.04] blur-[170px]" />
+
+            {/* LIGHT GRID */}
 
             <div
-                className="absolute inset-0 opacity-[0.018]"
+                className="absolute inset-0 opacity-[0.025]"
                 style={{
                     backgroundImage:
-                        "linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.45) 1px, transparent 1px)",
+                        "linear-gradient(rgba(24,24,27,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.22) 1px, transparent 1px)",
                     backgroundSize: "44px 44px",
                 }}
             />
@@ -539,12 +548,12 @@ function DesktopSidebar({
     onLogout,
 }) {
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 hidden w-[270px] border-r border-white/[0.06] bg-[#0D0D10]/95 backdrop-blur-xl lg:flex lg:flex-col">
+        <aside className="fixed inset-y-0 left-0 z-50 hidden w-[270px] border-r border-zinc-200/80 bg-white/95 shadow-[8px_0_30px_rgba(24,24,27,0.025)] backdrop-blur-xl lg:flex lg:flex-col">
             {/* =====================================================
-          BRAND
-      ===================================================== */}
+                BRAND
+            ===================================================== */}
 
-            <div className="shrink-0 border-b border-white/[0.05] px-6 py-6">
+            <div className="shrink-0 border-b border-zinc-200/70 px-6 py-6">
                 <img
                     src={WORDMARK_LOGO}
                     alt="QUIZTIANS"
@@ -559,30 +568,27 @@ function DesktopSidebar({
                         }}
                     />
 
-                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-600">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">
                         Admin Console
                     </p>
                 </div>
             </div>
 
             {/* =====================================================
-          NAVIGATION
-
-          Scroll is enabled, scrollbar is hidden.
-      ===================================================== */}
+                NAVIGATION
+            ===================================================== */}
 
             <nav
                 className="admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-5"
                 style={hiddenScrollbarStyle}
             >
-                <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600">
+                <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">
                     Workspace
                 </p>
 
                 <div className="space-y-1">
                     {navItems.map((item) => {
                         const Icon = item.icon;
-
                         const active = isRouteActive(item.route);
 
                         return (
@@ -591,9 +597,14 @@ function DesktopSidebar({
                                 type="button"
                                 onClick={() => onNavigate(item.route)}
                                 className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
-                                        ? "bg-white/[0.055] text-white"
-                                        : "text-zinc-500 hover:bg-white/[0.025] hover:text-zinc-200"
+                                        ? "bg-zinc-100/90"
+                                        : "text-zinc-900 hover:bg-zinc-100/70"
                                     }`}
+                                style={{
+                                    color: active
+                                        ? theme.accent
+                                        : undefined,
+                                }}
                             >
                                 {/* ACTIVE INDICATOR */}
 
@@ -602,7 +613,8 @@ function DesktopSidebar({
                                         layoutId="desktop-admin-active-nav"
                                         className="absolute bottom-2 left-0 top-2 w-[2px] rounded-r-full"
                                         style={{
-                                            backgroundColor: theme.accent,
+                                            backgroundColor:
+                                                theme.accent,
                                         }}
                                     />
                                 )}
@@ -611,17 +623,19 @@ function DesktopSidebar({
 
                                 <div
                                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${active
-                                            ? "bg-white/[0.05]"
-                                            : "group-hover:bg-white/[0.035]"
+                                            ? "bg-white shadow-sm"
+                                            : "group-hover:bg-white"
                                         }`}
                                 >
                                     <Icon
                                         size={17}
-                                        strokeWidth={1.8}
+                                        strokeWidth={
+                                            active ? 2.2 : 1.8
+                                        }
                                         style={{
                                             color: active
                                                 ? theme.accent
-                                                : undefined,
+                                                : "#18181B",
                                         }}
                                     />
                                 </div>
@@ -637,7 +651,9 @@ function DesktopSidebar({
                                 {active && (
                                     <ChevronRight
                                         size={14}
-                                        className="text-zinc-600"
+                                        style={{
+                                            color: theme.accent,
+                                        }}
                                     />
                                 )}
                             </button>
@@ -647,8 +663,8 @@ function DesktopSidebar({
             </nav>
 
             {/* =====================================================
-          USER CARD
-      ===================================================== */}
+                USER CARD
+            ===================================================== */}
 
             <SidebarUserCard
                 user={user}
@@ -676,8 +692,8 @@ function SidebarUserCard({
             : "Administrator";
 
     return (
-        <div className="shrink-0 border-t border-white/[0.05] p-4">
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4">
+        <div className="shrink-0 border-t border-zinc-200/70 p-4">
+            <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 shadow-sm">
                 <div className="flex items-center gap-3">
                     {/* ROLE ICON */}
 
@@ -699,11 +715,12 @@ function SidebarUserCard({
                     {/* USER */}
 
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-bold text-zinc-200">
-                            {user?.user_metadata?.full_name || roleLabel}
+                        <p className="truncate text-[13px] font-bold text-zinc-800">
+                            {user?.user_metadata?.full_name ||
+                                roleLabel}
                         </p>
 
-                        <p className="mt-1 truncate text-[11px] text-zinc-600">
+                        <p className="mt-1 truncate text-[11px] text-zinc-500">
                             {user?.email}
                         </p>
                     </div>
@@ -714,10 +731,9 @@ function SidebarUserCard({
                 <button
                     type="button"
                     onClick={onLogout}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/10 bg-red-500/[0.035] py-2.5 text-[12px] font-bold text-red-400/70 transition hover:border-red-500/20 hover:bg-red-500/[0.06] hover:text-red-400"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-2.5 text-[12px] font-bold text-red-500 transition hover:border-red-300 hover:bg-red-100 hover:text-red-600"
                 >
                     <LogOut size={14} />
-
                     Sign Out
                 </button>
             </div>
@@ -742,18 +758,18 @@ function AdminHeader({
     const isSuperAdmin = role === "superadmin";
 
     return (
-        <header className="sticky top-0 z-40 border-b border-white/[0.055] bg-[#09090B]/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/85 shadow-[0_1px_18px_rgba(24,24,27,0.025)] backdrop-blur-xl">
             <div className="flex h-[70px] items-center justify-between px-4 sm:px-6 lg:h-[76px] lg:px-8 xl:px-10">
                 {/* ===================================================
-            MOBILE LEFT
-        =================================================== */}
+                    MOBILE LEFT
+                =================================================== */}
 
                 <div className="flex min-w-0 items-center gap-3 lg:hidden">
                     <button
                         type="button"
                         onClick={onOpenMenu}
                         aria-label="Open navigation"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-400 transition hover:bg-white/[0.05] hover:text-white"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
                     >
                         <Menu size={19} />
                     </button>
@@ -765,41 +781,41 @@ function AdminHeader({
                     />
 
                     <div className="min-w-0">
-                        <p className="truncate text-[14px] font-black tracking-[0.04em] text-white">
+                        <p className="truncate text-[14px] font-black tracking-[0.04em] text-zinc-900">
                             {title}
                         </p>
 
-                        <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-600">
+                        <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500">
                             {eyebrow}
                         </p>
                     </div>
                 </div>
 
                 {/* ===================================================
-            DESKTOP LEFT
-        =================================================== */}
+                    DESKTOP LEFT
+                =================================================== */}
 
                 <div className="hidden lg:block">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-600">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500">
                         {eyebrow}
                     </p>
 
-                    <h1 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-zinc-100">
+                    <h1 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-zinc-900">
                         {title}
                     </h1>
                 </div>
 
                 {/* ===================================================
-            RIGHT
-        =================================================== */}
+                    RIGHT
+                =================================================== */}
 
                 <div className="flex items-center gap-2 sm:gap-3">
                     {/* LAST LOGIN */}
 
-                    <div className="hidden items-center gap-2 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3.5 py-2.5 sm:flex">
+                    <div className="hidden items-center gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-3.5 py-2.5 sm:flex">
                         <Clock3
                             size={14}
-                            className="text-zinc-600"
+                            className="text-zinc-400"
                         />
 
                         <span className="text-[11px] font-medium text-zinc-500">
@@ -811,7 +827,12 @@ function AdminHeader({
                     {/* ROLE */}
 
                     <div
-                        className={`hidden rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] sm:block ${theme.badge}`}
+                        className="hidden rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] sm:block"
+                        style={{
+                            color: theme.accent,
+                            borderColor: `${theme.accent}25`,
+                            backgroundColor: theme.accentSoft,
+                        }}
                     >
                         {isSuperAdmin ? "Superadmin" : "Admin"}
                     </div>
@@ -822,7 +843,7 @@ function AdminHeader({
                         type="button"
                         onClick={onLogout}
                         aria-label="Sign out"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-500 transition hover:border-red-500/15 hover:bg-red-500/[0.04] hover:text-red-400 lg:hidden"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-500 lg:hidden"
                     >
                         <LogOut size={17} />
                     </button>
@@ -844,10 +865,10 @@ function MobileBottomNav({
     onOpenMenu,
 }) {
     /*
-      Only the most important destinations stay permanently
-      visible in the mobile bottom navigation.
-  
-      The remaining destinations are accessible through "More".
+        Only the most important destinations stay permanently
+        visible in the mobile bottom navigation.
+
+        The remaining destinations are accessible through "More".
     */
 
     const primaryRoutes = [
@@ -868,11 +889,10 @@ function MobileBottomNav({
     );
 
     return (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06] bg-[#0B0B0E]/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/80 bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(24,24,27,0.04)] backdrop-blur-xl lg:hidden">
             <div className="mx-auto flex max-w-xl items-center">
                 {primaryItems.map((item) => {
                     const Icon = item.icon;
-
                     const active = isRouteActive(item.route);
 
                     return (
@@ -889,7 +909,8 @@ function MobileBottomNav({
                                     layoutId="mobile-admin-active-nav"
                                     className="absolute inset-0 rounded-xl border"
                                     style={{
-                                        backgroundColor: theme.accentSoft,
+                                        backgroundColor:
+                                            theme.accentSoft,
                                         borderColor: `${theme.accent}20`,
                                     }}
                                 />
@@ -899,12 +920,14 @@ function MobileBottomNav({
 
                             <Icon
                                 size={19}
-                                strokeWidth={active ? 2.2 : 1.8}
+                                strokeWidth={
+                                    active ? 2.2 : 1.8
+                                }
                                 className="relative"
                                 style={{
                                     color: active
                                         ? theme.accent
-                                        : "#71717A",
+                                        : "#18181B",
                                 }}
                             />
 
@@ -915,7 +938,7 @@ function MobileBottomNav({
                                 style={{
                                     color: active
                                         ? theme.accent
-                                        : "#71717A",
+                                        : "#18181B",
                                 }}
                             >
                                 {item.shortLabel}
@@ -925,8 +948,8 @@ function MobileBottomNav({
                 })}
 
                 {/* ===================================================
-            MORE
-        =================================================== */}
+                    MORE
+                =================================================== */}
 
                 <button
                     type="button"
@@ -937,7 +960,8 @@ function MobileBottomNav({
                         <div
                             className="absolute inset-0 rounded-xl border"
                             style={{
-                                backgroundColor: theme.accentSoft,
+                                backgroundColor:
+                                    theme.accentSoft,
                                 borderColor: `${theme.accent}20`,
                             }}
                         />
@@ -945,12 +969,14 @@ function MobileBottomNav({
 
                     <Menu
                         size={19}
-                        strokeWidth={!primaryActive ? 2.2 : 1.8}
+                        strokeWidth={
+                            !primaryActive ? 2.2 : 1.8
+                        }
                         className="relative"
                         style={{
                             color: !primaryActive
                                 ? theme.accent
-                                : "#71717A",
+                                : "#18181B",
                         }}
                     />
 
@@ -959,7 +985,7 @@ function MobileBottomNav({
                         style={{
                             color: !primaryActive
                                 ? theme.accent
-                                : "#71717A",
+                                : "#18181B",
                         }}
                     >
                         More
@@ -994,8 +1020,8 @@ function MobileDrawer({
             className="fixed inset-0 z-[100] lg:hidden"
         >
             {/* =====================================================
-          BACKDROP
-      ===================================================== */}
+                BACKDROP
+            ===================================================== */}
 
             <motion.button
                 type="button"
@@ -1004,12 +1030,12 @@ function MobileDrawer({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/35 backdrop-blur-sm"
             />
 
             {/* =====================================================
-          DRAWER
-      ===================================================== */}
+                DRAWER
+            ===================================================== */}
 
             <motion.aside
                 initial={{ x: "-100%" }}
@@ -1020,13 +1046,13 @@ function MobileDrawer({
                     stiffness: 320,
                     damping: 32,
                 }}
-                className="absolute inset-y-0 left-0 flex w-[min(86vw,330px)] flex-col border-r border-white/[0.07] bg-[#0D0D10] shadow-2xl"
+                className="absolute inset-y-0 left-0 flex w-[min(86vw,330px)] flex-col border-r border-zinc-200 bg-white shadow-2xl"
             >
                 {/* ===================================================
-            DRAWER HEADER
-        =================================================== */}
+                    DRAWER HEADER
+                =================================================== */}
 
-                <div className="shrink-0 border-b border-white/[0.05] px-5 py-5">
+                <div className="shrink-0 border-b border-zinc-200/70 px-5 py-5">
                     <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0">
                             <img
@@ -1039,11 +1065,12 @@ function MobileDrawer({
                                 <span
                                     className="h-2 w-2 rounded-full"
                                     style={{
-                                        backgroundColor: theme.accent,
+                                        backgroundColor:
+                                            theme.accent,
                                     }}
                                 />
 
-                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-600">
+                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-400">
                                     Admin Console
                                 </p>
                             </div>
@@ -1053,7 +1080,7 @@ function MobileDrawer({
                             type="button"
                             onClick={onClose}
                             aria-label="Close navigation"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-500 transition hover:bg-white/[0.05] hover:text-white"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                         >
                             <X size={18} />
                         </button>
@@ -1061,16 +1088,17 @@ function MobileDrawer({
                 </div>
 
                 {/* ===================================================
-            USER
-        =================================================== */}
+                    USER
+                =================================================== */}
 
                 <div className="shrink-0 px-4 pt-4">
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4">
+                    <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4">
                         <div
                             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
                             style={{
                                 borderColor: `${theme.accent}25`,
-                                backgroundColor: theme.accentSoft,
+                                backgroundColor:
+                                    theme.accentSoft,
                             }}
                         >
                             <ShieldCheck
@@ -1082,18 +1110,24 @@ function MobileDrawer({
                         </div>
 
                         <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-bold text-zinc-200">
+                            <p className="truncate text-[13px] font-bold text-zinc-800">
                                 {user?.user_metadata?.full_name ||
                                     "Administrator"}
                             </p>
 
-                            <p className="mt-1 truncate text-[11px] text-zinc-600">
+                            <p className="mt-1 truncate text-[11px] text-zinc-500">
                                 {user?.email}
                             </p>
                         </div>
 
                         <div
-                            className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${theme.badge}`}
+                            className="shrink-0 rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em]"
+                            style={{
+                                color: theme.accent,
+                                borderColor: `${theme.accent}25`,
+                                backgroundColor:
+                                    theme.accentSoft,
+                            }}
                         >
                             {isSuperAdmin ? "Super" : "Admin"}
                         </div>
@@ -1101,34 +1135,39 @@ function MobileDrawer({
                 </div>
 
                 {/* ===================================================
-            NAVIGATION
-
-            Scroll remains enabled but scrollbar is invisible.
-        =================================================== */}
+                    NAVIGATION
+                =================================================== */}
 
                 <nav
                     className="admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5"
                     style={hiddenScrollbarStyle}
                 >
-                    <p className="mb-3 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600">
+                    <p className="mb-3 px-2 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">
                         Workspace
                     </p>
 
                     <div className="space-y-1">
                         {navItems.map((item) => {
                             const Icon = item.icon;
-
-                            const active = isRouteActive(item.route);
+                            const active =
+                                isRouteActive(item.route);
 
                             return (
                                 <button
                                     key={item.route}
                                     type="button"
-                                    onClick={() => onNavigate(item.route)}
+                                    onClick={() =>
+                                        onNavigate(item.route)
+                                    }
                                     className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
-                                            ? "bg-white/[0.055] text-white"
-                                            : "text-zinc-500 hover:bg-white/[0.025] hover:text-zinc-200"
+                                            ? "bg-zinc-100"
+                                            : "text-zinc-900 hover:bg-zinc-100/70"
                                         }`}
+                                    style={{
+                                        color: active
+                                            ? theme.accent
+                                            : undefined,
+                                    }}
                                 >
                                     {/* ACTIVE INDICATOR */}
 
@@ -1137,7 +1176,8 @@ function MobileDrawer({
                                             layoutId="drawer-admin-active-nav"
                                             className="absolute bottom-2 left-0 top-2 w-[2px] rounded-r-full"
                                             style={{
-                                                backgroundColor: theme.accent,
+                                                backgroundColor:
+                                                    theme.accent,
                                             }}
                                         />
                                     )}
@@ -1145,23 +1185,22 @@ function MobileDrawer({
                                     {/* ICON */}
 
                                     <div
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                                        style={
-                                            active
-                                                ? {
-                                                    backgroundColor:
-                                                        theme.accentSoft,
-                                                }
-                                                : undefined
-                                        }
+                                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${active
+                                                ? "bg-white shadow-sm"
+                                                : "group-hover:bg-white"
+                                            }`}
                                     >
                                         <Icon
                                             size={17}
-                                            strokeWidth={1.8}
+                                            strokeWidth={
+                                                active
+                                                    ? 2.2
+                                                    : 1.8
+                                            }
                                             style={{
                                                 color: active
                                                     ? theme.accent
-                                                    : undefined,
+                                                    : "#18181B",
                                             }}
                                         />
                                     </div>
@@ -1172,10 +1211,15 @@ function MobileDrawer({
                                         {item.label}
                                     </span>
 
+                                    {/* ARROW */}
+
                                     {active && (
                                         <ChevronRight
                                             size={14}
-                                            className="text-zinc-600"
+                                            style={{
+                                                color:
+                                                    theme.accent,
+                                            }}
                                         />
                                     )}
                                 </button>
@@ -1185,17 +1229,16 @@ function MobileDrawer({
                 </nav>
 
                 {/* ===================================================
-            LOGOUT
-        =================================================== */}
+                    LOGOUT
+                =================================================== */}
 
-                <div className="shrink-0 border-t border-white/[0.05] p-4">
+                <div className="shrink-0 border-t border-zinc-200/70 p-4">
                     <button
                         type="button"
                         onClick={onLogout}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/10 bg-red-500/[0.035] py-3 text-[12px] font-bold text-red-400/80 transition hover:border-red-500/20 hover:bg-red-500/[0.06] hover:text-red-400"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-[12px] font-bold text-red-500 transition hover:border-red-300 hover:bg-red-100 hover:text-red-600"
                     >
                         <LogOut size={15} />
-
                         Sign Out
                     </button>
                 </div>
@@ -1210,27 +1253,27 @@ function MobileDrawer({
 
 function AdminLayoutLoading() {
     return (
-        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#09090B] px-6 text-white">
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F5F6F8] px-6 text-zinc-900">
             {/* =====================================================
-          BACKGROUND
-      ===================================================== */}
+                BACKGROUND
+            ===================================================== */}
 
             <div className="pointer-events-none absolute inset-0">
-                <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8B4513]/[0.07] blur-[130px]" />
+                <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#B86C3A]/[0.08] blur-[130px]" />
 
                 <div
-                    className="absolute inset-0 opacity-[0.018]"
+                    className="absolute inset-0 opacity-[0.025]"
                     style={{
                         backgroundImage:
-                            "linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)",
+                            "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
                         backgroundSize: "44px 44px",
                     }}
                 />
             </div>
 
             {/* =====================================================
-          CONTENT
-      ===================================================== */}
+                CONTENT
+            ===================================================== */}
 
             <motion.div
                 initial={{
@@ -1249,15 +1292,15 @@ function AdminLayoutLoading() {
                     className="mx-auto h-16 w-16 object-contain"
                 />
 
-                <div className="mx-auto mt-6 flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.025]">
+                <div className="mx-auto mt-6 flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white shadow-sm">
                     <LoadingSpinner />
                 </div>
 
-                <p className="mt-5 text-[14px] font-bold text-zinc-400">
+                <p className="mt-5 text-[14px] font-bold text-zinc-700">
                     Loading admin console
                 </p>
 
-                <p className="mt-2 text-[12px] text-zinc-700">
+                <p className="mt-2 text-[12px] text-zinc-400">
                     Verifying your session...
                 </p>
             </motion.div>
@@ -1272,7 +1315,7 @@ function AdminLayoutLoading() {
 function LoadingSpinner() {
     return (
         <svg
-            className="h-4 w-4 animate-spin text-zinc-400"
+            className="h-4 w-4 animate-spin text-zinc-500"
             viewBox="0 0 24 24"
             fill="none"
             aria-hidden="true"

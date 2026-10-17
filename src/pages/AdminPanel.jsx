@@ -263,10 +263,26 @@ function DashboardContent({
           opacity: 1,
           y: 0,
         }}
-        className="relative overflow-hidden rounded-[24px] border border-white/[0.065] bg-[#111114] p-5 sm:p-7 lg:p-8"
+        className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 shadow-[0_10px_30px_rgba(24,24,27,0.07)] sm:p-7 lg:p-8"
       >
+        {/* ROLE ACCENT GLOW */}
+
         <div
-          className={`pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full ${theme.glow} blur-[100px]`}
+          className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full blur-[100px]"
+          style={{
+            backgroundColor: `${theme.accent}10`,
+          }}
+        />
+
+        {/* SUBTLE GRID */}
+
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
+            backgroundSize: "34px 34px",
+          }}
         />
 
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -289,7 +305,7 @@ function DashboardContent({
               </p>
             </div>
 
-            <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[32px] lg:text-[36px]">
+            <h2 className="mt-3 text-[28px] font-black tracking-[-0.04em] text-zinc-900 sm:text-[32px] lg:text-[36px]">
               Welcome back
               {user?.user_metadata?.full_name
                 ? `, ${user.user_metadata.full_name}`
@@ -297,7 +313,7 @@ function DashboardContent({
               .
             </h2>
 
-            <p className="mt-3 max-w-xl text-[13px] leading-6 text-zinc-500 sm:text-[14px]">
+            <p className="mt-3 max-w-xl text-[13px] leading-6 text-zinc-600 sm:text-[14px]">
               Monitor participation,
               performance and live quiz
               activity across QUIZTIANS.
@@ -306,22 +322,22 @@ function DashboardContent({
 
           {/* SYSTEM STATUS */}
 
-          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/[0.05] bg-black/10 px-4 py-3.5">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/10 bg-emerald-500/[0.04]">
-              <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[#111114] bg-emerald-500" />
+          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3.5">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50">
+              <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
 
               <CircleGauge
                 size={18}
-                className="text-emerald-500/70"
+                className="text-emerald-600"
               />
             </div>
 
             <div>
-              <p className="text-[12px] font-black text-zinc-200">
+              <p className="text-[12px] font-black text-zinc-900">
                 System online
               </p>
 
-              <p className="mt-1 text-[11px] text-zinc-600">
+              <p className="mt-1 text-[11px] text-zinc-500">
                 Live results connected
               </p>
             </div>
@@ -433,7 +449,7 @@ function DashboardContent({
                         key={
                           chapter.chapter
                         }
-                        className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.015] px-3.5 py-2.5"
+                        className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-[#F8FAFC] px-3.5 py-2.5 transition duration-200 hover:border-zinc-300 hover:bg-zinc-100/70"
                       >
                         <div className="flex min-w-0 items-center gap-2.5">
                           <span
@@ -446,14 +462,14 @@ function DashboardContent({
                             }}
                           />
 
-                          <span className="truncate text-[12px] font-medium text-zinc-500">
+                          <span className="truncate text-[12px] font-semibold text-zinc-600">
                             {
                               chapter.chapter
                             }
                           </span>
                         </div>
 
-                        <span className="ml-3 text-[12px] font-black text-zinc-300">
+                        <span className="ml-3 text-[12px] font-black text-zinc-900">
                           {
                             chapter.participants
                           }
@@ -494,7 +510,7 @@ function DashboardContent({
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke="rgba(255,255,255,0.04)"
+                  stroke="rgba(24,24,27,0.08)"
                 />
 
                 <XAxis
@@ -502,7 +518,7 @@ function DashboardContent({
                   axisLine={false}
                   tickLine={false}
                   tick={{
-                    fill: "#71717A",
+                    fill: "#52525B",
                     fontSize: 11,
                   }}
                 />
@@ -512,7 +528,7 @@ function DashboardContent({
                   axisLine={false}
                   tickLine={false}
                   tick={{
-                    fill: "#71717A",
+                    fill: "#52525B",
                     fontSize: 11,
                   }}
                 />
@@ -520,7 +536,7 @@ function DashboardContent({
                 <Tooltip
                   cursor={{
                     fill:
-                      "rgba(255,255,255,.025)",
+                      "rgba(24,24,27,.035)",
                   }}
                   content={
                     <ChartTooltip />
@@ -558,14 +574,14 @@ function DashboardContent({
               theme={theme}
             />
 
-            <div className="flex shrink-0 items-center gap-2 rounded-full border border-emerald-500/10 bg-emerald-500/[0.035] px-3 py-1.5">
+            <div className="flex shrink-0 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
 
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
 
-              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-500/70">
+              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-700">
                 Live
               </span>
             </div>
@@ -573,82 +589,84 @@ function DashboardContent({
 
           <div className="mt-5">
             {activity.length === 0 ? (
-              <div className="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.05] bg-white/[0.01] px-5 text-center">
+              <div className="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-[#F8FAFC] px-5 text-center">
                 <Activity
                   size={24}
-                  className="text-zinc-700"
+                  className="text-zinc-400"
                 />
 
-                <p className="mt-3 text-[13px] font-bold text-zinc-500">
+                <p className="mt-3 text-[13px] font-bold text-zinc-700">
                   Waiting for activity
                 </p>
 
-                <p className="mt-1 text-[11px] text-zinc-700">
+                <p className="mt-1 text-[11px] text-zinc-500">
                   New quiz submissions
                   will appear here.
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {activity.map(
-                  (entry, index) => (
-                    <motion.div
-                      key={
-                        entry.id ||
-                        `${entry.name}-${index}`
-                      }
-                      initial={{
-                        opacity: 0,
-                        x: -8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        x: 0,
-                      }}
-                      className="group flex items-center gap-3 py-4"
-                    >
-                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.05] bg-white/[0.02]">
-                        <Users
-                          size={16}
-                          className="text-zinc-500"
-                        />
+              <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-[#F8FAFC]">
+                <div className="divide-y divide-zinc-200/80">
+                  {activity.map(
+                    (entry, index) => (
+                      <motion.div
+                        key={
+                          entry.id ||
+                          `${entry.name}-${index}`
+                        }
+                        initial={{
+                          opacity: 0,
+                          x: -8,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                        }}
+                        className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-white"
+                      >
+                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white shadow-sm">
+                          <Users
+                            size={16}
+                            className="text-zinc-600"
+                          />
 
-                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#111114] bg-emerald-500" />
-                      </div>
+                          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                        </div>
 
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-bold text-zinc-200">
-                          {entry.name ||
-                            "Participant"}
-                        </p>
-
-                        <p className="mt-1 truncate text-[11px] text-zinc-600">
-                          {entry.chapter ||
-                            "Quiz submission"}
-                        </p>
-                      </div>
-
-                      {entry.score !==
-                        undefined && (
-                        <div className="text-right">
-                          <p className="text-[13px] font-black text-zinc-300">
-                            {
-                              entry.score
-                            }
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-bold text-zinc-900">
+                            {entry.name ||
+                              "Participant"}
                           </p>
 
-                          <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-700">
-                            Score
+                          <p className="mt-1 truncate text-[11px] text-zinc-500">
+                            {entry.chapter ||
+                              "Quiz submission"}
                           </p>
                         </div>
-                      )}
 
-                      <span className="hidden text-[11px] text-zinc-700 sm:block">
-                        now
-                      </span>
-                    </motion.div>
-                  )
-                )}
+                        {entry.score !==
+                          undefined && (
+                          <div className="text-right">
+                            <p className="text-[13px] font-black text-zinc-900">
+                              {
+                                entry.score
+                              }
+                            </p>
+
+                            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-400">
+                              Score
+                            </p>
+                          </div>
+                        )}
+
+                        <span className="hidden text-[11px] text-zinc-400 sm:block">
+                          now
+                        </span>
+                      </motion.div>
+                    )
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -681,9 +699,13 @@ function MetricCard({
         y: 0,
       }}
       transition={{ delay }}
-      whileHover={{ y: -2 }}
-      className={`relative overflow-hidden rounded-[20px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5 ${className}`}
+      whileHover={{
+        y: -2,
+      }}
+      className={`relative overflow-hidden rounded-[20px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] transition-shadow duration-200 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.10)] sm:p-5 ${className}`}
     >
+      {/* ACCENT GLOW */}
+
       <div
         className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[55px]"
         style={{
@@ -694,11 +716,11 @@ function MetricCard({
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-zinc-600">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-zinc-500">
             {title}
           </p>
 
-          <h3 className="mt-3 text-[32px] font-black tracking-[-0.045em] text-white sm:text-[38px]">
+          <h3 className="mt-3 text-[32px] font-black tracking-[-0.045em] text-zinc-900 sm:text-[38px]">
             <CountUp
               end={value}
               duration={1.3}
@@ -710,7 +732,7 @@ function MetricCard({
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
           style={{
             borderColor:
-              `${theme.accent}20`,
+              `${theme.accent}25`,
             backgroundColor:
               theme.accentSoft,
           }}
@@ -725,13 +747,13 @@ function MetricCard({
         </div>
       </div>
 
-      <div className="relative mt-4 h-px overflow-hidden bg-white/[0.04]">
+      <div className="relative mt-4 h-px overflow-hidden bg-zinc-200">
         <div
           className="h-full w-1/3"
           style={{
             backgroundColor:
               theme.accent,
-            opacity: 0.6,
+            opacity: 0.7,
           }}
         />
       </div>
@@ -749,7 +771,7 @@ function DashboardCard({
 }) {
   return (
     <div
-      className={`rounded-[22px] border border-white/[0.06] bg-[#111114] p-4 sm:p-5 lg:p-6 ${className}`}
+      className={`rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5 lg:p-6 ${className}`}
     >
       {children}
     </div>
@@ -772,7 +794,7 @@ function CardHeading({
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
         style={{
           borderColor:
-            `${theme.accent}18`,
+            `${theme.accent}20`,
           backgroundColor:
             theme.accentSoft,
         }}
@@ -787,11 +809,11 @@ function CardHeading({
       </div>
 
       <div>
-        <h3 className="text-[15px] font-black text-zinc-200">
+        <h3 className="text-[15px] font-black text-zinc-900">
           {title}
         </h3>
 
-        <p className="mt-1 text-[12px] text-zinc-600">
+        <p className="mt-1 text-[12px] text-zinc-500">
           {description}
         </p>
       </div>
@@ -825,14 +847,14 @@ function ChartTooltip({
     "";
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#18181B]/95 px-3.5 py-3 shadow-2xl backdrop-blur-xl">
+    <div className="rounded-xl border border-zinc-200 bg-white/95 px-3.5 py-3 shadow-[0_10px_30px_rgba(24,24,27,0.12)] backdrop-blur-xl">
       {displayLabel && (
         <p className="text-[11px] font-semibold text-zinc-500">
           {displayLabel}
         </p>
       )}
 
-      <p className="mt-1 text-[14px] font-black text-white">
+      <p className="mt-1 text-[14px] font-black text-zinc-900">
         {entry?.value ?? 0}
       </p>
     </div>
@@ -845,10 +867,10 @@ function ChartTooltip({
 
 function EmptyChart({ text }) {
   return (
-    <div className="mt-5 flex h-[270px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.05] bg-white/[0.01] px-5 text-center">
+    <div className="mt-5 flex h-[270px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-[#F8FAFC] px-5 text-center">
       <BarChart3
         size={26}
-        className="text-zinc-700"
+        className="text-zinc-400"
       />
 
       <p className="mt-3 text-[12px] font-semibold text-zinc-600">
