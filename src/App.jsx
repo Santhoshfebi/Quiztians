@@ -35,6 +35,7 @@ import ViewResults from "./pages/ViewResults";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
+import AdminAnnouncements from "./pages/AdminAnnouncements";
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -98,6 +99,7 @@ function AppRoutes() {
       <Route path="/admin/view-results" element={<ViewResults />} />
       <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
       <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
+      <Route path="/admin/announcements" element={<AdminAnnouncements />} />
     </Routes>
   );
 }

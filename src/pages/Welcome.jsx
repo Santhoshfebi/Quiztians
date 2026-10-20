@@ -3,15 +3,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import {
+  AlertTriangle,
   ArrowRight,
   BookOpen,
   Check,
+  CheckCircle2,
   ChevronDown,
   Clock3,
   Gamepad2,
+  Info,
   Languages,
   MapPin,
   Medal,
+  Megaphone,
   Phone,
   ShieldCheck,
   Sparkles,
@@ -53,6 +57,24 @@ export default function Welcome() {
 
   // anniversary celebration state
   const [showAnniversary, setShowAnniversary] = useState(false);
+  const [hasShownAnniversary, setHasShownAnniversary] = useState(false);
+  const [announcementPopupReady, setAnnouncementPopupReady] = useState(false);
+
+  // public announcements
+  const [announcements, setAnnouncements] = useState([]);
+  const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState(() => {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const stored = window.sessionStorage.getItem(
+        "quiztians-dismissed-announcements"
+      );
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [announcementClock, setAnnouncementClock] = useState(Date.now());
 
   const navigate = useNavigate();
 
@@ -105,6 +127,135 @@ export default function Welcome() {
   }, []);
 
   /* ========================================================
+     FETCH ANNOUNCEMENTS + REALTIME
+  ======================================================== */
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select(
+          "id, title, message, type, is_active, start_at, end_at, created_at, updated_at"
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching announcements:", error.message);
+        return;
+      }
+
+      if (mounted) {
+        setAnnouncements(data || []);
+        setAnnouncementClock(Date.now());
+      }
+    };
+
+    fetchAnnouncements();
+
+    const channel = supabase
+      .channel("public:announcements")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "announcements" },
+        () => fetchAnnouncements()
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  /* ========================================================
+     ANNOUNCEMENT SCHEDULE CLOCK
+  ======================================================== */
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setAnnouncementClock(Date.now());
+    }, 30000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const visibleAnnouncements = useMemo(() => {
+    const now = announcementClock;
+
+    return announcements.filter((announcement) => {
+      if (!announcement?.is_active) return false;
+      if (dismissedAnnouncementIds.includes(announcement.id)) return false;
+
+      const start = announcement.start_at
+        ? new Date(announcement.start_at).getTime()
+        : null;
+      const end = announcement.end_at
+        ? new Date(announcement.end_at).getTime()
+        : null;
+
+      if (start && start > now) return false;
+      if (end && end <= now) return false;
+
+      return true;
+    });
+  }, [announcements, dismissedAnnouncementIds, announcementClock]);
+
+  const dismissAnnouncement = (announcementId) => {
+    setDismissedAnnouncementIds((current) => {
+      if (current.includes(announcementId)) return current;
+
+      const next = [...current, announcementId];
+
+      try {
+        window.sessionStorage.setItem(
+          "quiztians-dismissed-announcements",
+          JSON.stringify(next)
+        );
+      } catch {
+        // Session storage is optional; local state still dismisses it.
+      }
+
+      return next;
+    });
+  };
+
+  // Show one announcement at a time. Existing QUIZTIANS dialogs get
+  // priority so the user never sees overlapping popups.
+  const activeAnnouncement =
+    announcementPopupReady &&
+    !showAnniversary &&
+    !showJoinModal &&
+    visibleAnnouncements.length > 0
+      ? visibleAnnouncements[0]
+      : null;
+
+  /* ========================================================
+     ANNOUNCEMENT POPUP BEHAVIOUR
+  ======================================================== */
+
+  useEffect(() => {
+    if (!activeAnnouncement) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        dismissAnnouncement(activeAnnouncement.id);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [activeAnnouncement]);
+
+  /* ========================================================
    1 YEAR ANNIVERSARY POPUP
 ======================================================== */
 
@@ -117,9 +268,13 @@ export default function Welcome() {
       const alreadyShown =
         window.sessionStorage.getItem(storageKey);
 
-      if (alreadyShown) return;
+      if (alreadyShown) {
+        setAnnouncementPopupReady(true);
+        return;
+      }
 
       const timer = window.setTimeout(() => {
+        setHasShownAnniversary(true);
         setShowAnniversary(true);
 
         window.sessionStorage.setItem(
@@ -133,6 +288,7 @@ export default function Welcome() {
       };
     } catch {
       const timer = window.setTimeout(() => {
+        setHasShownAnniversary(true);
         setShowAnniversary(true);
       }, 900);
 
@@ -141,6 +297,12 @@ export default function Welcome() {
       };
     }
   }, []);
+
+  useEffect(() => {
+    if (hasShownAnniversary && !showAnniversary) {
+      setAnnouncementPopupReady(true);
+    }
+  }, [hasShownAnniversary, showAnniversary]);
 
   /* ========================================================
      ANNIVERSARY MODAL BEHAVIOUR
@@ -1012,6 +1174,21 @@ export default function Welcome() {
           </span>
         </div>
       </footer>
+
+      {/* ====================================================
+          PUBLIC ANNOUNCEMENT POPUP
+      ==================================================== */}
+
+      <AnimatePresence>
+        {activeAnnouncement && (
+          <AnnouncementPopup
+            key={activeAnnouncement.id}
+            announcement={activeAnnouncement}
+            pageLanguage={pageLanguage}
+            onDismiss={() => dismissAnnouncement(activeAnnouncement.id)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ====================================================
     QUIZTIANS 1 YEAR ANNIVERSARY
@@ -2220,6 +2397,237 @@ export default function Welcome() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/* ==========================================================
+   ANNOUNCEMENT POPUP
+========================================================== */
+
+function AnnouncementPopup({ announcement, pageLanguage, onDismiss }) {
+  const styles = {
+    info: {
+      icon: Info,
+      label: pageLanguage === "en" ? "Information" : "தகவல்",
+      eyebrow: pageLanguage === "en" ? "Latest update" : "சமீபத்திய புதுப்பிப்பு",
+      border: "border-sky-400/15",
+      glow: "bg-sky-500/[0.14]",
+      orb: "bg-sky-400/20",
+      iconBox:
+        "border-sky-400/20 bg-sky-400/[0.09] text-sky-300 shadow-[0_0_30px_rgba(56,189,248,0.10)]",
+      badge: "border-sky-400/15 bg-sky-400/[0.07] text-sky-300",
+      accent: "via-sky-400/80",
+      button:
+        "from-sky-600 via-sky-500 to-cyan-500 shadow-[0_18px_45px_-18px_rgba(14,165,233,0.75)]",
+    },
+    success: {
+      icon: CheckCircle2,
+      label: pageLanguage === "en" ? "Good news" : "நல்ல செய்தி",
+      eyebrow: pageLanguage === "en" ? "Quiztians update" : "Quiztians புதுப்பிப்பு",
+      border: "border-emerald-400/15",
+      glow: "bg-emerald-500/[0.14]",
+      orb: "bg-emerald-400/20",
+      iconBox:
+        "border-emerald-400/20 bg-emerald-400/[0.09] text-emerald-300 shadow-[0_0_30px_rgba(52,211,153,0.10)]",
+      badge:
+        "border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-300",
+      accent: "via-emerald-400/80",
+      button:
+        "from-emerald-600 via-emerald-500 to-teal-500 shadow-[0_18px_45px_-18px_rgba(16,185,129,0.75)]",
+    },
+    warning: {
+      icon: AlertTriangle,
+      label: pageLanguage === "en" ? "Attention" : "கவனம்",
+      eyebrow: pageLanguage === "en" ? "Please take note" : "தயவுசெய்து கவனிக்கவும்",
+      border: "border-amber-400/15",
+      glow: "bg-amber-500/[0.14]",
+      orb: "bg-amber-400/20",
+      iconBox:
+        "border-amber-400/20 bg-amber-400/[0.09] text-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.10)]",
+      badge: "border-amber-400/15 bg-amber-400/[0.07] text-amber-300",
+      accent: "via-amber-400/80",
+      button:
+        "from-amber-600 via-amber-500 to-orange-500 shadow-[0_18px_45px_-18px_rgba(245,158,11,0.75)]",
+    },
+    important: {
+      icon: Megaphone,
+      label: pageLanguage === "en" ? "Important" : "முக்கியம்",
+      eyebrow: pageLanguage === "en" ? "Don't miss this" : "இதை தவறவிடாதீர்கள்",
+      border: "border-violet-400/20",
+      glow: "bg-violet-600/[0.17]",
+      orb: "bg-violet-400/20",
+      iconBox:
+        "border-violet-400/20 bg-violet-400/[0.10] text-violet-300 shadow-[0_0_34px_rgba(139,92,246,0.14)]",
+      badge:
+        "border-violet-400/20 bg-violet-400/[0.08] text-violet-300",
+      accent: "via-violet-400/85",
+      button:
+        "from-violet-600 via-violet-500 to-indigo-500 shadow-[0_18px_48px_-18px_rgba(139,92,246,0.85)]",
+    },
+  };
+
+  const style = styles[announcement.type] || styles.info;
+  const Icon = style.icon;
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center sm:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.button
+        type="button"
+        aria-label={
+          pageLanguage === "en" ? "Close announcement" : "அறிவிப்பை மூடு"
+        }
+        onClick={onDismiss}
+        className="absolute inset-0 cursor-default bg-black/80 backdrop-blur-[10px]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
+      />
+
+      {/* Ambient glow */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute left-1/2 top-[55%] h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full ${style.glow} blur-[140px] sm:top-1/2 sm:h-[600px] sm:w-[600px]`}
+      />
+
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`announcement-title-${announcement.id}`}
+        initial={{ opacity: 0, y: 60, scale: 0.965 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 38, scale: 0.975 }}
+        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+        className={`relative z-10 w-full overflow-hidden rounded-t-[32px] border ${style.border} bg-[#0E0E12]/95 shadow-[0_-30px_100px_rgba(0,0,0,0.78)] backdrop-blur-2xl sm:max-w-[500px] sm:rounded-[32px] sm:shadow-[0_40px_140px_rgba(0,0,0,0.82)]`}
+      >
+        {/* Premium top accent */}
+        <div
+          className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${style.accent} to-transparent`}
+        />
+
+        {/* Decorative glow inside card */}
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full ${style.orb} blur-[70px]`}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-violet-500/[0.055] blur-[80px]"
+        />
+
+        {/* Mobile drag indicator */}
+        <div className="flex justify-center pt-3 sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-white/10" />
+        </div>
+
+        {/* Header */}
+        <div className="relative flex items-center justify-between border-b border-white/[0.055] px-5 pb-4 pt-4 min-[390px]:px-6 sm:px-7 sm:py-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.035] shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
+              <img
+                src="/branding/quiztians-q.png"
+                alt="QUIZTIANS"
+                className="h-6 w-6 object-contain"
+              />
+            </div>
+
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-black tracking-[0.12em] text-zinc-200">
+                QUIZTIANS
+              </p>
+              <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.18em] text-zinc-700">
+                Learn • Play • Compete
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label={
+              pageLanguage === "en" ? "Close announcement" : "அறிவிப்பை மூடு"
+            }
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.065] bg-white/[0.025] text-zinc-600 transition duration-200 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white active:scale-95"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="relative px-5 pb-6 pt-6 min-[390px]:px-6 sm:px-8 sm:pb-8 sm:pt-7">
+          <div className="flex items-start gap-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, rotate: -8 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ delay: 0.12, duration: 0.35 }}
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${style.iconBox}`}
+            >
+              <Icon size={20} strokeWidth={2.1} />
+            </motion.div>
+
+            <div className="min-w-0 flex-1 pt-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.17em] ${style.badge}`}
+                >
+                  {style.label}
+                </span>
+
+                <span className="text-[7px] font-black uppercase tracking-[0.16em] text-zinc-700">
+                  {style.eyebrow}
+                </span>
+              </div>
+
+              <h2
+                id={`announcement-title-${announcement.id}`}
+                className="mt-3 text-[22px] font-black leading-[1.12] tracking-[-0.035em] text-white min-[390px]:text-[24px] sm:text-[28px]"
+              >
+                {announcement.title}
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-white/[0.055] bg-white/[0.022] px-4 py-4 sm:px-5 sm:py-5">
+            <p className="whitespace-pre-line text-[11px] font-medium leading-[1.8] text-zinc-400 sm:text-[12px] sm:leading-6">
+              {announcement.message}
+            </p>
+          </div>
+
+          <div className="mt-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-white/[0.02]" />
+            <div className="flex items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.16em] text-zinc-700">
+              <Sparkles size={9} />
+              {pageLanguage === "en" ? "Official update" : "அதிகாரப்பூர்வ புதுப்பிப்பு"}
+            </div>
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/[0.08] to-white/[0.02]" />
+          </div>
+
+          <button
+            type="button"
+            onClick={onDismiss}
+            className={`group mt-5 flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r ${style.button} px-5 text-[11px] font-black text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.99] sm:min-h-[56px] sm:text-[12px]`}
+          >
+            <Check size={15} strokeWidth={2.5} />
+            {pageLanguage === "en" ? "Got it, thanks" : "புரிந்தது, நன்றி"}
+            <ArrowRight
+              size={14}
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </button>
+
+          <p className="mt-3 text-center text-[8px] font-semibold leading-4 text-zinc-700">
+            {pageLanguage === "en"
+              ? "This announcement will stay dismissed for this session."
+              : "இந்த அறிவிப்பு இந்த அமர்வில் மீண்டும் காட்டப்படாது."}
+          </p>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

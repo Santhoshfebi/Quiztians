@@ -13,6 +13,7 @@ import {
     History,
     LayoutDashboard,
     LogOut,
+    Megaphone,
     Menu,
     Play,
     Plus,
@@ -74,6 +75,12 @@ const BASE_NAV_ITEMS = [
         route: "/admin/view-results",
     },
     {
+        label: "Announcements",
+        shortLabel: "News",
+        icon: Megaphone,
+        route: "/admin/announcements",
+    },
+    {
         label: "Activity Logs",
         shortLabel: "Activity",
         icon: Activity,
@@ -129,6 +136,11 @@ const PAGE_META = {
     "/admin/view-results": {
         eyebrow: "Analytics",
         title: "Results",
+    },
+
+    "/admin/announcements": {
+        eyebrow: "Communication",
+        title: "Announcements",
     },
 
     "/admin/activity-logs": {
@@ -597,8 +609,8 @@ function DesktopSidebar({
                                 type="button"
                                 onClick={() => onNavigate(item.route)}
                                 className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
-                                        ? "bg-zinc-100/90"
-                                        : "text-zinc-900 hover:bg-zinc-100/70"
+                                    ? "bg-zinc-100/90"
+                                    : "text-zinc-900 hover:bg-zinc-100/70"
                                     }`}
                                 style={{
                                     color: active
@@ -623,8 +635,8 @@ function DesktopSidebar({
 
                                 <div
                                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${active
-                                            ? "bg-white shadow-sm"
-                                            : "group-hover:bg-white"
+                                        ? "bg-white shadow-sm"
+                                        : "group-hover:bg-white"
                                         }`}
                                 >
                                     <Icon
@@ -1160,8 +1172,8 @@ function MobileDrawer({
                                         onNavigate(item.route)
                                     }
                                     className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
-                                            ? "bg-zinc-100"
-                                            : "text-zinc-900 hover:bg-zinc-100/70"
+                                        ? "bg-zinc-100"
+                                        : "text-zinc-900 hover:bg-zinc-100/70"
                                         }`}
                                     style={{
                                         color: active
@@ -1186,8 +1198,8 @@ function MobileDrawer({
 
                                     <div
                                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${active
-                                                ? "bg-white shadow-sm"
-                                                : "group-hover:bg-white"
+                                            ? "bg-white shadow-sm"
+                                            : "group-hover:bg-white"
                                             }`}
                                     >
                                         <Icon
