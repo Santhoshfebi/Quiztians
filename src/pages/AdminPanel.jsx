@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import CountUp from "react-countup";
 
 import {
@@ -17,9 +18,14 @@ import {
 
 import {
   Activity,
+  ArrowUpRight,
   BarChart3,
   BookOpen,
   CircleGauge,
+  Eye,
+  Clock3,
+  Megaphone,
+  Plus,
   Sparkles,
   Trophy,
   Users,
@@ -35,6 +41,9 @@ import AdminLayout from "../components/admin/AdminLayout";
 export default function AdminPanel() {
   const [rows, setRows] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [quizConfig, setQuizConfig] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+  const [dashboardNow, setDashboardNow] = useState(() => Date.now());
 
   // =========================================================
   // RESULTS + REALTIME
@@ -98,6 +107,116 @@ export default function AdminPanel() {
       mounted = false;
 
       supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // =========================================================
+  // QUIZ CONFIG + REALTIME
+  // ===========================================================
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchQuizConfig = async () => {
+      const { data, error } = await supabase
+        .from("quiz_config")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Unable to load quiz config:", error);
+        return;
+      }
+
+      if (mounted) {
+        setQuizConfig(data || null);
+      }
+    };
+
+    fetchQuizConfig();
+
+    const channel = supabase
+      .channel("dashboard-quiz-config")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "quiz_config",
+        },
+        () => {
+          fetchQuizConfig();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // =========================================================
+  // ANNOUNCEMENTS + REALTIME
+  // ===========================================================
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select(
+          "id,title,message,type,is_active,start_at,end_at,created_at,updated_at"
+        )
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Unable to load announcements:", error);
+        return;
+      }
+
+      if (mounted) {
+        setAnnouncements(data || []);
+      }
+    };
+
+    fetchAnnouncements();
+
+    const channel = supabase
+      .channel("dashboard-announcements")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "announcements",
+        },
+        () => {
+          fetchAnnouncements();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // =========================================================
+  // DASHBOARD CLOCK
+  // ===========================================================
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setDashboardNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
     };
   }, []);
 
@@ -175,6 +294,82 @@ export default function AdminPanel() {
   }, [rows]);
 
   // =========================================================
+  // QUIZ + ANNOUNCEMENT SNAPSHOT
+  // ===========================================================
+
+  const quizSnapshot = useMemo(() => {
+    if (!quizConfig) {
+      return {
+        status: "unavailable",
+        label: "Unavailable",
+        countdown: "Quiz configuration not found",
+      };
+    }
+
+    const startTime = quizConfig.start_time
+      ? new Date(quizConfig.start_time).getTime()
+      : null;
+
+    if (!startTime || !Number.isFinite(startTime)) {
+      return {
+        status: "unavailable",
+        label: "Not scheduled",
+        countdown: "Set the next quiz start time",
+      };
+    }
+
+    const difference = startTime - dashboardNow;
+
+    if (difference > 0) {
+      return {
+        status: "upcoming",
+        label: "Upcoming",
+        countdown: formatDashboardCountdown(difference),
+      };
+    }
+
+    return {
+      status: "live",
+      label: "Live",
+      countdown: "Quiz is open for participants",
+    };
+  }, [quizConfig, dashboardNow]);
+
+  const latestAnnouncement = useMemo(() => {
+    return (
+      announcements.find((announcement) => {
+        if (!announcement?.is_active) return false;
+
+        const startTime = announcement.start_at
+          ? new Date(announcement.start_at).getTime()
+          : null;
+
+        const endTime = announcement.end_at
+          ? new Date(announcement.end_at).getTime()
+          : null;
+
+        if (
+          startTime !== null &&
+          Number.isFinite(startTime) &&
+          startTime > dashboardNow
+        ) {
+          return false;
+        }
+
+        if (
+          endTime !== null &&
+          Number.isFinite(endTime) &&
+          endTime < dashboardNow
+        ) {
+          return false;
+        }
+
+        return true;
+      }) || null
+    );
+  }, [announcements, dashboardNow]);
+
+  // =========================================================
   // LAYOUT
   // ===========================================================
 
@@ -199,6 +394,9 @@ export default function AdminPanel() {
             totalParticipants
           }
           avgScore={avgScore}
+          quizConfig={quizConfig}
+          quizSnapshot={quizSnapshot}
+          latestAnnouncement={latestAnnouncement}
         />
       )}
     </AdminLayout>
@@ -218,7 +416,11 @@ function DashboardContent({
   scoreDistribution,
   totalParticipants,
   avgScore,
+  quizConfig,
+  quizSnapshot,
+  latestAnnouncement,
 }) {
+  const navigate = useNavigate();
   // =========================================================
   // CHART COLORS
   // ===========================================================
@@ -373,6 +575,96 @@ function DashboardContent({
           theme={theme}
           delay={0.15}
           className="col-span-2 lg:col-span-1"
+        />
+      </section>
+
+      {/* =====================================================
+          QUICK ACTIONS — FLOATING PILLS
+      ===================================================== */}
+
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.16 }}
+        className="mt-5 lg:mt-6"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles
+                size={13}
+                style={{
+                  color: theme.accent,
+                }}
+              />
+
+              <p
+                className="text-[10px] font-black uppercase tracking-[0.15em]"
+                style={{
+                  color: theme.accent,
+                }}
+              >
+                Quick Actions
+              </p>
+            </div>
+
+            <h3 className="mt-2 text-[18px] font-black tracking-[-0.025em] text-zinc-900">
+              Jump right in
+            </h3>
+
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Your most-used admin shortcuts.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-end">
+            <QuickActionPill
+              icon={Plus}
+              label="Add Questions"
+              onClick={() => navigate("/admin/add-questions")}
+              theme={theme}
+              featured
+            />
+
+            <QuickActionPill
+              icon={Eye}
+              label="Preview Questions"
+              onClick={() => navigate("/admin/preview-questions")}
+              theme={theme}
+            />
+
+            <QuickActionPill
+              icon={Trophy}
+              label="View Results"
+              onClick={() => navigate("/admin/view-results")}
+              theme={theme}
+            />
+
+            <QuickActionPill
+              icon={Megaphone}
+              label="Announcements"
+              onClick={() => navigate("/admin/announcements")}
+              theme={theme}
+            />
+          </div>
+        </div>
+      </motion.section>
+
+      {/* =====================================================
+          CONTROL WIDGETS
+      ===================================================== */}
+
+      <section className="mt-5 grid grid-cols-1 gap-4 lg:mt-6 lg:grid-cols-2">
+        <QuizStatusWidget
+          config={quizConfig}
+          snapshot={quizSnapshot}
+          theme={theme}
+        />
+
+        <LatestAnnouncementWidget
+          announcement={latestAnnouncement}
+          theme={theme}
+          onManage={() => navigate("/admin/announcements")}
         />
       </section>
 
@@ -674,6 +966,373 @@ function DashboardContent({
       </section>
     </>
   );
+}
+
+// ===========================================================
+// QUICK ACTION PILL
+// ===========================================================
+
+function QuickActionPill({
+  icon: Icon,
+  label,
+  onClick,
+  theme,
+  featured = false,
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.97 }}
+      className="group relative flex min-h-[52px] items-center gap-2.5 overflow-hidden rounded-full border px-3 py-2.5 text-left shadow-[0_5px_16px_rgba(24,24,27,0.055)] transition-[border-color,background-color,box-shadow] duration-200 hover:shadow-[0_9px_22px_rgba(24,24,27,0.09)] sm:min-h-[50px] sm:px-3.5"
+      style={{
+        borderColor: featured
+          ? `${theme.accent}32`
+          : "rgba(212,212,216,0.9)",
+        backgroundColor: featured
+          ? theme.accentSoft
+          : "#FFFFFF",
+      }}
+    >
+      {featured && (
+        <div
+          className="pointer-events-none absolute -left-5 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full blur-[30px]"
+          style={{
+            backgroundColor: theme.accentSoft,
+          }}
+        />
+      )}
+
+      <div
+        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-white shadow-sm transition-transform duration-200 group-hover:scale-105"
+        style={{
+          borderColor: `${theme.accent}22`,
+        }}
+      >
+        <Icon
+          size={14}
+          strokeWidth={2}
+          style={{
+            color: theme.accent,
+          }}
+        />
+      </div>
+
+      <span className="relative min-w-0 flex-1 truncate text-[10px] font-black text-zinc-800 sm:text-[11px]">
+        {label}
+      </span>
+
+      <ArrowUpRight
+        size={13}
+        strokeWidth={2}
+        className="relative shrink-0 text-zinc-400 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+      />
+
+      <div
+        className="absolute bottom-0 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full transition-all duration-300 group-hover:w-8"
+        style={{
+          backgroundColor: theme.accent,
+        }}
+      />
+    </motion.button>
+  );
+}
+
+// ===========================================================
+// QUIZ STATUS WIDGET
+// ===========================================================
+
+function QuizStatusWidget({
+  config,
+  snapshot,
+  theme,
+}) {
+  const chapters = Array.isArray(config?.active_chapters)
+    ? config.active_chapters
+    : [];
+
+  const statusStyles = {
+    live: {
+      dot: "bg-emerald-500",
+      badge:
+        "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    upcoming: {
+      dot: "bg-amber-500",
+      badge:
+        "border-amber-200 bg-amber-50 text-amber-700",
+    },
+    unavailable: {
+      dot: "bg-zinc-400",
+      badge:
+        "border-zinc-200 bg-zinc-100 text-zinc-600",
+    },
+  };
+
+  const currentStyle =
+    statusStyles[snapshot?.status] ||
+    statusStyles.unavailable;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.18 }}
+      className="relative overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5 lg:p-6"
+    >
+      <div
+        className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full blur-[65px]"
+        style={{
+          backgroundColor: theme.accentSoft,
+        }}
+      />
+
+      <div className="relative flex items-start justify-between gap-4">
+        <CardHeading
+          icon={Clock3}
+          title="Quiz Status"
+          description="Current quiz availability"
+          theme={theme}
+        />
+
+        <div
+          className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 ${currentStyle.badge}`}
+        >
+          <span className="relative flex h-2 w-2">
+            {snapshot?.status === "live" && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
+            )}
+
+            <span
+              className={`relative inline-flex h-2 w-2 rounded-full ${currentStyle.dot}`}
+            />
+          </span>
+
+          <span className="text-[9px] font-black uppercase tracking-[0.12em]">
+            {snapshot?.label || "Unavailable"}
+          </span>
+        </div>
+      </div>
+
+      <div className="relative mt-5 rounded-2xl border border-zinc-200/80 bg-[#F8FAFC] p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-zinc-400">
+          {snapshot?.status === "upcoming"
+            ? "Starts in"
+            : snapshot?.status === "live"
+              ? "Current state"
+              : "Schedule"}
+        </p>
+
+        <p className="mt-2 text-[18px] font-black tracking-[-0.025em] text-zinc-900">
+          {snapshot?.countdown}
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {chapters.length > 0 ? (
+            chapters.slice(0, 4).map((chapter) => (
+              <span
+                key={chapter}
+                className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[9px] font-bold text-zinc-600"
+              >
+                {chapter}
+              </span>
+            ))
+          ) : (
+            <span className="text-[11px] text-zinc-500">
+              No active chapters
+            </span>
+          )}
+
+          {chapters.length > 4 && (
+            <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[9px] font-bold text-zinc-500">
+              +{chapters.length - 4} more
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="relative mt-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">
+            Duration
+          </p>
+
+          <p className="mt-1 text-[12px] font-black text-zinc-800">
+            {config?.duration || 20} min
+          </p>
+        </div>
+
+        <div
+          className="h-1.5 w-16 overflow-hidden rounded-full"
+          style={{
+            backgroundColor: theme.accentSoft,
+          }}
+        >
+          <div
+            className="h-full w-1/2 rounded-full"
+            style={{
+              backgroundColor: theme.accent,
+            }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ===========================================================
+// LATEST ANNOUNCEMENT WIDGET
+// ===========================================================
+
+function LatestAnnouncementWidget({
+  announcement,
+  theme,
+  onManage,
+}) {
+  const typeStyles = {
+    info: {
+      label: "Info",
+      badge:
+        "border-sky-200 bg-sky-50 text-sky-700",
+      icon:
+        "border-sky-200 bg-sky-50 text-sky-600",
+    },
+    success: {
+      label: "Success",
+      badge:
+        "border-emerald-200 bg-emerald-50 text-emerald-700",
+      icon:
+        "border-emerald-200 bg-emerald-50 text-emerald-600",
+    },
+    warning: {
+      label: "Warning",
+      badge:
+        "border-amber-200 bg-amber-50 text-amber-700",
+      icon:
+        "border-amber-200 bg-amber-50 text-amber-600",
+    },
+    important: {
+      label: "Important",
+      badge:
+        "border-rose-200 bg-rose-50 text-rose-700",
+      icon:
+        "border-rose-200 bg-rose-50 text-rose-600",
+    },
+  };
+
+  const currentType =
+    typeStyles[announcement?.type] ||
+    typeStyles.info;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.22 }}
+      className="relative overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5 lg:p-6"
+    >
+      <div
+        className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full blur-[65px]"
+        style={{
+          backgroundColor: theme.accentSoft,
+        }}
+      />
+
+      <div className="relative flex items-start justify-between gap-4">
+        <CardHeading
+          icon={Megaphone}
+          title="Latest Announcement"
+          description="Currently visible to participants"
+          theme={theme}
+        />
+
+        {announcement && (
+          <span
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] ${currentType.badge}`}
+          >
+            {currentType.label}
+          </span>
+        )}
+      </div>
+
+      {announcement ? (
+        <div className="relative mt-5 rounded-2xl border border-zinc-200/80 bg-[#F8FAFC] p-4">
+          <div className="flex items-start gap-3">
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${currentType.icon}`}
+            >
+              <Megaphone
+                size={15}
+                strokeWidth={1.9}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h4 className="text-[13px] font-black leading-5 text-zinc-900">
+                {announcement.title}
+              </h4>
+
+              <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[11px] leading-5 text-zinc-500">
+                {announcement.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="relative mt-5 flex min-h-[142px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-[#F8FAFC] px-5 text-center">
+          <Megaphone
+            size={22}
+            className="text-zinc-400"
+          />
+
+          <p className="mt-3 text-[12px] font-black text-zinc-700">
+            No active announcement
+          </p>
+
+          <p className="mt-1 text-[10px] leading-4 text-zinc-500">
+            Publish an announcement to display it here.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ===========================================================
+// COUNTDOWN FORMATTER
+// ===========================================================
+
+function formatDashboardCountdown(milliseconds) {
+  const totalSeconds = Math.max(
+    0,
+    Math.floor(milliseconds / 1000)
+  );
+
+  const days = Math.floor(
+    totalSeconds / 86400
+  );
+
+  const hours = Math.floor(
+    (totalSeconds % 86400) / 3600
+  );
+
+  const minutes = Math.floor(
+    (totalSeconds % 3600) / 60
+  );
+
+  const seconds =
+    totalSeconds % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+
+  return `${minutes}m ${seconds}s`;
 }
 
 // ===========================================================
