@@ -15,6 +15,7 @@ import Result from "./pages/Result";
 import Leaderboard from "./pages/Leaderboard";
 import Review from "./pages/Review";
 import Scores from "./pages/Scores";
+import LiveDisplay from "./pages/LiveDisplay";
 
 // admin access
 
@@ -80,6 +81,7 @@ function AppRoutes() {
       <Route path="/leaderboard" element={<Leaderboard />} />
       <Route path="/scores" element={<Scores />} />
       <Route path="/start-confirm" element={<StartQuizConfirm />} />
+      <Route path="/live" element={<LiveDisplay />} />
 
       {/* admin navigation path */}
       <Route path="/admin-login" element={<AdminLogin />} />
