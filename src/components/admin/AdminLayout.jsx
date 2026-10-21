@@ -69,6 +69,12 @@ const BASE_NAV_ITEMS = [
         route: "/admin/quiz-config",
     },
     {
+        label: "Live Control",
+        shortLabel: "Live",
+        icon: Play,
+        route: "/admin/live-control",
+    },
+    {
         label: "Results",
         shortLabel: "Results",
         icon: BarChart3,
@@ -137,6 +143,11 @@ const PAGE_META = {
     "/admin/quiz-config": {
         eyebrow: "Quiz Management",
         title: "Quiz Configuration",
+    },
+
+    "/admin/live-control": {
+        eyebrow: "Live Event",
+        title: "Live Control Center",
     },
 
     "/admin/view-results": {

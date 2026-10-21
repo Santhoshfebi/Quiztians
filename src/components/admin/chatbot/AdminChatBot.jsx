@@ -62,6 +62,12 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   "/admin/preview-quiz",
   "/admin/quiz-config",
   "/admin/view-results",
+
+  // New QUIZTIANS V2 admin features
+  "/admin/analytics",
+  "/admin/announcements",
+  "/admin/live-control",
+
   "/admin/activity-logs",
 ]);
 
@@ -80,11 +86,11 @@ const PAGE_CONTEXT = {
     label: "Dashboard",
     icon: LayoutDashboard,
     intro:
-      "You're currently on the Dashboard. I can help you navigate QUIZTIANS or find the admin feature you need.",
+      "You're currently on the Dashboard. I can help you navigate QUIZTIANS, monitor the current quiz and find the admin feature you need.",
     suggestions: [
-      "How do I add questions?",
       "How do I configure the quiz?",
-      "Where can I view results?",
+      "Where can I view analytics?",
+      "What is the Live Display?",
     ],
   },
 
@@ -148,6 +154,54 @@ const PAGE_CONTEXT = {
     ],
   },
 
+  // =========================================================
+  // ANALYTICS
+  // =========================================================
+
+  "/admin/analytics": {
+    label: "Analytics",
+    icon: BarChart3,
+    intro:
+      "You're viewing Quiz Analytics. I can help you understand quiz performance, chapter-level insights, score distribution, rankings and fastest finishers.",
+    suggestions: [
+      "What does Analytics show?",
+      "How do I analyze a chapter?",
+      "Where can I view participant results?",
+    ],
+  },
+
+  // =========================================================
+  // ANNOUNCEMENTS
+  // =========================================================
+
+  "/admin/announcements": {
+    label: "Announcements",
+    icon: MessageCircle,
+    intro:
+      "You're on Announcements. I can help you understand how announcements are managed and how they are shown to QUIZTIANS participants.",
+    suggestions: [
+      "What are Announcements?",
+      "How do I manage announcements?",
+      "Where are announcements shown?",
+    ],
+  },
+
+  // =========================================================
+  // LIVE EVENT CONTROL
+  // =========================================================
+
+  "/admin/live-control": {
+    label: "Live Control Center",
+    icon: Play,
+    intro:
+      "You're viewing the Live Control Center. I can help you monitor the current quiz event, active chapters and projector-ready live event information.",
+    suggestions: [
+      "What is the Live Display?",
+      "How does chapter rotation work?",
+      "How does Winner Mode work?",
+    ],
+  },
+
   "/admin/activity-logs": {
     label: "Activity Logs",
     icon: History,
@@ -198,8 +252,8 @@ const DEFAULT_CONTEXT = {
     "I can help you navigate the QUIZTIANS admin console and explain common administration tasks.",
   suggestions: [
     "What can you help me with?",
-    "How do I add questions?",
-    "Where can I view results?",
+    "Where can I view analytics?",
+    "What is the Live Display?",
   ],
 };
 
@@ -209,11 +263,11 @@ const DEFAULT_CONTEXT = {
 
 const COMMAND_HELP = {
   answer:
-    "I can help with questions, quiz configuration, results, activity logs and administrator features.\n\nYou can also type /clear to reset this conversation.",
+    "I can help with questions, quiz configuration, results, analytics, announcements, live events, activity logs and administrator features.\n\nYou can also type /clear to reset this conversation.",
   suggestions: [
-    "How do I add questions?",
     "How do I configure the quiz?",
-    "Where can I view results?",
+    "Where can I view analytics?",
+    "What is the Live Display?",
   ],
 };
 
@@ -333,16 +387,16 @@ function sanitizeStoredMessage(item, role) {
     action:
       item.sender === "bot"
         ? sanitizeAction(
-            item.action,
-            role
-          )
+          item.action,
+          role
+        )
         : null,
 
     suggestions:
       item.sender === "bot"
         ? sanitizeSuggestions(
-            item.suggestions
-          )
+          item.suggestions
+        )
         : [],
   };
 }
@@ -559,15 +613,15 @@ function clampTriggerPosition(
   const maxX = Math.max(
     minX,
     window.innerWidth -
-      width -
-      CHAT_TRIGGER_EDGE_GAP
+    width -
+    CHAT_TRIGGER_EDGE_GAP
   );
 
   const maxY = Math.max(
     minY,
     window.innerHeight -
-      height -
-      CHAT_TRIGGER_EDGE_GAP
+    height -
+    CHAT_TRIGGER_EDGE_GAP
   );
 
   return {
@@ -879,7 +933,7 @@ export default function AdminChatBot({
 
       const last =
         focusable[
-          focusable.length - 1
+        focusable.length - 1
         ];
 
       const active =
@@ -1465,7 +1519,7 @@ export default function AdminChatBot({
     if (
       !drag.active ||
       drag.pointerId !==
-        event.pointerId
+      event.pointerId
     ) {
       return;
     }
@@ -1487,7 +1541,7 @@ export default function AdminChatBot({
     if (
       !drag.dragged &&
       distance <
-        CHAT_TRIGGER_DRAG_THRESHOLD
+      CHAT_TRIGGER_DRAG_THRESHOLD
     ) {
       return;
     }
@@ -1536,7 +1590,7 @@ export default function AdminChatBot({
     if (
       !drag.active ||
       drag.pointerId !==
-        event.pointerId
+      event.pointerId
     ) {
       return;
     }
@@ -1655,18 +1709,17 @@ export default function AdminChatBot({
         style={
           triggerPosition
             ? {
-                left:
-                  triggerPosition.x,
-                top:
-                  triggerPosition.y,
-              }
+              left:
+                triggerPosition.x,
+              top:
+                triggerPosition.y,
+            }
             : undefined
         }
-        className={`fixed z-[80] touch-none ${
-          triggerPosition
-            ? ""
-            : "bottom-[92px] right-4 lg:bottom-6 lg:right-6"
-        }`}
+        className={`fixed z-[80] touch-none ${triggerPosition
+          ? ""
+          : "bottom-[92px] right-4 lg:bottom-6 lg:right-6"
+          }`}
       >
         <AnimatePresence>
           {!isOpen && (
@@ -1992,11 +2045,10 @@ export default function AdminChatBot({
                                 opacity: 1,
                                 y: 0,
                               }}
-                              className={`flex items-start gap-2.5 ${
-                                isUser
-                                  ? "justify-end"
-                                  : "justify-start"
-                              }`}
+                              className={`flex items-start gap-2.5 ${isUser
+                                ? "justify-end"
+                                : "justify-start"
+                                }`}
                             >
                               {/* BOT ICON */}
 
@@ -2032,10 +2084,10 @@ export default function AdminChatBot({
                                   style={
                                     isUser
                                       ? {
-                                          backgroundColor:
-                                            `${accent}18`,
-                                          border: `1px solid ${accent}22`,
-                                        }
+                                        backgroundColor:
+                                          `${accent}18`,
+                                        border: `1px solid ${accent}22`,
+                                      }
                                       : undefined
                                   }
                                 >
@@ -2088,7 +2140,7 @@ export default function AdminChatBot({
                                     item
                                       .suggestions
                                       ?.length >
-                                      0 && (
+                                    0 && (
                                       <div className="mt-3 space-y-1.5 border-t border-white/[0.05] pt-3">
                                         {item.suggestions
                                           .slice(
@@ -2356,7 +2408,7 @@ export default function AdminChatBot({
                       ) => {
                         if (
                           event.key ===
-                            "Enter" &&
+                          "Enter" &&
                           !event.shiftKey
                         ) {
                           event.preventDefault();
@@ -2416,10 +2468,10 @@ export default function AdminChatBot({
                       className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:cursor-not-allowed disabled:bg-[#19191E] disabled:text-zinc-700 disabled:shadow-none"
                       style={
                         message.trim() &&
-                        !isTyping
+                          !isTyping
                           ? {
-                              background: `linear-gradient(135deg, ${accent}, ${accent}CC)`,
-                            }
+                            background: `linear-gradient(135deg, ${accent}, ${accent}CC)`,
+                          }
                           : undefined
                       }
                     >

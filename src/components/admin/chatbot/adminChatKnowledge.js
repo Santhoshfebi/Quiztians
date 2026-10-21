@@ -1,9 +1,9 @@
 // ===========================================================
 // QUIZTIANS ADMIN CHATBOT
-// SMART KNOWLEDGE BASE — STEP 3
+// SMART KNOWLEDGE BASE — V2
 // ===========================================================
 //
-// V1 goals:
+// V2 goals:
 // - No AI API
 // - No Supabase queries
 // - Predictable prepared answers
@@ -11,15 +11,23 @@
 // - Role-aware answers
 // - Navigation actions
 // - Helpful fallback suggestions
+// - Quiz Analytics knowledge
+// - Announcements knowledge
+// - Live Event Display knowledge
+// - Updated Dashboard knowledge
 //
 // ===========================================================
 
 
 // ===========================================================
-// GENERAL / CONVERSATIONAL RESPONSES
+// CONVERSATIONAL KNOWLEDGE
 // ===========================================================
 
 const conversationalKnowledge = [
+  // =========================================================
+  // GREETING
+  // =========================================================
+
   {
     id: "greeting",
 
@@ -37,14 +45,18 @@ const conversationalKnowledge = [
     ],
 
     answer:
-      "Hey! 👋 I'm the QUIZTIANS Admin Assistant. I can help you with questions, quiz configuration, results, activity logs and other admin features.",
+      "Hey! 👋 I'm the QUIZTIANS Admin Assistant. I can help you manage questions, quiz configuration, results, analytics, announcements, live events, activity logs and other admin features.",
 
     suggestions: [
-      "How do I add questions?",
-      "How do I start a quiz?",
-      "Where can I view results?",
+      "How do I configure the quiz?",
+      "Where can I view analytics?",
+      "What is the Live Display?",
     ],
   },
+
+  // =========================================================
+  // THANKS
+  // =========================================================
 
   {
     id: "thanks",
@@ -58,16 +70,22 @@ const conversationalKnowledge = [
       "great thanks",
       "okay thanks",
       "ok thanks",
+      "got it thanks",
     ],
 
     answer:
-      "You're welcome! 😄 If you need help with anything else in the QUIZTIANS admin panel, just ask.",
+      "You're welcome! 😊 If you need anything else in the QUIZTIANS admin panel, just ask.",
 
     suggestions: [
-      "What can you help me with?",
       "How do I configure the quiz?",
+      "Where can I view analytics?",
+      "What is the Live Display?",
     ],
   },
+
+  // =========================================================
+  // HELP
+  // =========================================================
 
   {
     id: "help",
@@ -84,20 +102,20 @@ const conversationalKnowledge = [
     ],
 
     answer:
-      "I can help you navigate the QUIZTIANS admin panel and explain common tasks such as adding questions, previewing the quiz, configuring chapters and duration, viewing results, checking activity logs and managing administrator features.",
+      "I can help you navigate the QUIZTIANS admin panel and explain question management, quiz configuration, participant results, Quiz Analytics, announcements, the Live Event Display, Winner Mode, activity logs and administrator features.",
 
     suggestions: [
-      "How do I add questions?",
       "How do I configure the quiz?",
-      "Where can I view results?",
-      "What are Activity Logs?",
+      "Where can I view analytics?",
+      "What is the Live Display?",
+      "What are Announcements?",
     ],
   },
 ];
 
 
 // ===========================================================
-// MAIN ADMIN KNOWLEDGE
+// ADMIN KNOWLEDGE
 // ===========================================================
 
 export const adminChatKnowledge = [
@@ -118,12 +136,318 @@ export const adminChatKnowledge = [
       "main page",
       "overview",
       "admin overview",
+      "dashboard overview",
+      "quiz dashboard",
+      "quiz overview",
       "go dashboard",
       "open dashboard",
+      "what is dashboard",
+      "what does dashboard show",
+      "what can i see on dashboard",
     ],
 
     answer:
-      "The Dashboard is the main overview of your QUIZTIANS admin area. Use it as the starting point for monitoring the quiz and accessing the main administration sections.",
+      "The QUIZTIANS Dashboard is the main administration overview. It brings together System Status, key quiz metrics, Quick Actions, Quiz Status, the latest announcement, chapter and score distribution charts, and Live Activity so you can understand the current state of QUIZTIANS from one place.",
+
+    action: {
+      label: "Open Dashboard",
+      route: "/admin",
+    },
+
+    suggestions: [
+      "What is System Status?",
+      "What does Quiz Status show?",
+      "What is Live Activity?",
+    ],
+  },
+
+  // =========================================================
+  // SYSTEM STATUS
+  // =========================================================
+
+  {
+    id: "dashboard-system-status",
+
+    category: "Dashboard",
+
+    keywords: [
+      "system status",
+      "dashboard system status",
+      "quiz system status",
+      "current system status",
+      "system health",
+      "quiz health",
+      "what is system status",
+      "what does system status show",
+      "is quiz system active",
+      "is system active",
+    ],
+
+    answer:
+      "System Status gives you a quick high-level view of the current QUIZTIANS quiz environment. It helps you understand the current quiz state without opening each administration page individually.",
+
+    action: {
+      label: "Open Dashboard",
+      route: "/admin",
+    },
+
+    suggestions: [
+      "What does Quiz Status show?",
+      "What are Dashboard metrics?",
+      "What is Live Activity?",
+    ],
+  },
+
+  // =========================================================
+  // DASHBOARD METRICS
+  // =========================================================
+
+  {
+    id: "dashboard-metrics",
+
+    category: "Dashboard",
+
+    keywords: [
+      "dashboard metrics",
+      "dashboard stats",
+      "dashboard statistics",
+      "quiz metrics",
+      "quiz statistics dashboard",
+      "quiz stats dashboard",
+      "dashboard numbers",
+      "dashboard cards",
+      "metric cards",
+      "what are dashboard metrics",
+      "what do dashboard metrics show",
+    ],
+
+    answer:
+      "Dashboard metrics provide quick numerical summaries of important QUIZTIANS data. They are designed to give administrators an immediate snapshot before moving into detailed pages such as Results or Analytics.",
+
+    action: {
+      label: "Open Dashboard",
+      route: "/admin",
+    },
+
+    suggestions: [
+      "Where can I view Analytics?",
+      "Where can I view participant results?",
+      "What does Quiz Status show?",
+    ],
+  },
+
+  // =========================================================
+  // QUICK ACTIONS
+  // =========================================================
+
+  {
+    id: "dashboard-quick-actions",
+
+    category: "Dashboard",
+
+    keywords: [
+      "quick actions",
+      "dashboard quick actions",
+      "quick action",
+      "quick action buttons",
+      "quick action pills",
+      "floating quick actions",
+      "dashboard shortcuts",
+      "admin shortcuts",
+      "dashboard navigation shortcuts",
+      "what are quick actions",
+      "what are dashboard quick actions",
+    ],
+
+    answer:
+      "Quick Actions provide convenient shortcuts from the Dashboard to commonly used QUIZTIANS administration areas. They reduce the number of navigation steps needed during normal quiz management.",
+
+    action: {
+      label: "Open Dashboard",
+      route: "/admin",
+    },
+
+    suggestions: [
+      "How do I configure the quiz?",
+      "Where can I view Analytics?",
+      "What is the Live Display?",
+    ],
+  },
+
+  // =========================================================
+  // QUIZ STATUS WIDGET
+  // =========================================================
+
+  {
+    id: "dashboard-quiz-status",
+
+    category: "Dashboard",
+
+    keywords: [
+      "quiz status",
+      "quiz status widget",
+      "dashboard quiz status",
+      "current quiz status",
+      "quiz state",
+      "current quiz state",
+      "quiz information",
+      "quiz status card",
+      "what is quiz status",
+      "what does quiz status show",
+      "what does quiz status widget show",
+    ],
+
+    answer:
+      "The Quiz Status widget gives you a focused view of the currently configured quiz state from the Dashboard. For detailed timing, duration and active chapter changes, use Quiz Configuration.",
+
+    action: {
+      label: "Open Dashboard",
+      route: "/admin",
+    },
+
+    suggestions: [
+      "How do I configure the quiz?",
+      "How do I change quiz duration?",
+      "How do I select chapters?",
+    ],
+  },
+
+  // =========================================================
+  // LATEST ANNOUNCEMENT WIDGET
+  // =========================================================
+
+  {
+    id: "dashboard-latest-announcement",
+
+    category: "Dashboard",
+
+    keywords: [
+      "latest announcement",
+      "latest announcement widget",
+      "dashboard announcement",
+      "dashboard announcements",
+      "announcement widget",
+      "recent announcement",
+      "newest announcement",
+      "current announcement",
+      "what is latest announcement",
+      "what does announcement widget show",
+    ],
+
+    answer:
+      "The Latest Announcement widget gives administrators a quick view of the most recent announcement information directly from the Dashboard. Use the dedicated Announcements page when you need to manage announcements.",
+
+    action: {
+      label: "Open Announcements",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "What are Announcements?",
+      "How do I manage announcements?",
+      "Where are announcements shown?",
+    ],
+  },
+
+  // =========================================================
+  // CHAPTER DISTRIBUTION
+  // =========================================================
+
+  {
+    id: "dashboard-chapter-distribution",
+
+    category: "Dashboard",
+
+    keywords: [
+      "chapter distribution",
+      "chapter distribution chart",
+      "dashboard chapter distribution",
+      "chapter chart",
+      "chapter graph",
+      "chapter participation",
+      "chapter breakdown",
+      "results by chapter",
+      "participants by chapter",
+      "what is chapter distribution",
+      "what does chapter distribution show",
+    ],
+
+    answer:
+      "Chapter Distribution gives you a visual overview of how quiz participation or result data is distributed across chapters. For deeper chapter-level analysis, use the Quiz Analytics page.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "How do I analyze a chapter?",
+      "What does Analytics show?",
+      "What is Score Distribution?",
+    ],
+  },
+
+  // =========================================================
+  // DASHBOARD SCORE DISTRIBUTION
+  // =========================================================
+
+  {
+    id: "dashboard-score-distribution",
+
+    category: "Dashboard",
+
+    keywords: [
+      "dashboard score distribution",
+      "dashboard score chart",
+      "dashboard score graph",
+      "score distribution dashboard",
+      "score chart dashboard",
+      "score overview",
+      "score breakdown",
+      "dashboard scores",
+    ],
+
+    answer:
+      "The Dashboard Score Distribution provides a quick visual summary of participant score patterns. For more detailed performance analysis and filtering, open Quiz Analytics.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "What is Score Distribution?",
+      "What does Analytics show?",
+      "How do I analyze a chapter?",
+    ],
+  },
+
+  // =========================================================
+  // LIVE ACTIVITY
+  // =========================================================
+
+  {
+    id: "dashboard-live-activity",
+
+    category: "Dashboard",
+
+    keywords: [
+      "live activity",
+      "dashboard live activity",
+      "activity feed",
+      "live activity feed",
+      "recent activity",
+      "recent quiz activity",
+      "latest activity",
+      "participant activity",
+      "live participant activity",
+      "what is live activity",
+      "what does live activity show",
+      "what is activity feed",
+    ],
+
+    answer:
+      "Live Activity gives administrators a quick view of recent quiz activity from the Dashboard. It is useful for monitoring what is happening during an active event without constantly switching between admin pages.",
 
     action: {
       label: "Open Dashboard",
@@ -132,17 +456,17 @@ export const adminChatKnowledge = [
 
     suggestions: [
       "Where can I view results?",
-      "How do I configure the quiz?",
+      "What are Activity Logs?",
+      "What is the Live Display?",
     ],
   },
-
 
   // =========================================================
   // ADD QUESTIONS
   // =========================================================
 
   {
-    id: "add-question",
+    id: "add-questions",
 
     category: "Questions",
 
@@ -153,21 +477,19 @@ export const adminChatKnowledge = [
       "create questions",
       "new question",
       "new questions",
-      "insert question",
-      "make question",
-      "make questions",
-      "question create",
-      "question add",
+      "question creation",
       "add quiz question",
-      "create quiz question",
+      "add quiz questions",
+      "how do i add a question",
+      "how do i add questions",
       "how to add question",
-      "how do i add question",
-      "how can i add question",
-      "where add question",
+      "how to add questions",
+      "where do i add questions",
+      "where can i add questions",
     ],
 
     answer:
-      "To create a quiz question, open Add Questions from the admin navigation. That is the section used for adding new questions to QUIZTIANS.",
+      "Use the Add Questions page to create new QUIZTIANS questions. This is the administration area for entering question content, answer choices, the correct answer and the chapter information required by the quiz.",
 
     action: {
       label: "Open Add Questions",
@@ -181,7 +503,6 @@ export const adminChatKnowledge = [
     ],
   },
 
-
   // =========================================================
   // PREVIEW QUESTIONS
   // =========================================================
@@ -194,23 +515,20 @@ export const adminChatKnowledge = [
     keywords: [
       "preview question",
       "preview questions",
-      "view question",
+      "question preview",
+      "questions preview",
       "view questions",
-      "see question",
+      "view question",
       "see questions",
-      "show questions",
-      "question list",
-      "questions list",
       "check questions",
       "review questions",
-      "existing questions",
-      "all questions",
-      "where are questions",
-      "where can i see questions",
+      "preview saved questions",
+      "how do i preview questions",
+      "where can i preview questions",
     ],
 
     answer:
-      "Open Preview Questions to review the quiz questions available in the admin system before running the quiz.",
+      "Use Preview Questions to review the quiz questions that have been added to QUIZTIANS. It is useful for checking question content before running the quiz.",
 
     action: {
       label: "Preview Questions",
@@ -220,9 +538,9 @@ export const adminChatKnowledge = [
     suggestions: [
       "How do I add questions?",
       "How do I preview the quiz?",
+      "How do I configure the quiz?",
     ],
   },
-
 
   // =========================================================
   // PREVIEW QUIZ
@@ -236,21 +554,20 @@ export const adminChatKnowledge = [
     keywords: [
       "preview quiz",
       "quiz preview",
-      "test quiz",
-      "check quiz",
-      "view quiz",
-      "see quiz",
-      "show quiz",
-      "try quiz",
-      "test the quiz",
       "preview the quiz",
-      "how quiz looks",
-      "how does quiz look",
-      "check quiz before start",
+      "test quiz",
+      "test the quiz",
+      "check quiz",
+      "check the quiz",
+      "see quiz",
+      "view quiz preview",
+      "how do i preview quiz",
+      "how do i preview the quiz",
+      "where can i preview quiz",
     ],
 
     answer:
-      "Use Preview Quiz to review how the quiz experience looks before participants take it.",
+      "Use Preview Quiz to review the quiz experience before participants take part. This helps you check how the configured quiz and its questions will appear before the event.",
 
     action: {
       label: "Preview Quiz",
@@ -258,14 +575,14 @@ export const adminChatKnowledge = [
     },
 
     suggestions: [
-      "How do I configure the quiz?",
       "How do I add questions?",
+      "How do I configure the quiz?",
+      "How do I select chapters?",
     ],
   },
 
-
   // =========================================================
-  // QUIZ CONFIGURATION — GENERAL
+  // QUIZ CONFIGURATION
   // =========================================================
 
   {
@@ -274,68 +591,24 @@ export const adminChatKnowledge = [
     category: "Quiz Configuration",
 
     keywords: [
-      "quiz config",
       "quiz configuration",
+      "quiz config",
       "configure quiz",
+      "configure the quiz",
       "quiz settings",
-      "quiz setting",
-      "settings quiz",
+      "quiz setup",
       "setup quiz",
       "set up quiz",
       "change quiz settings",
-      "manage quiz",
-      "quiz setup",
-      "configure the quiz",
+      "edit quiz configuration",
+      "how do i configure the quiz",
+      "how to configure quiz",
       "where is quiz configuration",
+      "where are quiz settings",
     ],
 
     answer:
-      "Quiz Configuration is where you manage the active quiz setup, including the quiz timing, duration and active chapters.",
-
-    action: {
-      label: "Open Quiz Configuration",
-      route: "/admin/quiz-config",
-    },
-
-    suggestions: [
-      "How do I change quiz duration?",
-      "How do I select chapters?",
-      "How do I start the quiz?",
-    ],
-  },
-
-
-  // =========================================================
-  // QUIZ START / ACTIVATION
-  // =========================================================
-
-  {
-    id: "start-quiz",
-
-    category: "Quiz Configuration",
-
-    keywords: [
-      "start quiz",
-      "start the quiz",
-      "activate quiz",
-      "activate the quiz",
-      "make quiz live",
-      "quiz live",
-      "go live",
-      "open quiz",
-      "enable quiz",
-      "launch quiz",
-      "begin quiz",
-      "schedule quiz",
-      "quiz start time",
-      "start time",
-      "how do i start quiz",
-      "how can i start quiz",
-      "how to start quiz",
-    ],
-
-    answer:
-      "Open Quiz Configuration to manage when the quiz becomes available. Review the configured start time and other quiz settings before making the quiz available to participants.",
+      "Quiz Configuration is where you manage the main settings for the current QUIZTIANS quiz, including its schedule, duration and active chapters.",
 
     action: {
       label: "Open Quiz Configuration",
@@ -349,7 +622,6 @@ export const adminChatKnowledge = [
     ],
   },
 
-
   // =========================================================
   // QUIZ DURATION
   // =========================================================
@@ -360,26 +632,23 @@ export const adminChatKnowledge = [
     category: "Quiz Configuration",
 
     keywords: [
-      "duration",
       "quiz duration",
+      "duration",
       "change duration",
       "change quiz duration",
-      "quiz time",
-      "change quiz time",
-      "time limit",
-      "quiz time limit",
-      "timer",
-      "change timer",
       "set duration",
       "set quiz duration",
-      "minutes",
-      "quiz minutes",
-      "how long quiz",
-      "how long is quiz",
+      "quiz time",
+      "quiz timer",
+      "time limit",
+      "quiz time limit",
+      "how do i change quiz duration",
+      "how do i set quiz duration",
+      "where can i change duration",
     ],
 
     answer:
-      "Quiz duration is managed from Quiz Configuration. Open that page to review or update the configured quiz duration.",
+      "Quiz duration is managed from Quiz Configuration. Open the configuration page and update the duration for the current quiz before participants begin.",
 
     action: {
       label: "Open Quiz Configuration",
@@ -387,11 +656,11 @@ export const adminChatKnowledge = [
     },
 
     suggestions: [
-      "How do I start the quiz?",
+      "How do I configure the quiz?",
       "How do I select chapters?",
+      "How do I preview the quiz?",
     ],
   },
-
 
   // =========================================================
   // ACTIVE CHAPTERS
@@ -403,24 +672,24 @@ export const adminChatKnowledge = [
     category: "Quiz Configuration",
 
     keywords: [
-      "chapter",
-      "chapters",
-      "active chapter",
       "active chapters",
-      "select chapter",
+      "active chapter",
       "select chapters",
-      "change chapter",
-      "change chapters",
-      "quiz chapter",
-      "quiz chapters",
-      "choose chapter",
+      "select chapter",
       "choose chapters",
-      "enable chapter",
+      "choose chapter",
+      "quiz chapters",
+      "quiz chapter",
       "chapter selection",
+      "change active chapters",
+      "set active chapters",
+      "how do i select chapters",
+      "how do i choose chapters",
+      "where can i select chapters",
     ],
 
     answer:
-      "Active chapters are managed from Quiz Configuration. Use that page to control which chapters are available for the quiz.",
+      "Active chapters determine which chapters are enabled for the current quiz. You can manage the chapter selection from Quiz Configuration.",
 
     action: {
       label: "Open Quiz Configuration",
@@ -428,15 +697,14 @@ export const adminChatKnowledge = [
     },
 
     suggestions: [
+      "How do I configure the quiz?",
       "How do I change quiz duration?",
-      "How do I start the quiz?",
-      "How do I add questions?",
+      "How does chapter rotation work?",
     ],
   },
 
-
-  // =========================================================
-  // RESULTS — GENERAL
+    // =========================================================
+  // RESULTS
   // =========================================================
 
   {
@@ -445,28 +713,23 @@ export const adminChatKnowledge = [
     category: "Results",
 
     keywords: [
-      "result",
       "results",
-      "view result",
-      "view results",
-      "quiz result",
       "quiz results",
-      "participant result",
       "participant results",
-      "participant score",
-      "participant scores",
-      "scores",
-      "score list",
+      "view results",
+      "view quiz results",
+      "view participant results",
       "see results",
-      "show results",
-      "where results",
+      "check results",
+      "open results",
       "where are results",
       "where can i view results",
-      "where can i see results",
+      "where can i view participant results",
+      "how do i view results",
     ],
 
     answer:
-      "Open Results to review participant quiz attempts, scores and other recorded result information.",
+      "The Results page lets you inspect participant quiz records. Use it when you need to view, search, filter or manage individual participant results.",
 
     action: {
       label: "Open Results",
@@ -474,12 +737,11 @@ export const adminChatKnowledge = [
     },
 
     suggestions: [
+      "How do I search results?",
       "How do I reset a participant?",
-      "Can I reset all results?",
-      "What are Activity Logs?",
+      "What is the difference between Results and Analytics?",
     ],
   },
-
 
   // =========================================================
   // RESET PARTICIPANT
@@ -494,20 +756,20 @@ export const adminChatKnowledge = [
       "reset participant",
       "reset a participant",
       "reset user",
-      "reset attempt",
-      "reset participant attempt",
-      "delete participant result",
-      "remove participant result",
-      "allow participant retry",
-      "allow retry",
-      "retry quiz",
+      "reset player",
+      "reset participant result",
+      "reset participant results",
+      "allow participant again",
+      "allow participant to retry",
       "participant retry",
-      "retake quiz",
-      "participant retake",
+      "retry quiz participant",
+      "how do i reset a participant",
+      "how to reset participant",
+      "how can participant retry",
     ],
 
     answer:
-      "Participant reset controls are available from Results. Open the participant's result and use the available reset action carefully, because resetting an attempt changes that participant's recorded quiz state.",
+      "Participant reset actions are handled from the Results page. Locate the participant carefully and use the available reset action for that specific record. Review the selected participant before confirming the action.",
 
     action: {
       label: "Open Results",
@@ -515,11 +777,11 @@ export const adminChatKnowledge = [
     },
 
     suggestions: [
-      "Where can I view results?",
-      "Can I reset all results?",
+      "How do I search results?",
+      "How do I reset all results?",
+      "Where can I view analytics?",
     ],
   },
-
 
   // =========================================================
   // RESET ALL RESULTS
@@ -531,19 +793,22 @@ export const adminChatKnowledge = [
     category: "Results",
 
     keywords: [
-      "reset all",
       "reset all results",
-      "clear results",
+      "reset results",
       "clear all results",
+      "clear results",
       "delete all results",
       "remove all results",
-      "reset results",
+      "reset every result",
+      "reset participants",
       "clear participant results",
-      "wipe results",
+      "how do i reset all results",
+      "how to reset all results",
+      "how do i clear results",
     ],
 
     answer:
-      "The Results page contains the available result reset controls. A full reset affects multiple participant records, so always review the confirmation carefully before proceeding.",
+      "Reset All Results is a destructive Results action that affects participant result data. Use it only when you intentionally want to clear the relevant results, and carefully review the confirmation before proceeding.",
 
     action: {
       label: "Open Results",
@@ -552,34 +817,39 @@ export const adminChatKnowledge = [
 
     suggestions: [
       "How do I reset a participant?",
-      "Where can I view results?",
+      "How do I search results?",
+      "Where can I view analytics?",
     ],
   },
-
 
   // =========================================================
   // RESULT FILTERING
   // =========================================================
 
   {
-    id: "filter-results",
+    id: "result-filtering",
 
     category: "Results",
 
     keywords: [
-      "filter results",
       "search results",
+      "search result",
+      "filter results",
+      "filter result",
+      "result filtering",
+      "results filtering",
+      "find participant result",
       "find participant",
       "search participant",
-      "find result",
-      "search result",
-      "result filters",
-      "results filter",
-      "filter participant",
+      "search participant results",
+      "filter participant results",
+      "how do i search results",
+      "how do i filter results",
+      "how do i find a participant",
     ],
 
     answer:
-      "Use the filtering and search controls on the Results page to narrow the displayed participant results.",
+      "Use the search and filtering controls on the Results page to narrow participant records and locate the result you need.",
 
     action: {
       label: "Open Results",
@@ -588,38 +858,1048 @@ export const adminChatKnowledge = [
 
     suggestions: [
       "How do I reset a participant?",
-      "Where can I view results?",
+      "What is the difference between Results and Analytics?",
+      "Where can I view analytics?",
     ],
   },
 
+  // =========================================================
+  // QUIZ ANALYTICS
+  // =========================================================
+
+  {
+    id: "quiz-analytics",
+
+    category: "Analytics",
+
+    keywords: [
+      "analytics",
+      "quiz analytics",
+      "analytics page",
+      "quiz performance",
+      "performance analytics",
+      "performance insights",
+      "quiz insights",
+      "quiz statistics",
+      "quiz stats",
+      "performance statistics",
+      "view analytics",
+      "open analytics",
+      "where is analytics",
+      "where can i view analytics",
+      "what does analytics show",
+      "what is analytics",
+      "what are analytics",
+    ],
+
+    answer:
+      "Quiz Analytics gives you a performance overview of QUIZTIANS results. It helps you understand participation, scores, chapter performance, rankings and finishing speed from one admin page.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "How do I analyze a chapter?",
+      "What is Score Distribution?",
+      "What are Fastest Finishers?",
+    ],
+  },
 
   // =========================================================
+  // CHAPTER ANALYTICS
+  // =========================================================
+
+  {
+    id: "chapter-analytics",
+
+    category: "Analytics",
+
+    keywords: [
+      "chapter analytics",
+      "chapter performance",
+      "chapter statistics",
+      "chapter stats",
+      "analyze chapter",
+      "analyse chapter",
+      "analyze a chapter",
+      "analyse a chapter",
+      "filter analytics by chapter",
+      "filter by chapter",
+      "chapter filter",
+      "analytics chapter filter",
+      "performance by chapter",
+      "compare chapter performance",
+      "chapter performance summary",
+    ],
+
+    answer:
+      "Use the chapter filter on Quiz Analytics to focus the dashboard on a specific chapter. This lets you inspect that chapter's participation and performance without mixing its results with other chapters.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "What does Analytics show?",
+      "What is Score Distribution?",
+      "Where can I view participant results?",
+    ],
+  },
+
+  // =========================================================
+  // SCORE DISTRIBUTION
+  // =========================================================
+
+  {
+    id: "score-distribution",
+
+    category: "Analytics",
+
+    keywords: [
+      "score distribution",
+      "scores distribution",
+      "score chart",
+      "score graph",
+      "distribution chart",
+      "distribution graph",
+      "how are scores distributed",
+      "participant score distribution",
+      "quiz score distribution",
+      "score analytics",
+      "score performance",
+      "what is score distribution",
+    ],
+
+    answer:
+      "Score Distribution shows how participant scores are spread across the selected analytics data. It gives you a quick visual picture of overall quiz performance instead of inspecting every result individually.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "How do I analyze a chapter?",
+      "What are Fastest Finishers?",
+      "Where can I view participant results?",
+    ],
+  },
+
+  // =========================================================
+  // FASTEST FINISHERS
+  // =========================================================
+
+  {
+    id: "fastest-finishers",
+
+    category: "Analytics",
+
+    keywords: [
+      "fastest finishers",
+      "fastest finisher",
+      "fastest participants",
+      "fastest participant",
+      "fastest players",
+      "fastest player",
+      "fastest quiz",
+      "fastest completion",
+      "fastest completion time",
+      "quickest finisher",
+      "quickest participant",
+      "completion time ranking",
+      "time ranking",
+      "speed ranking",
+      "who finished fastest",
+      "who is fastest",
+      "what are fastest finishers",
+    ],
+
+    answer:
+      "Fastest Finishers highlights participants with the quickest valid completion times in the selected analytics data. Entries with a 0-second completion time are excluded so they do not distort the ranking.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "What does Analytics show?",
+      "What is Score Distribution?",
+      "Where can I view participant results?",
+    ],
+  },
+
+  // =========================================================
+  // ANALYTICS RANKINGS
+  // =========================================================
+
+  {
+    id: "analytics-rankings",
+
+    category: "Analytics",
+
+    keywords: [
+      "analytics ranking",
+      "analytics rankings",
+      "performance ranking",
+      "performance rankings",
+      "participant ranking",
+      "participant rankings",
+      "top performers",
+      "best performers",
+      "top participants",
+      "ranking analytics",
+      "analytics leaderboard",
+      "analytics top performers",
+    ],
+
+    answer:
+      "The ranking areas in Quiz Analytics help identify the strongest performers from the selected results. They are intended for performance analysis, while the regular Results page remains the place to inspect individual participant records.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "How do I analyze a chapter?",
+      "What are Fastest Finishers?",
+      "Where can I view participant results?",
+    ],
+  },
+
+  // =========================================================
+  // CHAPTER PERFORMANCE SUMMARY
+  // =========================================================
+
+  {
+    id: "chapter-performance-summary",
+
+    category: "Analytics",
+
+    keywords: [
+      "chapter performance summary",
+      "chapter summary",
+      "performance summary",
+      "chapter analytics summary",
+      "all chapter performance",
+      "all chapters performance",
+      "chapter performance table",
+      "chapter analytics table",
+      "chapter summary table",
+      "chapter summary pagination",
+    ],
+
+    answer:
+      "Chapter Performance Summary gives you a chapter-by-chapter view of quiz performance. The summary is paginated so larger sets of chapters can be reviewed without overcrowding the analytics page.",
+
+    action: {
+      label: "Open Quiz Analytics",
+      route: "/admin/analytics",
+    },
+
+    suggestions: [
+      "How do I analyze a chapter?",
+      "What is Score Distribution?",
+      "What are Fastest Finishers?",
+    ],
+  },
+
+  // =========================================================
+  // RESULTS VS ANALYTICS
+  // =========================================================
+
+  {
+    id: "results-vs-analytics",
+
+    category: "Analytics",
+
+    keywords: [
+      "results vs analytics",
+      "analytics vs results",
+      "difference between results and analytics",
+      "difference between analytics and results",
+      "what is the difference between results and analytics",
+      "results or analytics",
+      "should i use results or analytics",
+      "where can i view participant results",
+      "individual participant results",
+      "participant records",
+    ],
+
+    answer:
+      "Use Results when you need to inspect, search or manage individual participant records. Use Quiz Analytics when you want the bigger performance picture such as score distribution, chapter-level insights, rankings and fastest finishers.",
+
+    action: {
+      label: "Open Results",
+      route: "/admin/view-results",
+    },
+
+    suggestions: [
+      "What does Analytics show?",
+      "How do I search results?",
+      "How do I analyze a chapter?",
+    ],
+  },
+
+    // =========================================================
+  // ANNOUNCEMENTS
+  // =========================================================
+
+  {
+    id: "announcements",
+
+    category: "Announcements",
+
+    keywords: [
+      "announcement",
+      "announcements",
+      "quiz announcement",
+      "quiz announcements",
+      "admin announcement",
+      "admin announcements",
+      "what are announcements",
+      "what is an announcement",
+      "announcement feature",
+      "announcement system",
+      "view announcements",
+      "open announcements",
+      "where are announcements",
+      "where can i manage announcements",
+    ],
+
+    answer:
+      "Announcements let administrators communicate important QUIZTIANS updates to participants. You can manage announcements from the Announcements page in the admin panel.",
+
+    action: {
+      label: "Open Announcements",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "How do I manage announcements?",
+      "Where are announcements shown?",
+      "How do I create an announcement?",
+    ],
+  },
+
+  // =========================================================
+  // MANAGE ANNOUNCEMENTS
+  // =========================================================
+
+  {
+    id: "manage-announcements",
+
+    category: "Announcements",
+
+    keywords: [
+      "manage announcements",
+      "manage announcement",
+      "announcement management",
+      "manage quiz announcements",
+      "edit announcements",
+      "manage news",
+      "announcement controls",
+      "how do i manage announcements",
+      "how to manage announcements",
+    ],
+
+    answer:
+      "Open the Announcements page to manage QUIZTIANS announcements. This is the central admin area for creating and maintaining announcements shown through the participant experience.",
+
+    action: {
+      label: "Manage Announcements",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "How do I create an announcement?",
+      "Where are announcements shown?",
+      "What are Announcements?",
+    ],
+  },
+
+  // =========================================================
+  // CREATE ANNOUNCEMENT
+  // =========================================================
+
+  {
+    id: "create-announcement",
+
+    category: "Announcements",
+
+    keywords: [
+      "create announcement",
+      "create an announcement",
+      "add announcement",
+      "add an announcement",
+      "new announcement",
+      "new announcements",
+      "publish announcement",
+      "make announcement",
+      "make an announcement",
+      "how do i create an announcement",
+      "how to create announcement",
+      "how do i add an announcement",
+    ],
+
+    answer:
+      "To create an announcement, open the Announcements page and use the available announcement creation controls. Enter the announcement information, review it carefully and save it so it can be used by the QUIZTIANS announcement system.",
+
+    action: {
+      label: "Create Announcement",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "Where are announcements shown?",
+      "How do I manage announcements?",
+      "What are Announcements?",
+    ],
+  },
+
+  // =========================================================
+  // WHERE ANNOUNCEMENTS ARE SHOWN
+  // =========================================================
+
+  {
+    id: "announcement-display",
+
+    category: "Announcements",
+
+    keywords: [
+      "where are announcements shown",
+      "where is announcement shown",
+      "where do announcements appear",
+      "where does announcement appear",
+      "announcement popup",
+      "announcement pop up",
+      "announcement display",
+      "announcement location",
+      "participant announcement",
+      "participant announcements",
+      "user announcement",
+      "welcome announcement",
+      "welcome announcements",
+      "announcement on welcome page",
+      "announcements on welcome page",
+    ],
+
+    answer:
+      "QUIZTIANS announcements are used in the participant-facing experience, including the Welcome page announcement popup. This lets important updates be presented to participants before they continue into the quiz experience.",
+
+    action: {
+      label: "Manage Announcements",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "How do I create an announcement?",
+      "How do I manage announcements?",
+      "What are Announcements?",
+    ],
+  },
+
+  // =========================================================
+  // EDIT ANNOUNCEMENT
+  // =========================================================
+
+  {
+    id: "edit-announcement",
+
+    category: "Announcements",
+
+    keywords: [
+      "edit announcement",
+      "edit an announcement",
+      "update announcement",
+      "update an announcement",
+      "change announcement",
+      "change an announcement",
+      "modify announcement",
+      "modify an announcement",
+      "how do i edit an announcement",
+      "how to edit announcement",
+    ],
+
+    answer:
+      "Announcement maintenance is handled from the Announcements page. Open the announcement you want to manage and use the available controls to update its information.",
+
+    action: {
+      label: "Manage Announcements",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "How do I create an announcement?",
+      "Where are announcements shown?",
+      "What are Announcements?",
+    ],
+  },
+
+  // =========================================================
+  // DELETE ANNOUNCEMENT
+  // =========================================================
+
+  {
+    id: "delete-announcement",
+
+    category: "Announcements",
+
+    keywords: [
+      "delete announcement",
+      "delete an announcement",
+      "remove announcement",
+      "remove an announcement",
+      "delete announcements",
+      "remove announcements",
+      "how do i delete an announcement",
+      "how to delete announcement",
+    ],
+
+    answer:
+      "Announcement removal is handled from the Announcements page. Review the selected announcement carefully before confirming a destructive delete action.",
+
+    action: {
+      label: "Manage Announcements",
+      route: "/admin/announcements",
+    },
+
+    suggestions: [
+      "How do I manage announcements?",
+      "How do I create an announcement?",
+      "Where are announcements shown?",
+    ],
+  },
+
+  // =========================================================
+  // LIVE EVENT DISPLAY
+  // =========================================================
+
+  {
+    id: "live-display",
+
+    category: "Live Event",
+
+    keywords: [
+      "live display",
+      "live event display",
+      "projector display",
+      "projector mode",
+      "projector screen",
+      "live projector",
+      "live leaderboard",
+      "event display",
+      "live event",
+      "what is live display",
+      "what is the live display",
+      "what is live event display",
+      "how does live display work",
+      "how does the live display work",
+      "how does projector work",
+    ],
+
+    answer:
+      "The QUIZTIANS Live Event Display is a dedicated projector and TV experience for running quiz events. It shows the live leaderboard, supports automatic chapter rotation, fullscreen viewing and a separate Winner Mode for revealing the final Top 3.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "How does chapter rotation work?",
+      "Why are the Top 3 hidden?",
+      "How does Winner Mode work?",
+    ],
+  },
+
+  // =========================================================
+  // LIVE CONTROL CENTER
+  // =========================================================
+
+  {
+    id: "live-control-center",
+
+    category: "Live Event",
+
+    keywords: [
+      "live control",
+      "live control center",
+      "live event control",
+      "live event control center",
+      "projector control",
+      "projector controls",
+      "monitor live event",
+      "monitor projector",
+      "monitor quiz event",
+      "live monitoring",
+      "event monitoring",
+      "what is live control",
+      "what is live control center",
+      "what does live control show",
+      "what does live control center show",
+    ],
+
+    answer:
+      "The Live Control Center is the admin monitoring page for the current QUIZTIANS event. It helps you monitor quiz status, active chapters, participant results, question availability and winner readiness, and provides access to the projector Live Display.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "What is the Live Display?",
+      "How does Winner Mode work?",
+      "What is winner readiness?",
+    ],
+  },
+
+  // =========================================================
+  // PROJECTOR CONTROLS
+  // =========================================================
+
+  {
+    id: "projector-controls",
+
+    category: "Live Event",
+
+    keywords: [
+      "projector controls",
+      "projector control",
+      "live display controls",
+      "live controls",
+      "control projector",
+      "control live display",
+      "projector shortcuts",
+      "live display shortcuts",
+      "keyboard shortcuts",
+      "keyboard controls",
+      "live keyboard controls",
+      "projector keyboard controls",
+      "what are projector controls",
+      "how do i control live display",
+      "how do i control projector",
+    ],
+
+    answer:
+      "The Live Display has local host controls designed for the event operator. You can change chapters, pause or resume automatic chapter rotation, enter fullscreen and start Winner Mode when the quiz has ended and winners are available.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "What are the Live Display keyboard shortcuts?",
+      "How does chapter rotation work?",
+      "How does Winner Mode work?",
+    ],
+  },
+
+  // =========================================================
+  // LIVE DISPLAY KEYBOARD SHORTCUTS
+  // =========================================================
+
+  {
+    id: "live-keyboard-shortcuts",
+
+    category: "Live Event",
+
+    keywords: [
+      "live display keyboard shortcuts",
+      "live display keyboard controls",
+      "projector keyboard shortcuts",
+      "projector keyboard controls",
+      "live keyboard shortcuts",
+      "keyboard shortcuts live display",
+      "keyboard controls live display",
+      "fullscreen shortcut",
+      "chapter shortcut",
+      "winner shortcut",
+      "pause rotation shortcut",
+      "what are the live display keyboard shortcuts",
+      "what are the projector shortcuts",
+      "show projector shortcuts",
+      "show live shortcuts",
+    ],
+
+    answer:
+      "The Live Display keyboard shortcuts are:\n\nF — toggle fullscreen\nLeft Arrow — previous chapter\nRight Arrow — next chapter\nP — pause or resume chapter rotation\nW — enter Winner Mode when it is available\nSpace or Enter — advance the winner reveal while Winner Mode is active.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "How does chapter rotation work?",
+      "How does Winner Mode work?",
+      "Why are the Top 3 hidden?",
+    ],
+  },
+
+  // =========================================================
+  // CHAPTER ROTATION
+  // =========================================================
+
+  {
+    id: "chapter-rotation",
+
+    category: "Live Event",
+
+    keywords: [
+      "chapter rotation",
+      "chapter rotate",
+      "rotate chapters",
+      "automatic chapter rotation",
+      "auto chapter rotation",
+      "auto rotate chapters",
+      "projector chapter rotation",
+      "live chapter rotation",
+      "switch chapters",
+      "change chapters live",
+      "next chapter projector",
+      "previous chapter projector",
+      "how does chapter rotation work",
+      "how do chapters rotate",
+      "how often do chapters rotate",
+    ],
+
+    answer:
+      "When multiple active chapters are available, the Live Display automatically rotates between them every 15 seconds. The host can also move to the previous or next chapter manually and pause or resume automatic rotation.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "What are the Live Display keyboard shortcuts?",
+      "Can I pause chapter rotation?",
+      "Why are the Top 3 hidden?",
+    ],
+  },
+
+  // =========================================================
+  // PAUSE CHAPTER ROTATION
+  // =========================================================
+
+  {
+    id: "pause-chapter-rotation",
+
+    category: "Live Event",
+
+    keywords: [
+      "pause chapter rotation",
+      "pause rotation",
+      "stop chapter rotation",
+      "stop rotation",
+      "resume chapter rotation",
+      "resume rotation",
+      "freeze chapter",
+      "keep current chapter",
+      "pause projector rotation",
+      "can i pause chapter rotation",
+      "how do i pause rotation",
+      "how do i resume rotation",
+    ],
+
+    answer:
+      "Yes. The event host can pause automatic chapter rotation on the Live Display and resume it when needed. The P keyboard shortcut can also be used to pause or resume rotation.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "How does chapter rotation work?",
+      "What are the Live Display keyboard shortcuts?",
+      "How does Winner Mode work?",
+    ],
+  },
+
+  // =========================================================
+  // FULLSCREEN
+  // =========================================================
+
+  {
+    id: "live-fullscreen",
+
+    category: "Live Event",
+
+    keywords: [
+      "fullscreen",
+      "full screen",
+      "projector fullscreen",
+      "projector full screen",
+      "live fullscreen",
+      "live display fullscreen",
+      "fullscreen live display",
+      "make projector fullscreen",
+      "make live display fullscreen",
+      "how do i enter fullscreen",
+      "how do i make it fullscreen",
+    ],
+
+    answer:
+      "The Live Display supports fullscreen viewing for TVs and projectors. Use the fullscreen control on the display or press F on the keyboard to toggle fullscreen mode.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "What are the Live Display keyboard shortcuts?",
+      "How does chapter rotation work?",
+      "How does Winner Mode work?",
+    ],
+  },
+
+  // =========================================================
+  // LIVE LEADERBOARD
+  // =========================================================
+
+  {
+    id: "live-leaderboard",
+
+    category: "Live Event",
+
+    keywords: [
+      "live leaderboard",
+      "projector leaderboard",
+      "live ranking",
+      "live rankings",
+      "projector ranking",
+      "projector rankings",
+      "live scores",
+      "live results",
+      "live leaderboard ranking",
+      "how does live leaderboard work",
+      "how are live rankings calculated",
+      "how are players ranked live",
+    ],
+
+    answer:
+      "The Live Display ranks participants using quiz performance and completion data. Higher scores rank first; when scores are equal, faster completion time is preferred, followed by the earlier result when another tie remains.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "Why are the Top 3 hidden?",
+      "How does Winner Mode work?",
+      "How does chapter rotation work?",
+    ],
+  },
+
+  // =========================================================
+  // TOP 3 HIDDEN DURING LIVE EVENT
+  // =========================================================
+
+  {
+    id: "hidden-top-three",
+
+    category: "Live Event",
+
+    keywords: [
+      "top 3 hidden",
+      "top three hidden",
+      "hidden top 3",
+      "hidden top three",
+      "hide winners",
+      "hidden winners",
+      "why are winners hidden",
+      "why is top 3 hidden",
+      "why are top 3 hidden",
+      "why is top three hidden",
+      "why are top three hidden",
+      "why cant i see top 3",
+      "why can't i see top 3",
+      "where are top 3",
+      "where are the winners",
+      "leaderboard starts at 4",
+      "leaderboard starts from 4",
+    ],
+
+    answer:
+      "During the normal Live Display, the Top 3 participants are intentionally hidden to preserve suspense for the final winner reveal. The public live board therefore starts from rank #4 instead of revealing the winners early.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "How does Winner Mode work?",
+      "When can I reveal the winners?",
+      "How does the live leaderboard work?",
+    ],
+  },
+
+  // =========================================================
+  // WINNER MODE
+  // =========================================================
+
+  {
+    id: "winner-mode",
+
+    category: "Live Event",
+
+    keywords: [
+      "winner mode",
+      "winners mode",
+      "winner reveal",
+      "winners reveal",
+      "reveal winners",
+      "reveal winner",
+      "final results",
+      "final result",
+      "final winners",
+      "winner screen",
+      "winners screen",
+      "podium",
+      "top 3 reveal",
+      "top three reveal",
+      "how does winner mode work",
+      "what is winner mode",
+      "what is winner reveal",
+      "how do i reveal winners",
+    ],
+
+    answer:
+      "Winner Mode is the final reveal experience for the Top 3 participants. It becomes available after the quiz has ended and winner data is available. The host can then reveal the winners progressively instead of showing all three immediately.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "When can I reveal the winners?",
+      "How do I advance the winner reveal?",
+      "Why are the Top 3 hidden?",
+    ],
+  },
+
+  // =========================================================
+  // WINNER MODE AVAILABILITY
+  // =========================================================
+
+  {
+    id: "winner-mode-availability",
+
+    category: "Live Event",
+
+    keywords: [
+      "when can i reveal winners",
+      "when can i reveal the winners",
+      "when is winner mode available",
+      "winner mode available",
+      "winner mode unavailable",
+      "winner mode disabled",
+      "cannot start winner mode",
+      "cant start winner mode",
+      "can't start winner mode",
+      "cannot reveal winners",
+      "cant reveal winners",
+      "can't reveal winners",
+      "winner readiness",
+      "what is winner readiness",
+      "winners ready",
+      "are winners ready",
+    ],
+
+    answer:
+      "Winner Mode is available when the quiz has ended and valid winner data exists. The Live Control Center helps the event host monitor whether the event is ready for the final winner reveal.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "How does Winner Mode work?",
+      "How do I advance the winner reveal?",
+      "Why are the Top 3 hidden?",
+    ],
+  },
+
+  // =========================================================
+  // ADVANCE WINNER REVEAL
+  // =========================================================
+
+  {
+    id: "advance-winner-reveal",
+
+    category: "Live Event",
+
+    keywords: [
+      "advance winner reveal",
+      "next winner",
+      "reveal next winner",
+      "continue winner reveal",
+      "winner reveal controls",
+      "winner mode controls",
+      "winner keyboard controls",
+      "how do i advance winner reveal",
+      "how do i reveal next winner",
+      "how do i continue winner mode",
+      "space winner mode",
+      "enter winner mode control",
+    ],
+
+    answer:
+      "While Winner Mode is active, use Space or Enter to advance through the winner reveal. Normal Live Display shortcuts are locked during the reveal so the host can focus on presenting the winners without accidentally changing the regular display.",
+
+    action: {
+      label: "Open Live Control Center",
+      route: "/admin/live-control",
+    },
+
+    suggestions: [
+      "How does Winner Mode work?",
+      "When can I reveal the winners?",
+      "What are the Live Display keyboard shortcuts?",
+    ],
+  },
+
+    // =========================================================
   // ACTIVITY LOGS
   // =========================================================
 
   {
     id: "activity-logs",
 
-    category: "Activity",
+    category: "Activity Logs",
 
     keywords: [
-      "activity",
-      "activity log",
       "activity logs",
-      "admin activity",
-      "admin activities",
-      "action history",
+      "activity log",
+      "admin activity logs",
+      "admin activity log",
+      "audit logs",
+      "audit log",
       "admin history",
-      "system activity",
+      "admin actions",
+      "administrator actions",
+      "view activity logs",
+      "open activity logs",
+      "where are activity logs",
       "what are activity logs",
-      "what does activity log show",
-      "what does activity logs show",
-      "recent activity",
-      "changes history",
+      "what is activity log",
     ],
 
     answer:
-      "Activity Logs helps you review recorded administrative activity in QUIZTIANS. You can use it to inspect actions and understand what has happened in the admin system.",
+      "Activity Logs help you review recorded administrator activity in QUIZTIANS. Use them when you need to inspect administrative actions and recent admin history.",
 
     action: {
       label: "Open Activity Logs",
@@ -628,10 +1908,10 @@ export const adminChatKnowledge = [
 
     suggestions: [
       "How do I search Activity Logs?",
-      "Where can I view results?",
+      "What are Login Logs?",
+      "What is Live Activity?",
     ],
   },
-
 
   // =========================================================
   // SEARCH ACTIVITY LOGS
@@ -640,22 +1920,25 @@ export const adminChatKnowledge = [
   {
     id: "search-activity-logs",
 
-    category: "Activity",
+    category: "Activity Logs",
 
     keywords: [
-      "search activity",
       "search activity logs",
-      "filter activity",
+      "search activity log",
       "filter activity logs",
-      "find activity",
-      "activity filter",
-      "activity search",
-      "search logs",
-      "filter logs",
+      "filter activity log",
+      "find activity log",
+      "find admin activity",
+      "search admin activity",
+      "filter admin activity",
+      "activity log search",
+      "activity log filter",
+      "how do i search activity logs",
+      "how do i filter activity logs",
     ],
 
     answer:
-      "Open Activity Logs and use its search and filtering controls to narrow the recorded administrative activity.",
+      "Open Activity Logs and use the available search or filtering controls to narrow the recorded administrator activity you want to inspect.",
 
     action: {
       label: "Open Activity Logs",
@@ -664,39 +1947,41 @@ export const adminChatKnowledge = [
 
     suggestions: [
       "What are Activity Logs?",
-      "Where can I view results?",
+      "What are Login Logs?",
+      "What is Live Activity?",
     ],
   },
 
-
   // =========================================================
-  // LOGIN LOGS — SUPER ADMIN ONLY
+  // LOGIN LOGS
+  // SUPERADMIN ONLY
   // =========================================================
 
   {
     id: "login-logs",
 
-    category: "Super Admin",
+    category: "Security",
 
     roles: ["superadmin"],
 
     keywords: [
-      "login log",
       "login logs",
-      "login history",
-      "admin login",
-      "admin logins",
+      "login log",
+      "admin login logs",
       "admin login history",
-      "who logged in",
-      "login activity",
-      "administrator login",
+      "login history",
+      "administrator login history",
       "administrator logins",
-      "view logins",
-      "check logins",
+      "admin logins",
+      "view login logs",
+      "open login logs",
+      "where are login logs",
+      "what are login logs",
+      "what is login log",
     ],
 
     answer:
-      "Login Logs lets Super Administrators review administrator login activity and related login information.",
+      "Login Logs let Super Admins review administrator login activity. This feature is restricted to Super Admin accounts.",
 
     action: {
       label: "Open Login Logs",
@@ -704,20 +1989,21 @@ export const adminChatKnowledge = [
     },
 
     suggestions: [
-      "How do I manage admins?",
+      "What are Activity Logs?",
+      "How do I manage administrators?",
       "What is a Super Admin?",
     ],
   },
 
-
   // =========================================================
-  // ADMIN USERS — SUPER ADMIN ONLY
+  // ADMIN USERS
+  // SUPERADMIN ONLY
   // =========================================================
 
   {
     id: "admin-users",
 
-    category: "Super Admin",
+    category: "Administrators",
 
     roles: ["superadmin"],
 
@@ -725,60 +2011,150 @@ export const adminChatKnowledge = [
       "admin users",
       "administrator users",
       "manage admins",
+      "manage admin",
       "manage administrators",
+      "administrator management",
+      "admin management",
       "admins",
       "administrators",
-      "admin management",
-      "user management",
-      "manage admin accounts",
+      "view admins",
+      "view administrators",
+      "open admin users",
+      "where can i manage admins",
+      "how do i manage administrators",
     ],
 
     answer:
-      "Admin Users is the Super Administrator area for managing QUIZTIANS administrator accounts.",
+      "Admin Users is the Super Admin area for managing QUIZTIANS administrator accounts. From there, authorized Super Admins can handle administrator-related management actions.",
 
     action: {
-      label: "Open Admin Users",
+      label: "Manage Administrators",
       route: "/admin/admin-users",
     },
 
     suggestions: [
       "How do I invite an admin?",
       "How do I disable an admin?",
-      "How do I delete an admin?",
+      "What is the difference between Admin and Super Admin?",
     ],
   },
 
-
   // =========================================================
-  // INVITE ADMIN — SUPER ADMIN ONLY
+  // INVITE ADMIN
+  // SUPERADMIN ONLY
   // =========================================================
 
   {
     id: "invite-admin",
 
-    category: "Super Admin",
+    category: "Administrators",
 
     roles: ["superadmin"],
 
     keywords: [
       "invite admin",
+      "invite an admin",
       "invite administrator",
+      "invite an administrator",
       "add admin",
       "add administrator",
       "create admin",
       "create administrator",
       "new admin",
       "new administrator",
-      "send admin invite",
-      "admin invite",
-      "invite another admin",
+      "admin invitation",
+      "administrator invitation",
+      "how do i invite an admin",
+      "how do i add an admin",
     ],
 
     answer:
-      "Open Admin Users to invite another administrator. Use the invite form there to provide the required account information and administrator role.",
+      "Administrator invitations are managed from Admin Users. This is a Super Admin feature, so only authorized Super Admin accounts can access the administrator management workflow.",
 
     action: {
-      label: "Open Admin Users",
+      label: "Manage Administrators",
+      route: "/admin/admin-users",
+    },
+
+    suggestions: [
+      "How do I disable an admin?",
+      "How do I enable an admin?",
+      "What is the difference between Admin and Super Admin?",
+    ],
+  },
+
+  // =========================================================
+  // DISABLE ADMIN
+  // SUPERADMIN ONLY
+  // =========================================================
+
+  {
+    id: "disable-admin",
+
+    category: "Administrators",
+
+    roles: ["superadmin"],
+
+    keywords: [
+      "disable admin",
+      "disable an admin",
+      "disable administrator",
+      "disable an administrator",
+      "deactivate admin",
+      "deactivate administrator",
+      "suspend admin",
+      "suspend administrator",
+      "turn off admin",
+      "how do i disable an admin",
+      "how do i deactivate an admin",
+    ],
+
+    answer:
+      "Admin account status is managed from Admin Users. Super Admins can use the available administrator controls to disable an account when required.",
+
+    action: {
+      label: "Manage Administrators",
+      route: "/admin/admin-users",
+    },
+
+    suggestions: [
+      "How do I enable an admin?",
+      "How do I delete an admin?",
+      "What is the difference between Admin and Super Admin?",
+    ],
+  },
+
+  // =========================================================
+  // ENABLE ADMIN
+  // SUPERADMIN ONLY
+  // =========================================================
+
+  {
+    id: "enable-admin",
+
+    category: "Administrators",
+
+    roles: ["superadmin"],
+
+    keywords: [
+      "enable admin",
+      "enable an admin",
+      "enable administrator",
+      "enable an administrator",
+      "activate admin",
+      "activate administrator",
+      "reactivate admin",
+      "reactivate administrator",
+      "turn on admin",
+      "how do i enable an admin",
+      "how do i reactivate an admin",
+    ],
+
+    answer:
+      "Admin account status is managed from Admin Users. Super Admins can use the available administrator controls to enable an account when appropriate.",
+
+    action: {
+      label: "Manage Administrators",
       route: "/admin/admin-users",
     },
 
@@ -789,150 +2165,83 @@ export const adminChatKnowledge = [
     ],
   },
 
-
   // =========================================================
-  // DISABLE ADMIN — SUPER ADMIN ONLY
-  // =========================================================
-
-  {
-    id: "disable-admin",
-
-    category: "Super Admin",
-
-    roles: ["superadmin"],
-
-    keywords: [
-      "disable admin",
-      "disable administrator",
-      "deactivate admin",
-      "deactivate administrator",
-      "block admin",
-      "disable admin account",
-      "turn off admin",
-      "suspend admin",
-    ],
-
-    answer:
-      "Administrator account status is managed from Admin Users. Open that page to review an administrator and use the available account status controls.",
-
-    action: {
-      label: "Open Admin Users",
-      route: "/admin/admin-users",
-    },
-
-    suggestions: [
-      "How do I enable an admin?",
-      "How do I delete an admin?",
-      "How do I invite an admin?",
-    ],
-  },
-
-
-  // =========================================================
-  // ENABLE ADMIN — SUPER ADMIN ONLY
-  // =========================================================
-
-  {
-    id: "enable-admin",
-
-    category: "Super Admin",
-
-    roles: ["superadmin"],
-
-    keywords: [
-      "enable admin",
-      "enable administrator",
-      "activate admin",
-      "activate administrator",
-      "reactivate admin",
-      "enable admin account",
-      "turn on admin",
-    ],
-
-    answer:
-      "Open Admin Users to review administrator account status and use the available controls to activate an eligible administrator account.",
-
-    action: {
-      label: "Open Admin Users",
-      route: "/admin/admin-users",
-    },
-
-    suggestions: [
-      "How do I disable an admin?",
-      "How do I invite an admin?",
-    ],
-  },
-
-
-  // =========================================================
-  // DELETE ADMIN — SUPER ADMIN ONLY
+  // DELETE ADMIN
+  // SUPERADMIN ONLY
   // =========================================================
 
   {
     id: "delete-admin",
 
-    category: "Super Admin",
+    category: "Administrators",
 
     roles: ["superadmin"],
 
     keywords: [
       "delete admin",
+      "delete an admin",
       "delete administrator",
+      "delete an administrator",
       "remove admin",
+      "remove an admin",
       "remove administrator",
-      "delete admin account",
-      "remove admin account",
+      "remove an administrator",
+      "how do i delete an admin",
+      "how do i remove an admin",
     ],
 
     answer:
-      "Administrator deletion is handled from Admin Users. Review the selected administrator carefully before confirming a delete action because account deletion is a sensitive administrative operation.",
+      "Administrator deletion is a destructive Super Admin action handled from Admin Users. Carefully verify the selected administrator before confirming a permanent removal action.",
 
     action: {
-      label: "Open Admin Users",
+      label: "Manage Administrators",
       route: "/admin/admin-users",
     },
 
     suggestions: [
       "How do I disable an admin?",
-      "How do I invite an admin?",
+      "How do I enable an admin?",
+      "What is the difference between Admin and Super Admin?",
     ],
   },
 
-
   // =========================================================
-  // ADMIN VS SUPER ADMIN
+  // ADMIN ROLES
   // =========================================================
 
   {
-    id: "roles",
+    id: "admin-roles",
 
-    category: "Roles",
+    category: "Administrators",
 
     keywords: [
-      "admin role",
-      "super admin",
-      "superadmin",
-      "administrator role",
+      "admin roles",
+      "administrator roles",
       "roles",
-      "role difference",
-      "admin vs super admin",
+      "admin role",
+      "superadmin role",
+      "super admin role",
       "admin vs superadmin",
+      "admin vs super admin",
+      "superadmin vs admin",
+      "super admin vs admin",
+      "difference between admin and superadmin",
       "difference between admin and super admin",
-      "difference between administrator and super administrator",
       "what is admin",
+      "what is superadmin",
       "what is super admin",
-      "what can super admin do",
+      "what is the difference between admin and super admin",
     ],
 
     answer:
-      "QUIZTIANS has Admin and Super Administrator roles. Both can work with the main quiz administration areas, while Super Administrators also have access to privileged areas such as Login Logs and Admin Users.",
+      "QUIZTIANS uses role-based administration. Admin accounts handle normal quiz administration, while Super Admin accounts have access to additional administrator-management and security-related features.",
 
     suggestions: [
+      "What are Activity Logs?",
       "What are Login Logs?",
-      "How do I manage admins?",
+      "How do I manage administrators?",
     ],
   },
-
 
   // =========================================================
   // LOGOUT
@@ -948,63 +2257,70 @@ export const adminChatKnowledge = [
       "log out",
       "sign out",
       "signout",
-      "exit admin",
+      "admin logout",
+      "admin sign out",
       "leave admin",
+      "exit admin",
       "how do i logout",
-      "how to logout",
+      "how do i log out",
+      "how do i sign out",
     ],
 
     answer:
-      "Use the Sign Out control in the admin navigation to securely end your current admin session.",
+      "Use the Logout option in the admin interface when you want to end your current QUIZTIANS administrator session.",
 
     suggestions: [
       "What can you help me with?",
+      "What is the Dashboard?",
+      "What are Activity Logs?",
     ],
   },
 ];
 
 
 // ===========================================================
-// ROLE-RESTRICTED TOPIC DETECTION
+// RESTRICTED SUPERADMIN TOPICS
 // ===========================================================
 //
-// This allows a normal Admin to receive a useful explanation
-// instead of a generic fallback when asking about a feature
-// reserved for Super Administrators.
+// These phrases help us identify questions about Super Admin
+// functionality before returning normal Admin knowledge.
 //
-// This is UX only — NOT authorization.
 // ===========================================================
 
-const superAdminRestrictedTopics = [
-  {
-    keywords: [
-      "login logs",
-      "login log",
-      "login history",
-      "admin login history",
-      "who logged in",
-    ],
+const restrictedSuperadminTopics = [
+  "login logs",
+  "login log",
+  "admin login logs",
+  "admin login history",
+  "login history",
 
-    answer:
-      "Login Logs is a Super Administrator feature. Your current Admin role does not include access to that area.",
-  },
+  "admin users",
+  "manage admins",
+  "manage admin",
+  "manage administrators",
+  "administrator management",
+  "admin management",
 
-  {
-    keywords: [
-      "admin users",
-      "manage admins",
-      "invite admin",
-      "add admin",
-      "create admin",
-      "disable admin",
-      "enable admin",
-      "delete admin",
-      "remove admin",
-    ],
+  "invite admin",
+  "invite an admin",
+  "invite administrator",
+  "add admin",
+  "add administrator",
 
-    answer:
-      "Admin account management is reserved for Super Administrators. Your current Admin role does not include access to Admin Users.",
-  },
+  "disable admin",
+  "disable administrator",
+  "deactivate admin",
+  "deactivate administrator",
+
+  "enable admin",
+  "enable administrator",
+  "activate admin",
+  "activate administrator",
+
+  "delete admin",
+  "delete administrator",
+  "remove admin",
+  "remove administrator",
 ];
 
 
@@ -1014,35 +2330,30 @@ const superAdminRestrictedTopics = [
 
 export const fallbackResponse = {
   answer:
-    "I couldn't find an exact answer for that yet. I can currently help with QUIZTIANS questions, quiz configuration, results, activity logs and administrator features.",
+    "I couldn't find an exact answer for that yet. I can help with QUIZTIANS questions, quiz configuration, results, analytics, announcements, live events, activity logs and administrator features.",
 
   suggestions: [
-    "How do I add questions?",
     "How do I configure the quiz?",
-    "Where can I view results?",
-    "What are Activity Logs?",
+    "Where can I view analytics?",
+    "What is the Live Display?",
+    "What are Announcements?",
   ],
 };
 
 
 // ===========================================================
-// NORMALIZE TEXT
+// HELPERS
 // ===========================================================
 
 function normalizeText(value = "") {
-  return value
+  return String(value)
     .toLowerCase()
-    .trim()
     .replace(/[’']/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-
-// ===========================================================
-// TOKENIZE
-// ===========================================================
 
 function tokenize(value = "") {
   return normalizeText(value)
@@ -1055,82 +2366,145 @@ function tokenize(value = "") {
 // STOP WORDS
 // ===========================================================
 //
-// Common words should not heavily influence matching.
-//
-// Example:
-//
-// "How do I add a question?"
-//
-// Important words:
-// add + question
+// These common words are ignored when calculating the more
+// meaningful token overlap between a user question and a
+// knowledge-base keyword.
 //
 // ===========================================================
 
 const STOP_WORDS = new Set([
   "a",
   "an",
-  "and",
-  "are",
-  "can",
-  "could",
-  "do",
-  "does",
-  "for",
-  "from",
-  "how",
+  "the",
   "i",
-  "in",
-  "is",
-  "it",
   "me",
   "my",
-  "of",
-  "on",
-  "please",
-  "show",
-  "tell",
-  "the",
-  "to",
+  "you",
+  "your",
+  "we",
+  "our",
+  "is",
+  "are",
+  "am",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "do",
+  "does",
+  "did",
+  "can",
+  "could",
+  "should",
+  "would",
+  "will",
+  "how",
   "what",
   "where",
+  "when",
+  "why",
+  "who",
   "which",
+  "to",
+  "for",
+  "from",
+  "of",
+  "on",
+  "in",
+  "at",
   "with",
-  "you",
+  "and",
+  "or",
+  "this",
+  "that",
+  "it",
+  "as",
+  "please",
 ]);
 
 
+function importantTokens(value = "") {
+  return tokenize(value)
+    .filter(
+      (token) =>
+        token.length > 1 &&
+        !STOP_WORDS.has(token)
+    );
+}
+
+
 // ===========================================================
-// IMPORTANT TOKENS
+// ROLE HELPERS
 // ===========================================================
 
-function importantTokens(value = "") {
-  return tokenize(value).filter(
-    (token) => !STOP_WORDS.has(token)
+function normalizeRole(role = "admin") {
+  const normalized =
+    normalizeText(role)
+      .replace(/\s+/g, "");
+
+  if (
+    normalized === "superadmin" ||
+    normalized === "superadministrator"
+  ) {
+    return "superadmin";
+  }
+
+  return "admin";
+}
+
+
+function isKnowledgeAllowedForRole(
+  item,
+  role
+) {
+  if (
+    !Array.isArray(item?.roles) ||
+    item.roles.length === 0
+  ) {
+    return true;
+  }
+
+  const normalizedRole =
+    normalizeRole(role);
+
+  return item.roles.some(
+    (allowedRole) =>
+      normalizeRole(allowedRole) ===
+      normalizedRole
   );
 }
 
 
 // ===========================================================
-// CONVERSATIONAL MATCH
+// CONVERSATIONAL MATCHING
 // ===========================================================
 
-function findConversationalResponse(message) {
-  const normalizedMessage = normalizeText(message);
+function findConversationalMatch(message) {
+  const normalizedMessage =
+    normalizeText(message);
 
   if (!normalizedMessage) {
     return null;
   }
 
-  for (const item of conversationalKnowledge) {
-    for (const pattern of item.patterns) {
-      const normalizedPattern = normalizeText(pattern);
+  for (
+    const item of conversationalKnowledge
+  ) {
+    const patterns =
+      Array.isArray(item.patterns)
+        ? item.patterns
+        : [];
 
-      if (normalizedMessage === normalizedPattern) {
-        return {
-          answer: item.answer,
-          suggestions: item.suggestions || [],
-          action: null,
-        };
+    for (const pattern of patterns) {
+      const normalizedPattern =
+        normalizeText(pattern);
+
+      if (
+        normalizedMessage ===
+        normalizedPattern
+      ) {
+        return item;
       }
     }
   }
@@ -1140,58 +2514,46 @@ function findConversationalResponse(message) {
 
 
 // ===========================================================
-// RESTRICTED TOPIC MATCH
+// RESTRICTED TOPIC CHECK
 // ===========================================================
 
-function findRestrictedResponse(message, role) {
-  if (role === "superadmin") {
-    return null;
+function isRestrictedSuperadminTopic(
+  message
+) {
+  const normalizedMessage =
+    normalizeText(message);
+
+  if (!normalizedMessage) {
+    return false;
   }
 
-  const normalizedMessage = normalizeText(message);
+  return restrictedSuperadminTopics.some(
+    (topic) => {
+      const normalizedTopic =
+        normalizeText(topic);
 
-  for (const topic of superAdminRestrictedTopics) {
-    const matched = topic.keywords.some((keyword) =>
-      normalizedMessage.includes(
-        normalizeText(keyword)
-      )
-    );
-
-    if (matched) {
-      return {
-        answer: topic.answer,
-
-        suggestions: [
-          "What can you help me with?",
-          "How do I configure the quiz?",
-          "Where can I view results?",
-        ],
-
-        action: null,
-      };
+      return (
+        normalizedMessage ===
+          normalizedTopic ||
+        normalizedMessage.includes(
+          normalizedTopic
+        )
+      );
     }
-  }
-
-  return null;
+  );
 }
 
 
 // ===========================================================
-// SCORE KEYWORD
-// ===========================================================
-//
-// Matching priority:
-//
-// 1. Exact phrase
-// 2. Message contains keyword phrase
-// 3. Keyword contains message
-// 4. Important token overlap
-//
+// KEYWORD SCORING
 // ===========================================================
 
 function scoreKeyword(message, keyword) {
-  const normalizedMessage = normalizeText(message);
-  const normalizedKeyword = normalizeText(keyword);
+  const normalizedMessage =
+    normalizeText(message);
+
+  const normalizedKeyword =
+    normalizeText(keyword);
 
   if (
     !normalizedMessage ||
@@ -1200,112 +2562,115 @@ function scoreKeyword(message, keyword) {
     return 0;
   }
 
-  // =========================================================
-  // EXACT MATCH
-  // =========================================================
+  // ---------------------------------------------------------
+  // 1. Exact match
+  // ---------------------------------------------------------
 
-  if (normalizedMessage === normalizedKeyword) {
+  if (
+    normalizedMessage ===
+    normalizedKeyword
+  ) {
     return 100;
   }
 
-  // =========================================================
-  // FULL KEYWORD PHRASE APPEARS IN MESSAGE
-  // =========================================================
+  // ---------------------------------------------------------
+  // 2. Full keyword phrase appears in the question
+  // ---------------------------------------------------------
 
   if (
-    normalizedMessage.includes(normalizedKeyword)
+    normalizedMessage.includes(
+      normalizedKeyword
+    )
   ) {
-    const wordCount =
-      normalizedKeyword.split(" ").length;
-
-    return 70 + Math.min(wordCount * 4, 20);
+    return 80;
   }
 
-  // =========================================================
-  // MESSAGE APPEARS INSIDE KEYWORD
-  // =========================================================
+  // ---------------------------------------------------------
+  // 3. User's complete phrase appears inside keyword
+  // ---------------------------------------------------------
 
   if (
-    normalizedMessage.length >= 4 &&
-    normalizedKeyword.includes(normalizedMessage)
+    normalizedKeyword.includes(
+      normalizedMessage
+    )
   ) {
-    return 55;
+    return 60;
   }
 
-  // =========================================================
-  // TOKEN OVERLAP
-  // =========================================================
+  // ---------------------------------------------------------
+  // 4. Meaningful token matching
+  // ---------------------------------------------------------
 
   const messageTokens =
-    importantTokens(normalizedMessage);
-
-  const keywordTokens =
-    importantTokens(normalizedKeyword);
-
-  if (
-    !messageTokens.length ||
-    !keywordTokens.length
-  ) {
-    return 0;
-  }
-
-  const keywordTokenSet = new Set(
-    keywordTokens
-  );
-
-  let overlap = 0;
-
-  for (const token of messageTokens) {
-    if (keywordTokenSet.has(token)) {
-      overlap += 1;
-    }
-  }
-
-  if (overlap === 0) {
-    return 0;
-  }
-
-  const coverage =
-    overlap / keywordTokens.length;
-
-  const messageCoverage =
-    overlap / messageTokens.length;
-
-  // Require reasonable relevance.
-  if (
-    coverage < 0.5 &&
-    messageCoverage < 0.5
-  ) {
-    return 0;
-  }
-
-  return (
-    overlap * 10 +
-    coverage * 15 +
-    messageCoverage * 10
-  );
-}
-
-
-// ===========================================================
-// SCORE KNOWLEDGE ITEM
-// ===========================================================
-
-function scoreKnowledgeItem(message, item) {
-  let bestKeywordScore = 0;
-
-  for (const keyword of item.keywords || []) {
-    const score = scoreKeyword(
-      message,
-      keyword
+    importantTokens(
+      normalizedMessage
     );
 
-    if (score > bestKeywordScore) {
-      bestKeywordScore = score;
-    }
+  const keywordTokens =
+    importantTokens(
+      normalizedKeyword
+    );
+
+  if (
+    messageTokens.length === 0 ||
+    keywordTokens.length === 0
+  ) {
+    return 0;
   }
 
-  return bestKeywordScore;
+  const messageTokenSet =
+    new Set(messageTokens);
+
+  const matchingTokens =
+    keywordTokens.filter((token) =>
+      messageTokenSet.has(token)
+    );
+
+  // ---------------------------------------------------------
+  // IMPORTANT:
+  // One generic matching word is not enough.
+  //
+  // Example:
+  // "Can you order pizza for the participants?"
+  //
+  // must NOT match:
+  // "participant results"
+  // ---------------------------------------------------------
+
+  if (matchingTokens.length < 2) {
+    return 0;
+  }
+
+  const overlapRatio =
+    matchingTokens.length /
+    keywordTokens.length;
+
+  const messageCoverage =
+    matchingTokens.length /
+    messageTokens.length;
+
+  let score =
+    overlapRatio * 35 +
+    messageCoverage * 20;
+
+  // Stronger multi-word intent match
+  if (matchingTokens.length >= 2) {
+    score += 12;
+  }
+
+  if (matchingTokens.length >= 3) {
+    score += 10;
+  }
+
+  // Complete meaningful keyword-token match
+  if (
+    matchingTokens.length ===
+    keywordTokens.length
+  ) {
+    score += 10;
+  }
+
+  return score;
 }
 
 
@@ -1320,34 +2685,61 @@ function findBestKnowledgeMatch(
   let bestMatch = null;
   let bestScore = 0;
 
-  for (const item of adminChatKnowledge) {
-    // =======================================================
-    // ROLE FILTER
-    // =======================================================
-
+  for (
+    const item of adminChatKnowledge
+  ) {
     if (
-      item.roles &&
-      !item.roles.includes(role)
+      !isKnowledgeAllowedForRole(
+        item,
+        role
+      )
     ) {
       continue;
     }
 
-    const score = scoreKnowledgeItem(
-      message,
-      item
-    );
+    const keywords =
+      Array.isArray(item.keywords)
+        ? item.keywords
+        : [];
 
-    if (score > bestScore) {
-      bestScore = score;
+    let itemBestScore = 0;
+
+    for (const keyword of keywords) {
+      const keywordScore =
+        scoreKeyword(
+          message,
+          keyword
+        );
+
+      if (
+        keywordScore >
+        itemBestScore
+      ) {
+        itemBestScore =
+          keywordScore;
+      }
+    }
+
+    if (
+      itemBestScore >
+      bestScore
+    ) {
+      bestScore =
+        itemBestScore;
+
       bestMatch = item;
     }
   }
 
-  // =========================================================
-  // MINIMUM CONFIDENCE
-  // =========================================================
+  // Prevent weak token overlaps from
+  // producing unrelated chatbot answers.
+  const MINIMUM_CONFIDENCE = 28;scoreKeyword()
 
-  if (!bestMatch || bestScore < 18) {
+  if (
+    !bestMatch ||
+    bestScore <
+      MINIMUM_CONFIDENCE
+  ) {
     return null;
   }
 
@@ -1356,56 +2748,111 @@ function findBestKnowledgeMatch(
 
 
 // ===========================================================
-// FIND ADMIN CHAT RESPONSE
+// RESPONSE BUILDER
+// ===========================================================
+
+function buildResponse(item) {
+  if (!item) {
+    return fallbackResponse;
+  }
+
+  return {
+    answer:
+      typeof item.answer === "string"
+        ? item.answer
+        : fallbackResponse.answer,
+
+    action:
+      item.action &&
+      typeof item.action === "object"
+        ? {
+            label:
+              String(
+                item.action.label || ""
+              ),
+            route:
+              String(
+                item.action.route || ""
+              ),
+          }
+        : null,
+
+    suggestions:
+      Array.isArray(
+        item.suggestions
+      )
+        ? item.suggestions
+        : [],
+  };
+}
+
+
+// ===========================================================
+// MAIN CHATBOT MATCHER
 // ===========================================================
 
 export function findAdminChatResponse(
   message,
-  role = "admin"
+  options = {}
 ) {
   const normalizedMessage =
     normalizeText(message);
-
-  // =========================================================
-  // EMPTY MESSAGE
-  // =========================================================
 
   if (!normalizedMessage) {
     return fallbackResponse;
   }
 
-  // =========================================================
-  // CONVERSATIONAL RESPONSES
-  // =========================================================
-
-  const conversationalResponse =
-    findConversationalResponse(message);
-
-  if (conversationalResponse) {
-    return conversationalResponse;
-  }
-
-  // =========================================================
-  // ROLE-RESTRICTED FEATURES
-  // =========================================================
-
-  const restrictedResponse =
-    findRestrictedResponse(
-      message,
-      role
+  const role =
+    normalizeRole(
+      options?.role || "admin"
     );
 
-  if (restrictedResponse) {
-    return restrictedResponse;
+  // ---------------------------------------------------------
+  // 1. Conversational responses
+  // ---------------------------------------------------------
+
+  const conversationalMatch =
+    findConversationalMatch(
+      normalizedMessage
+    );
+
+  if (conversationalMatch) {
+    return buildResponse(
+      conversationalMatch
+    );
   }
 
-  // =========================================================
-  // KNOWLEDGE MATCH
-  // =========================================================
+  // ---------------------------------------------------------
+  // 2. Protect Super Admin-only topics
+  // ---------------------------------------------------------
+
+  if (
+    role !== "superadmin" &&
+    isRestrictedSuperadminTopic(
+      normalizedMessage
+    )
+  ) {
+    return {
+      answer:
+        "That feature is available only to QUIZTIANS Super Admin accounts. Standard Admin accounts do not have access to administrator-management or Super Admin security features.",
+
+      action: null,
+
+      suggestions: [
+        "What is the difference between Admin and Super Admin?",
+        "What are Activity Logs?",
+        "How do I configure the quiz?",
+      ],
+    };
+  }
+
+  // ---------------------------------------------------------
+  // 3. Search prepared knowledge
+  // ---------------------------------------------------------
 
   const bestMatch =
     findBestKnowledgeMatch(
-      message,
+      normalizedMessage,
       role
     );
 
@@ -1413,68 +2860,58 @@ export function findAdminChatResponse(
     return fallbackResponse;
   }
 
-  // =========================================================
-  // RESPONSE
-  // =========================================================
-
-  return {
-    answer: bestMatch.answer,
-
-    action:
-      bestMatch.action || null,
-
-    suggestions:
-      bestMatch.suggestions || [],
-  };
+  return buildResponse(bestMatch);
 }
 
 
 // ===========================================================
-// OPTIONAL CATEGORY HELPERS
+// CATEGORY HELPERS
 // ===========================================================
 
 export function getAdminChatCategories(
   role = "admin"
 ) {
-  const categories = new Set();
+  const normalizedRole =
+    normalizeRole(role);
 
-  adminChatKnowledge.forEach((item) => {
-    if (
-      item.roles &&
-      !item.roles.includes(role)
-    ) {
-      return;
-    }
-
-    if (item.category) {
-      categories.add(item.category);
-    }
-  });
-
-  return Array.from(categories);
+  return [
+    ...new Set(
+      adminChatKnowledge
+        .filter((item) =>
+          isKnowledgeAllowedForRole(
+            item,
+            normalizedRole
+          )
+        )
+        .map(
+          (item) =>
+            item.category
+        )
+        .filter(Boolean)
+    ),
+  ];
 }
 
 
-// ===========================================================
-// GET KNOWLEDGE BY CATEGORY
-// ===========================================================
-
-export function getAdminKnowledgeByCategory(
+export function getAdminChatKnowledgeByCategory(
   category,
   role = "admin"
 ) {
-  return adminChatKnowledge.filter(
-    (item) => {
-      if (
-        item.roles &&
-        !item.roles.includes(role)
-      ) {
-        return false;
-      }
+  const normalizedCategory =
+    normalizeText(category);
 
-      return (
-        item.category === category
-      );
-    }
+  const normalizedRole =
+    normalizeRole(role);
+
+  return adminChatKnowledge.filter(
+    (item) =>
+      normalizeText(
+        item.category
+      ) ===
+        normalizedCategory &&
+      isKnowledgeAllowedForRole(
+        item,
+        normalizedRole
+      )
   );
 }
