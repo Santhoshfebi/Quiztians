@@ -7,23 +7,33 @@ import {
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ChevronLeft,
+  ChevronRight,
   Clock3,
+  Crown,
+  ListChecks,
+  LockKeyhole,
+  Maximize2,
+  Medal,
+  Minimize2,
+  Pause,
+  Play,
+  RotateCcw,
+  Settings2,
+  Sparkles,
   Trophy,
   Users,
   Wifi,
   WifiOff,
-  Maximize2,
-  Minimize2,
-  Sparkles,
-  Crown,
-  Medal,
-  RotateCcw,
+  X,
 } from "lucide-react";
 
 import { supabase } from "../supabaseClient";
 
 const CHAPTER_ROTATION_MS = 15000;
 const HIGHLIGHT_DURATION_MS = 4500;
+const HIDDEN_WINNER_COUNT = 3;
+const LIVE_VISIBLE_COUNT = 5;
 
 /* ============================================================
    HELPERS
@@ -41,7 +51,7 @@ function formatTime(seconds) {
   }
 
   const mins = Math.floor(value / 60);
-  const secs = value % 60;
+  const secs = Math.floor(value % 60);
 
   if (mins > 0) {
     return `${mins}m ${String(secs).padStart(2, "0")}s`;
@@ -55,31 +65,17 @@ function formatCountdown(milliseconds) {
   const totalSeconds = Math.floor(safeMs / 1000);
 
   const days = Math.floor(totalSeconds / 86400);
-
-  const hours = Math.floor(
-    (totalSeconds % 86400) / 3600
-  );
-
-  const minutes = Math.floor(
-    (totalSeconds % 3600) / 60
-  );
-
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   if (days > 0) {
-    return `${days}d ${String(hours).padStart(
-      2,
-      "0"
-    )}h ${String(minutes).padStart(
-      2,
-      "0"
-    )}m`;
+    return `${days}d ${String(hours).padStart(2, "0")}h ${String(
+      minutes
+    ).padStart(2, "0")}m`;
   }
 
-  return `${String(hours).padStart(
-    2,
-    "0"
-  )}:${String(minutes).padStart(
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
     2,
     "0"
   )}:${String(seconds).padStart(2, "0")}`;
@@ -90,29 +86,32 @@ function sortLeaderboard(data = []) {
     const aScore = Number(a.score || 0);
     const bScore = Number(b.score || 0);
 
-    // Highest score first
     if (bScore !== aScore) {
       return bScore - aScore;
     }
 
-    // Fastest time next
-    const aTime =
-      a.time_taken === null ||
-      a.time_taken === undefined
+    const rawATime =
+      a.time_taken === null || a.time_taken === undefined
         ? Infinity
         : Number(a.time_taken);
 
-    const bTime =
-      b.time_taken === null ||
-      b.time_taken === undefined
+    const rawBTime =
+      b.time_taken === null || b.time_taken === undefined
         ? Infinity
         : Number(b.time_taken);
+
+    const aTime = Number.isFinite(rawATime)
+      ? rawATime
+      : Infinity;
+
+    const bTime = Number.isFinite(rawBTime)
+      ? rawBTime
+      : Infinity;
 
     if (aTime !== bTime) {
       return aTime - bTime;
     }
 
-    // Earliest submission last
     const aCreated = a.created_at
       ? new Date(a.created_at).getTime()
       : Infinity;
@@ -135,9 +134,39 @@ function initials(name = "") {
   }
 
   return (
-    parts[0][0] +
-    parts[parts.length - 1][0]
+    parts[0][0] + parts[parts.length - 1][0]
   ).toUpperCase();
+}
+
+function getChapterTitleClass(chapter = "") {
+  const length = Array.from(chapter.trim()).length;
+
+  if (length > 70) {
+    return "text-[clamp(1.35rem,2vw,2.15rem)]";
+  }
+
+  if (length > 48) {
+    return "text-[clamp(1.55rem,2.35vw,2.6rem)]";
+  }
+
+  if (length > 30) {
+    return "text-[clamp(1.8rem,2.7vw,3rem)]";
+  }
+
+  return "text-[clamp(2rem,3vw,3.35rem)]";
+}
+
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT" ||
+    target.isContentEditable
+  );
 }
 
 /* ============================================================
@@ -146,43 +175,57 @@ function initials(name = "") {
 
 export default function LiveDisplay() {
   const [config, setConfig] = useState(null);
-
-  const [chapterIndex, setChapterIndex] =
-    useState(0);
+  const [chapterIndex, setChapterIndex] = useState(0);
 
   const [results, setResults] = useState([]);
-
-  const [totalQuestions, setTotalQuestions] =
-    useState(0);
+  const [totalQuestions, setTotalQuestions] = useState(0);
 
   const [loading, setLoading] = useState(true);
+  const [resultsLoading, setResultsLoading] = useState(false);
 
-  const [resultsLoading, setResultsLoading] =
-    useState(false);
-
-  const [connected, setConnected] =
-    useState(true);
+  const [connected, setConnected] = useState(true);
 
   const [now, setNow] = useState(Date.now());
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const [lastUpdated, setLastUpdated] =
-    useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const [isFullscreen, setIsFullscreen] =
+  /* ==========================================================
+     HOST CONTROLS
+  ========================================================== */
+
+  const [hostControlsOpen, setHostControlsOpen] =
+    useState(false);
+
+  const [rotationPaused, setRotationPaused] =
     useState(false);
 
   /* ==========================================================
-     WINNER MODE STATE
+     ROTATION
   ========================================================== */
 
-  const [winnerMode, setWinnerMode] =
-    useState(false);
+  const [rotationProgress, setRotationProgress] =
+    useState(0);
+
+  const [rotationSecondsLeft, setRotationSecondsLeft] =
+    useState(
+      Math.ceil(CHAPTER_ROTATION_MS / 1000)
+    );
+
+  const rotationStartedAtRef = useRef(Date.now());
+  const rotationElapsedRef = useRef(0);
+
+  /* ==========================================================
+     WINNER MODE
+  ========================================================== */
+
+  const [winnerMode, setWinnerMode] = useState(false);
 
   const [winnerRevealStep, setWinnerRevealStep] =
     useState(0);
 
   /* ==========================================================
-     LIVE ANIMATION STATE
+     LEADERBOARD ANIMATION
   ========================================================== */
 
   const [
@@ -190,18 +233,15 @@ export default function LiveDisplay() {
     setHighlightedPlayerId,
   ] = useState(null);
 
-  const [newLeaderId, setNewLeaderId] =
+  const [newLiveLeaderId, setNewLiveLeaderId] =
     useState(null);
 
-  const previousTopFiveRef = useRef([]);
-
-  const leaderboardInitializedRef =
-    useRef(false);
-
+  const previousVisiblePlayersRef = useRef([]);
+  const leaderboardInitializedRef = useRef(false);
   const highlightTimerRef = useRef(null);
 
   /* ==========================================================
-     ACTIVE CHAPTERS
+     CHAPTERS
   ========================================================== */
 
   const activeChapters = useMemo(() => {
@@ -250,7 +290,8 @@ export default function LiveDisplay() {
       Number(config.duration) || 20;
 
     const endTime =
-      startTime + durationMinutes * 60 * 1000;
+      startTime +
+      durationMinutes * 60 * 1000;
 
     if (now < startTime) {
       return {
@@ -260,7 +301,10 @@ export default function LiveDisplay() {
       };
     }
 
-    if (now >= startTime && now < endTime) {
+    if (
+      now >= startTime &&
+      now < endTime
+    ) {
       return {
         status: "live",
         label: "LIVE",
@@ -276,19 +320,20 @@ export default function LiveDisplay() {
   }, [config, now]);
 
   /* ==========================================================
-     FETCH QUIZ CONFIG
+     FETCH CONFIG
   ========================================================== */
 
   const fetchQuizConfig =
     useCallback(async () => {
       try {
-        const { data, error } = await supabase
-          .from("quiz_config")
-          .select(
-            "start_time, duration, active_chapters"
-          )
-          .limit(1)
-          .maybeSingle();
+        const { data, error } =
+          await supabase
+            .from("quiz_config")
+            .select(
+              "start_time, duration, active_chapters"
+            )
+            .limit(1)
+            .maybeSingle();
 
         if (error) throw error;
 
@@ -305,23 +350,23 @@ export default function LiveDisplay() {
     }, []);
 
   /* ==========================================================
-     DETECT LEADERBOARD CHANGES
+     LEADERBOARD CHANGE DETECTION
   ========================================================== */
 
   const detectLeaderboardChanges =
     useCallback((sortedResults) => {
-      const newTopFive = sortedResults.slice(
-        0,
-        5
-      );
+      const newVisiblePlayers =
+        sortedResults.slice(
+          HIDDEN_WINNER_COUNT,
+          HIDDEN_WINNER_COUNT +
+            LIVE_VISIBLE_COUNT
+        );
 
-      /*
-       * Initial fetch should not trigger
-       * any celebration.
-       */
-      if (!leaderboardInitializedRef.current) {
-        previousTopFiveRef.current =
-          newTopFive;
+      if (
+        !leaderboardInitializedRef.current
+      ) {
+        previousVisiblePlayersRef.current =
+          newVisiblePlayers;
 
         leaderboardInitializedRef.current =
           true;
@@ -329,32 +374,32 @@ export default function LiveDisplay() {
         return;
       }
 
-      const previousTopFive =
-        previousTopFiveRef.current;
+      const previousVisiblePlayers =
+        previousVisiblePlayersRef.current;
 
       const previousIds = new Set(
-        previousTopFive.map(
+        previousVisiblePlayers.map(
           (player) => player.id
         )
       );
 
-      const newTopFivePlayer =
-        newTopFive.find(
+      const newVisiblePlayer =
+        newVisiblePlayers.find(
           (player) =>
             !previousIds.has(player.id)
         );
 
-      const previousLeader =
-        previousTopFive[0];
+      const previousVisibleLeader =
+        previousVisiblePlayers[0];
 
-      const currentLeader =
-        newTopFive[0];
+      const currentVisibleLeader =
+        newVisiblePlayers[0];
 
-      const leaderChanged =
-        currentLeader &&
-        previousLeader &&
-        currentLeader.id !==
-          previousLeader.id;
+      const visibleLeaderChanged =
+        currentVisibleLeader &&
+        previousVisibleLeader &&
+        currentVisibleLeader.id !==
+          previousVisibleLeader.id;
 
       if (highlightTimerRef.current) {
         window.clearTimeout(
@@ -362,33 +407,26 @@ export default function LiveDisplay() {
         );
       }
 
-      /*
-       * Stronger celebration when someone
-       * takes the #1 position.
-       */
-      if (leaderChanged) {
+      if (visibleLeaderChanged) {
         setHighlightedPlayerId(
-          currentLeader.id
+          currentVisibleLeader.id
         );
 
-        setNewLeaderId(
-          currentLeader.id
+        setNewLiveLeaderId(
+          currentVisibleLeader.id
         );
 
         highlightTimerRef.current =
           window.setTimeout(() => {
             setHighlightedPlayerId(null);
-            setNewLeaderId(null);
+            setNewLiveLeaderId(null);
           }, HIGHLIGHT_DURATION_MS);
-      } else if (newTopFivePlayer) {
-        /*
-         * Normal Top 5 entry celebration.
-         */
+      } else if (newVisiblePlayer) {
         setHighlightedPlayerId(
-          newTopFivePlayer.id
+          newVisiblePlayer.id
         );
 
-        setNewLeaderId(null);
+        setNewLiveLeaderId(null);
 
         highlightTimerRef.current =
           window.setTimeout(() => {
@@ -396,98 +434,98 @@ export default function LiveDisplay() {
           }, HIGHLIGHT_DURATION_MS);
       }
 
-      previousTopFiveRef.current =
-        newTopFive;
+      previousVisiblePlayersRef.current =
+        newVisiblePlayers;
     }, []);
 
   /* ==========================================================
      FETCH CHAPTER DATA
   ========================================================== */
 
-  const fetchChapterData =
-    useCallback(
-      async (chapter, options = {}) => {
-        const {
-          detectChanges = false,
-        } = options;
+  const fetchChapterData = useCallback(
+    async (chapter, options = {}) => {
+      const { detectChanges = false } =
+        options;
 
-        if (!chapter) {
-          setResults([]);
-          setTotalQuestions(0);
-          setResultsLoading(false);
+      if (!chapter) {
+        setResults([]);
+        setTotalQuestions(0);
+        setResultsLoading(false);
+        return;
+      }
 
-          return;
+      setResultsLoading(true);
+
+      try {
+        const [
+          resultsResponse,
+          questionsResponse,
+        ] = await Promise.all([
+          supabase
+            .from("results")
+            .select(
+              "id, name, place, score, time_taken, created_at"
+            )
+            .eq("chapter", chapter),
+
+          supabase
+            .from("questions")
+            .select("*", {
+              head: true,
+              count: "exact",
+            })
+            .eq("chapter", chapter),
+        ]);
+
+        if (resultsResponse.error) {
+          throw resultsResponse.error;
         }
 
-        setResultsLoading(true);
+        if (questionsResponse.error) {
+          throw questionsResponse.error;
+        }
 
-        try {
-          const [
-            resultsResponse,
-            questionsResponse,
-          ] = await Promise.all([
-            supabase
-              .from("results")
-              .select(
-                "id, name, place, score, time_taken, created_at"
-              )
-              .eq("chapter", chapter),
+        const sorted = sortLeaderboard(
+          resultsResponse.data || []
+        );
 
-            supabase
-              .from("questions")
-              .select("*", {
-                head: true,
-                count: "exact",
-              })
-              .eq("chapter", chapter),
-          ]);
-
-          if (resultsResponse.error) {
-            throw resultsResponse.error;
-          }
-
-          if (questionsResponse.error) {
-            throw questionsResponse.error;
-          }
-
-          const sorted = sortLeaderboard(
-            resultsResponse.data || []
+        if (detectChanges) {
+          detectLeaderboardChanges(
+            sorted
           );
-
-          if (detectChanges) {
-            detectLeaderboardChanges(
-              sorted
+        } else {
+          previousVisiblePlayersRef.current =
+            sorted.slice(
+              HIDDEN_WINNER_COUNT,
+              HIDDEN_WINNER_COUNT +
+                LIVE_VISIBLE_COUNT
             );
-          } else {
-            previousTopFiveRef.current =
-              sorted.slice(0, 5);
 
-            leaderboardInitializedRef.current =
-              true;
-          }
-
-          setResults(sorted);
-
-          setTotalQuestions(
-            questionsResponse.count || 0
-          );
-
-          setLastUpdated(new Date());
-
-          setConnected(true);
-        } catch (error) {
-          console.error(
-            "Live display chapter error:",
-            error
-          );
-
-          setConnected(false);
-        } finally {
-          setResultsLoading(false);
+          leaderboardInitializedRef.current =
+            true;
         }
-      },
-      [detectLeaderboardChanges]
-    );
+
+        setResults(sorted);
+
+        setTotalQuestions(
+          questionsResponse.count || 0
+        );
+
+        setLastUpdated(new Date());
+        setConnected(true);
+      } catch (error) {
+        console.error(
+          "Live display chapter error:",
+          error
+        );
+
+        setConnected(false);
+      } finally {
+        setResultsLoading(false);
+      }
+    },
+    [detectLeaderboardChanges]
+  );
 
   /* ==========================================================
      INITIAL LOAD
@@ -514,22 +552,18 @@ export default function LiveDisplay() {
   }, [fetchQuizConfig]);
 
   /* ==========================================================
-     CURRENT CHAPTER CHANGED
+     CHAPTER CHANGE
   ========================================================== */
 
   useEffect(() => {
     leaderboardInitializedRef.current =
       false;
 
-    previousTopFiveRef.current = [];
+    previousVisiblePlayersRef.current = [];
 
     setHighlightedPlayerId(null);
-    setNewLeaderId(null);
+    setNewLiveLeaderId(null);
 
-    /*
-     * Winner Mode belongs to the current
-     * chapter, so close it when chapter changes.
-     */
     setWinnerMode(false);
     setWinnerRevealStep(0);
 
@@ -544,7 +578,6 @@ export default function LiveDisplay() {
     if (!currentChapter) {
       setResults([]);
       setTotalQuestions(0);
-
       return;
     }
 
@@ -563,12 +596,13 @@ export default function LiveDisplay() {
   useEffect(() => {
     if (activeChapters.length === 0) {
       setChapterIndex(0);
-
       return;
     }
 
     setChapterIndex((current) => {
-      if (current >= activeChapters.length) {
+      if (
+        current >= activeChapters.length
+      ) {
         return 0;
       }
 
@@ -577,37 +611,184 @@ export default function LiveDisplay() {
   }, [activeChapters.length]);
 
   /* ==========================================================
-     CHAPTER ROTATION
+     RESET ROTATION
+  ========================================================== */
+
+  const resetRotationProgress =
+    useCallback(() => {
+      rotationStartedAtRef.current =
+        Date.now();
+
+      rotationElapsedRef.current = 0;
+
+      setRotationProgress(0);
+
+      setRotationSecondsLeft(
+        Math.ceil(
+          CHAPTER_ROTATION_MS / 1000
+        )
+      );
+    }, []);
+
+  /* ==========================================================
+     AUTOMATIC CHAPTER ROTATION
   ========================================================== */
 
   useEffect(() => {
-    /*
-     * Pause automatic rotation while
-     * Winner Mode is open.
-     */
+    if (activeChapters.length <= 1) {
+      rotationElapsedRef.current = 0;
+
+      setRotationProgress(0);
+
+      setRotationSecondsLeft(
+        Math.ceil(
+          CHAPTER_ROTATION_MS / 1000
+        )
+      );
+
+      return undefined;
+    }
+
     if (
-      activeChapters.length <= 1 ||
+      rotationPaused ||
       winnerMode
     ) {
       return undefined;
     }
 
-    const timer = window.setInterval(() => {
-      setChapterIndex((current) => {
-        return (
-          (current + 1) %
-          activeChapters.length
+    rotationStartedAtRef.current =
+      Date.now() -
+      rotationElapsedRef.current;
+
+    const updateRotation = () => {
+      const elapsed =
+        Date.now() -
+        rotationStartedAtRef.current;
+
+      rotationElapsedRef.current =
+        elapsed;
+
+      const progress = Math.min(
+        (elapsed /
+          CHAPTER_ROTATION_MS) *
+          100,
+        100
+      );
+
+      const remainingMilliseconds =
+        Math.max(
+          CHAPTER_ROTATION_MS -
+            elapsed,
+          0
         );
-      });
-    }, CHAPTER_ROTATION_MS);
+
+      const remainingSeconds =
+        Math.ceil(
+          remainingMilliseconds / 1000
+        );
+
+      setRotationProgress(progress);
+
+      setRotationSecondsLeft(
+        remainingSeconds
+      );
+
+      if (
+        elapsed >=
+        CHAPTER_ROTATION_MS
+      ) {
+        setChapterIndex((current) => {
+          return (
+            (current + 1) %
+            activeChapters.length
+          );
+        });
+
+        rotationStartedAtRef.current =
+          Date.now();
+
+        rotationElapsedRef.current = 0;
+
+        setRotationProgress(0);
+
+        setRotationSecondsLeft(
+          Math.ceil(
+            CHAPTER_ROTATION_MS / 1000
+          )
+        );
+      }
+    };
+
+    updateRotation();
+
+    const timer = window.setInterval(
+      updateRotation,
+      100
+    );
 
     return () => {
       window.clearInterval(timer);
     };
   }, [
     activeChapters.length,
+    rotationPaused,
     winnerMode,
   ]);
+
+  /* ==========================================================
+     MANUAL CHAPTER CONTROLS
+  ========================================================== */
+
+  const showPreviousChapter =
+    useCallback(() => {
+      if (activeChapters.length <= 1) {
+        return;
+      }
+
+      setChapterIndex((current) => {
+        return (
+          (current -
+            1 +
+            activeChapters.length) %
+          activeChapters.length
+        );
+      });
+
+      resetRotationProgress();
+    }, [
+      activeChapters.length,
+      resetRotationProgress,
+    ]);
+
+  const showNextChapter =
+    useCallback(() => {
+      if (activeChapters.length <= 1) {
+        return;
+      }
+
+      setChapterIndex((current) => {
+        return (
+          (current + 1) %
+          activeChapters.length
+        );
+      });
+
+      resetRotationProgress();
+    }, [
+      activeChapters.length,
+      resetRotationProgress,
+    ]);
+
+  const toggleRotation =
+    useCallback(() => {
+      if (activeChapters.length <= 1) {
+        return;
+      }
+
+      setRotationPaused(
+        (current) => !current
+      );
+    }, [activeChapters.length]);
 
   /* ==========================================================
      CLOCK
@@ -630,7 +811,9 @@ export default function LiveDisplay() {
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(
-        Boolean(document.fullscreenElement)
+        Boolean(
+          document.fullscreenElement
+        )
       );
     };
 
@@ -647,20 +830,219 @@ export default function LiveDisplay() {
     };
   }, []);
 
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
+  const toggleFullscreen =
+    useCallback(async () => {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+      } catch (error) {
+        console.error(
+          "Unable to toggle fullscreen:",
+          error
+        );
       }
-    } catch (error) {
-      console.error(
-        "Unable to toggle fullscreen:",
-        error
+    }, []);
+
+  /* ==========================================================
+     DERIVED DATA
+  ========================================================== */
+
+  const winners = useMemo(
+    () =>
+      results.slice(
+        0,
+        HIDDEN_WINNER_COUNT
+      ),
+    [results]
+  );
+
+  const liveVisiblePlayers =
+    useMemo(
+      () =>
+        results.slice(
+          HIDDEN_WINNER_COUNT,
+          HIDDEN_WINNER_COUNT +
+            LIVE_VISIBLE_COUNT
+        ),
+      [results]
+    );
+
+  const completedCount =
+    results.length;
+
+  const canRevealWinners =
+    quizState.status === "ended" &&
+    winners.length > 0;
+
+  /* ==========================================================
+     WINNER CONTROLS
+  ========================================================== */
+
+  const enterWinnerMode =
+    useCallback(() => {
+      if (!canRevealWinners) {
+        return;
+      }
+
+      setHostControlsOpen(false);
+      setWinnerMode(true);
+      setWinnerRevealStep(0);
+    }, [canRevealWinners]);
+
+  const revealNextWinner =
+    useCallback(() => {
+      setWinnerRevealStep((current) =>
+        Math.min(current + 1, 4)
       );
-    }
-  };
+    }, []);
+
+  const exitWinnerMode =
+    useCallback(() => {
+      setWinnerMode(false);
+      setWinnerRevealStep(0);
+    }, []);
+
+  /* ==========================================================
+     KEYBOARD HOST CONTROLS
+
+     F       -> Fullscreen
+     LEFT    -> Previous chapter
+     RIGHT   -> Next chapter
+     P       -> Pause / resume rotation
+     W       -> Winner Mode
+     SPACE   -> Next winner reveal
+     ENTER   -> Next winner reveal
+  ========================================================== */
+
+  useEffect(() => {
+    const handleKeyboardControls = (
+      event
+    ) => {
+      if (
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+
+      /*
+       * Winner Mode intentionally locks the normal
+       * event shortcuts.
+       *
+       * This prevents an accidental chapter change
+       * while the host is revealing the podium.
+       */
+
+      if (winnerMode) {
+        if (
+          event.code === "Space" ||
+          event.key === "Enter"
+        ) {
+          event.preventDefault();
+
+          if (winnerRevealStep < 4) {
+            revealNextWinner();
+          }
+        }
+
+        return;
+      }
+
+      /* FULLSCREEN */
+
+      if (
+        event.key === "f" ||
+        event.key === "F"
+      ) {
+        event.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+
+      /* PREVIOUS CHAPTER */
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+
+        if (
+          activeChapters.length > 1
+        ) {
+          showPreviousChapter();
+        }
+
+        return;
+      }
+
+      /* NEXT CHAPTER */
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+
+        if (
+          activeChapters.length > 1
+        ) {
+          showNextChapter();
+        }
+
+        return;
+      }
+
+      /* PAUSE / RESUME */
+
+      if (
+        event.key === "p" ||
+        event.key === "P"
+      ) {
+        event.preventDefault();
+
+        if (
+          activeChapters.length > 1
+        ) {
+          toggleRotation();
+        }
+
+        return;
+      }
+
+      /* WINNER MODE */
+
+      if (
+        event.key === "w" ||
+        event.key === "W"
+      ) {
+        event.preventDefault();
+
+        if (canRevealWinners) {
+          enterWinnerMode();
+        }
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyboardControls
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyboardControls
+      );
+    };
+  }, [
+    winnerMode,
+    winnerRevealStep,
+    activeChapters.length,
+    canRevealWinners,
+    revealNextWinner,
+    toggleFullscreen,
+    showPreviousChapter,
+    showNextChapter,
+    toggleRotation,
+    enterWinnerMode,
+  ]);
 
   /* ==========================================================
      REALTIME RESULTS
@@ -685,7 +1067,8 @@ export default function LiveDisplay() {
 
           if (
             currentChapter &&
-            changedChapter === currentChapter
+            changedChapter ===
+              currentChapter
           ) {
             fetchChapterData(
               currentChapter,
@@ -697,12 +1080,15 @@ export default function LiveDisplay() {
         }
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
+        if (
+          status === "SUBSCRIBED"
+        ) {
           setConnected(true);
         }
 
         if (
-          status === "CHANNEL_ERROR" ||
+          status ===
+            "CHANNEL_ERROR" ||
           status === "TIMED_OUT"
         ) {
           setConnected(false);
@@ -718,7 +1104,7 @@ export default function LiveDisplay() {
   ]);
 
   /* ==========================================================
-     REALTIME QUIZ CONFIG
+     REALTIME CONFIG
   ========================================================== */
 
   useEffect(() => {
@@ -745,62 +1131,20 @@ export default function LiveDisplay() {
   }, [fetchQuizConfig]);
 
   /* ==========================================================
-     CLEANUP HIGHLIGHT TIMER
+     CLEANUP
   ========================================================== */
 
   useEffect(() => {
     return () => {
-      if (highlightTimerRef.current) {
+      if (
+        highlightTimerRef.current
+      ) {
         window.clearTimeout(
           highlightTimerRef.current
         );
       }
     };
   }, []);
-
-  /* ==========================================================
-     DERIVED DATA
-  ========================================================== */
-
-  const topFive = useMemo(
-    () => results.slice(0, 5),
-    [results]
-  );
-
-  const completedCount = results.length;
-
-  const highestScore =
-    topFive.length > 0
-      ? Number(topFive[0]?.score || 0)
-      : null;
-
-  /* ==========================================================
-     WINNER MODE
-  ========================================================== */
-
-  const canRevealWinners =
-    quizState.status === "ended" &&
-    topFive.length > 0;
-
-  const enterWinnerMode = () => {
-    if (!canRevealWinners) {
-      return;
-    }
-
-    setWinnerMode(true);
-    setWinnerRevealStep(0);
-  };
-
-  const revealNextWinner = () => {
-    setWinnerRevealStep((current) =>
-      Math.min(current + 1, 4)
-    );
-  };
-
-  const exitWinnerMode = () => {
-    setWinnerMode(false);
-    setWinnerRevealStep(0);
-  };
 
   /* ==========================================================
      LOADING
@@ -811,154 +1155,95 @@ export default function LiveDisplay() {
   }
 
   /* ==========================================================
-     UI
+     MAIN UI
   ========================================================== */
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#070709] text-white">
-      {/* =====================================================
+    <main className="relative h-screen overflow-hidden bg-[#070709] text-white">
+      {/* ======================================================
           BACKGROUND
-      ===================================================== */}
+      ====================================================== */}
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-[-28%] h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-violet-600/[0.09] blur-[180px]" />
+        <div className="absolute left-1/2 top-[-360px] h-[780px] w-[900px] -translate-x-1/2 rounded-full bg-violet-600/[0.08] blur-[190px]" />
 
-        <div className="absolute -left-[220px] bottom-[-220px] h-[520px] w-[520px] rounded-full bg-indigo-600/[0.055] blur-[160px]" />
+        <div className="absolute -left-[240px] bottom-[-260px] h-[560px] w-[560px] rounded-full bg-indigo-600/[0.05] blur-[170px]" />
 
-        <div className="absolute -right-[220px] top-[25%] h-[520px] w-[520px] rounded-full bg-violet-600/[0.045] blur-[160px]" />
+        <div className="absolute -right-[240px] top-[20%] h-[520px] w-[520px] rounded-full bg-violet-600/[0.04] blur-[170px]" />
 
         <div
-          className="absolute inset-0 opacity-[0.022]"
+          className="absolute inset-0 opacity-[0.018]"
           style={{
             backgroundImage: `
               linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px),
               linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px)
             `,
-            backgroundSize: "54px 54px",
+            backgroundSize:
+              "58px 58px",
           }}
         />
 
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent" />
       </div>
 
-      {/* =====================================================
+      {/* ======================================================
           SCREEN
-      ===================================================== */}
+      ====================================================== */}
 
-      <div className="relative z-10 flex min-h-screen flex-col px-5 py-4 sm:px-7 lg:px-10 lg:py-6 2xl:px-14">
-        {/* ===================================================
+      <div className="relative z-10 flex h-screen flex-col overflow-hidden px-5 py-3 sm:px-7 lg:px-10 lg:py-4 2xl:px-14">
+        {/* ====================================================
             HEADER
-        =================================================== */}
+        ==================================================== */}
 
-        <header className="flex shrink-0 items-center justify-between gap-6 border-b border-white/[0.06] pb-4 lg:pb-5">
-          {/* BRAND */}
-
+        <header className="flex shrink-0 items-center justify-between gap-6 border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-3 lg:gap-4">
             <img
               src="/branding/quiztians-q.png"
               alt=""
-              className="h-10 w-10 object-contain lg:h-12 lg:w-12 2xl:h-14 2xl:w-14"
+              className="h-10 w-10 object-contain lg:h-12 lg:w-12"
             />
 
             <div>
               <img
                 src="/branding/quiztians-wordmark.png"
                 alt="QUIZTIANS"
-                className="h-9 w-auto object-contain object-left lg:h-11 2xl:h-12"
+                className="h-9 w-auto object-contain object-left lg:h-10"
               />
 
-              <p className="mt-[-4px] text-[8px] font-black uppercase tracking-[0.24em] text-zinc-700 lg:text-[9px]">
+              <p className="mt-[-3px] text-[7px] font-black uppercase tracking-[0.25em] text-zinc-700 lg:text-[8px]">
                 Learn • Play • Compete
               </p>
             </div>
           </div>
 
-          {/* RIGHT STATUS */}
-
           <div className="flex items-center gap-2 lg:gap-3">
-            {/* WINNER MODE BUTTON */}
+            {rotationPaused &&
+              activeChapters.length >
+                1 && (
+                <div className="hidden items-center gap-2 rounded-full border border-amber-500/15 bg-amber-500/[0.055] px-3 py-2 lg:flex">
+                  <Pause
+                    size={10}
+                    className="text-amber-400"
+                  />
 
-            <AnimatePresence>
-              {canRevealWinners &&
-                !winnerMode && (
-                  <motion.button
-                    type="button"
-                    initial={{
-                      opacity: 0,
-                      scale: 0.94,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      scale: 1,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      scale: 0.94,
-                    }}
-                    onClick={
-                      enterWinnerMode
-                    }
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-3 text-amber-300 transition hover:border-amber-400/35 hover:bg-amber-400/[0.12] lg:h-11 lg:px-4"
-                  >
-                    <Crown
-                      size={15}
-                      strokeWidth={1.8}
-                    />
-
-                    <span className="hidden text-[9px] font-black uppercase tracking-[0.12em] md:inline">
-                      Reveal Winners
-                    </span>
-                  </motion.button>
-                )}
-            </AnimatePresence>
-
-            {/* FULLSCREEN */}
-
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              className="group inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 text-zinc-500 transition hover:border-violet-500/20 hover:bg-violet-500/[0.06] hover:text-violet-300 lg:h-11 lg:px-4"
-              aria-label={
-                isFullscreen
-                  ? "Exit fullscreen"
-                  : "Enter fullscreen"
-              }
-              title={
-                isFullscreen
-                  ? "Exit fullscreen"
-                  : "Enter fullscreen"
-              }
-            >
-              {isFullscreen ? (
-                <Minimize2
-                  size={15}
-                  strokeWidth={1.8}
-                />
-              ) : (
-                <Maximize2
-                  size={15}
-                  strokeWidth={1.8}
-                />
+                  <span className="text-[7px] font-black uppercase tracking-[0.14em] text-amber-400">
+                    Rotation Paused
+                  </span>
+                </div>
               )}
 
-              <span className="hidden text-[9px] font-black uppercase tracking-[0.12em] md:inline">
-                {isFullscreen
-                  ? "Exit Fullscreen"
-                  : "Fullscreen"}
-              </span>
-            </button>
-
-            {/* CHAPTER INDICATOR */}
-
-            {activeChapters.length > 1 && (
+            {activeChapters.length >
+              1 && (
               <div className="hidden items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.025] px-3 py-2 md:flex">
-                <span className="text-[9px] font-black uppercase tracking-[0.14em] text-zinc-600">
+                <span className="text-[8px] font-black uppercase tracking-[0.14em] text-zinc-600">
                   Chapter
                 </span>
 
-                <span className="text-[10px] font-black text-zinc-300">
+                <span className="text-[9px] font-black text-zinc-300">
                   {chapterIndex + 1}/
-                  {activeChapters.length}
+                  {
+                    activeChapters.length
+                  }
                 </span>
               </div>
             )}
@@ -967,187 +1252,182 @@ export default function LiveDisplay() {
               connected={connected}
             />
 
-            <StatusBadge state={quizState} />
+            <StatusBadge
+              state={quizState}
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setHostControlsOpen(true)
+              }
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-zinc-500 transition hover:border-violet-500/25 hover:bg-violet-500/[0.07] hover:text-violet-300"
+              aria-label="Open event controls"
+              title="Event Controls"
+            >
+              <Settings2
+                size={16}
+                strokeWidth={1.8}
+              />
+            </button>
           </div>
         </header>
 
-        {/* ===================================================
-            MAIN AREA
-        =================================================== */}
+        {/* ====================================================
+            CHALLENGE BANNER
+        ==================================================== */}
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 py-4 lg:grid-cols-[0.72fr_1.28fr] lg:gap-5 lg:py-5 2xl:gap-7">
-          {/* =================================================
-              LEFT
-          ================================================= */}
+        <motion.section
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className="relative mt-3 shrink-0 overflow-hidden rounded-[22px] border border-white/[0.07] bg-[#101013] px-5 py-4 lg:px-7 lg:py-4"
+        >
+          <div className="pointer-events-none absolute -left-20 top-[-100px] h-60 w-60 rounded-full bg-violet-600/[0.08] blur-[100px]" />
 
-          <section className="flex min-h-0 flex-col gap-4 lg:gap-5">
-            {/* CURRENT CHALLENGE */}
+          <div className="relative flex items-center justify-between gap-6">
+            {/* CHAPTER */}
 
-            <motion.div
-              initial={{
-                opacity: 0,
-                y: 12,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              className="relative flex flex-1 flex-col justify-center overflow-hidden rounded-[26px] border border-white/[0.07] bg-[#101013] p-6 lg:rounded-[30px] lg:p-8 2xl:p-10"
-            >
-              <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-600/[0.08] blur-[100px]" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="h-px w-6 bg-violet-500" />
 
-              <div className="relative">
-                <div className="flex items-center gap-2">
-                  <span className="h-px w-7 bg-violet-500" />
-
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-violet-400 2xl:text-[11px]">
-                    Current Challenge
-                  </p>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={
-                      currentChapter ||
-                      "no-chapter"
-                    }
-                    initial={{
-                      opacity: 0,
-                      y: 16,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      y: -16,
-                    }}
-                    transition={{
-                      duration: 0.35,
-                    }}
-                  >
-                    <h1 className="mt-5 break-words text-[clamp(2rem,4vw,4.8rem)] font-black leading-[0.98] tracking-[-0.055em] text-white">
-                      {currentChapter ||
-                        "No active chapter"}
-                    </h1>
-
-                    <p className="mt-4 max-w-lg text-[11px] font-medium leading-5 text-zinc-600 lg:text-xs 2xl:text-sm">
-                      {currentChapter
-                        ? "Live rankings update automatically as participants complete the challenge."
-                        : "Waiting for an active chapter to be configured."}
-                    </p>
-                  </motion.div>
-                </AnimatePresence>
-
-                {/* TIMER */}
-
-                <div className="mt-7 border-t border-white/[0.06] pt-5 lg:mt-9">
-                  <div className="flex items-center gap-2">
-                    <Clock3
-                      size={15}
-                      className="text-zinc-600"
-                    />
-
-                    <span className="text-[9px] font-black uppercase tracking-[0.16em] text-zinc-700">
-                      {quizState.status ===
-                      "upcoming"
-                        ? "Starts In"
-                        : quizState.status ===
-                            "live"
-                          ? "Time Remaining"
-                          : quizState.status ===
-                              "ended"
-                            ? "Quiz Status"
-                            : "Event Status"}
-                    </span>
-                  </div>
-
-                  <div className="mt-2">
-                    {quizState.status ===
-                      "upcoming" ||
-                    quizState.status ===
-                      "live" ? (
-                      <p className="font-mono text-2xl font-black tracking-[-0.04em] text-zinc-200 lg:text-3xl 2xl:text-4xl">
-                        {formatCountdown(
-                          quizState.countdown
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-xl font-black tracking-[-0.03em] text-zinc-300 lg:text-2xl">
-                        {quizState.label}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-violet-400">
+                  Current Challenge
+                </p>
               </div>
-            </motion.div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={
+                    currentChapter ||
+                    "no-chapter"
+                  }
+                  initial={{
+                    opacity: 0,
+                    y: 8,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: -8,
+                  }}
+                  transition={{
+                    duration: 0.3,
+                  }}
+                >
+                  <h1
+                    className={`mt-2 max-w-[1000px] break-words font-black leading-[1.08] tracking-[-0.045em] text-white ${getChapterTitleClass(
+                      currentChapter || ""
+                    )}`}
+                  >
+                    {currentChapter ||
+                      "No active chapter"}
+                  </h1>
+
+                  <p className="mt-2 text-[9px] font-medium text-zinc-600 lg:text-[10px]">
+                    {currentChapter
+                      ? quizState.status ===
+                        "ended"
+                        ? "Challenge completed • Winners ready for the final reveal"
+                        : "Live standings update automatically • Top 3 remain hidden"
+                      : "Waiting for an active chapter to be configured"}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
             {/* STATS */}
 
-            <div className="grid grid-cols-2 gap-4 lg:gap-5">
-              <StatCard
+            <div className="hidden shrink-0 items-stretch gap-2 md:flex">
+              <BannerStat
                 icon={Users}
                 label="Completed"
                 value={completedCount}
-                description="Submissions"
               />
 
-              <StatCard
-                icon={Trophy}
-                label="Top Score"
+              <BannerStat
+                icon={ListChecks}
+                label="Questions"
                 value={
-                  highestScore !== null
-                    ? totalQuestions > 0
-                      ? `${highestScore}/${totalQuestions}`
-                      : highestScore
-                    : "—"
+                  totalQuestions || "—"
                 }
-                description="Current best"
+              />
+
+              <BannerStat
+                icon={Crown}
+                label="Top 3"
+                value="Hidden"
+                accent="amber"
+              />
+
+              <TimerCard
+                quizState={quizState}
               />
             </div>
-          </section>
+          </div>
+        </motion.section>
 
-          {/* =================================================
-              LIVE LEADERBOARD
-          ================================================= */}
+        {/* ====================================================
+            LEADERBOARD
+        ==================================================== */}
 
-          <motion.section
-            initial={{
-              opacity: 0,
-              x: 16,
-            }}
-            animate={{
-              opacity: 1,
-              x: 0,
-            }}
-            transition={{
-              duration: 0.45,
-            }}
-            className="relative flex min-h-0 flex-col overflow-hidden rounded-[26px] border border-white/[0.075] bg-[#101013] lg:rounded-[30px]"
-          >
-            <div className="pointer-events-none absolute left-1/2 top-[-150px] h-[340px] w-[500px] -translate-x-1/2 rounded-full bg-amber-500/[0.035] blur-[120px]" />
+        <motion.section
+          initial={{
+            opacity: 0,
+            y: 14,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            delay: 0.08,
+          }}
+          className="relative mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-white/[0.075] bg-[#101013]"
+        >
+          <div className="pointer-events-none absolute left-1/2 top-[-200px] h-[380px] w-[700px] -translate-x-1/2 rounded-full bg-violet-500/[0.04] blur-[140px]" />
 
-            {/* HEADER */}
+          {/* BOARD HEADER */}
 
-            <div className="relative flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-4 lg:px-7 lg:py-5 2xl:px-8">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/15 bg-amber-500/[0.06] lg:h-11 lg:w-11">
-                  <Trophy
-                    size={19}
-                    className="text-amber-400"
-                  />
-                </div>
+          <div className="relative flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-3 lg:px-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/15 bg-violet-500/[0.06]">
+                <Trophy
+                  size={16}
+                  className="text-violet-400"
+                />
+              </div>
 
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-400/70">
-                    Live Rankings
-                  </p>
+              <div>
+                <p className="text-[7px] font-black uppercase tracking-[0.2em] text-violet-400/70">
+                  Live Standings
+                </p>
 
-                  <h2 className="mt-0.5 text-base font-black tracking-[-0.025em] text-white lg:text-lg 2xl:text-xl">
-                    Top 5 Players
-                  </h2>
-                </div>
+                <h2 className="mt-0.5 text-base font-black tracking-[-0.025em] text-white lg:text-lg">
+                  Chasing the Podium
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 rounded-full border border-amber-400/15 bg-amber-400/[0.055] px-3 py-1.5 sm:flex">
+                <LockKeyhole
+                  size={10}
+                  className="text-amber-400"
+                />
+
+                <span className="text-[7px] font-black uppercase tracking-[0.13em] text-amber-400">
+                  Top 3 Hidden
+                </span>
               </div>
 
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/15 bg-emerald-500/[0.055] px-3 py-1.5">
@@ -1157,59 +1437,74 @@ export default function LiveDisplay() {
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 </span>
 
-                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-emerald-400">
-                  Auto Updating
+                <span className="text-[7px] font-black uppercase tracking-[0.15em] text-emerald-400">
+                  Live
                 </span>
               </div>
             </div>
+          </div>
 
-            {/* COLUMN HEADERS */}
+          {/* COLUMN HEADER */}
 
-            <div className="hidden shrink-0 grid-cols-[60px_minmax(0,1fr)_110px_120px] items-center gap-4 border-b border-white/[0.04] px-6 py-3 text-[8px] font-black uppercase tracking-[0.16em] text-zinc-800 sm:grid lg:px-7 2xl:grid-cols-[72px_minmax(0,1fr)_130px_140px] 2xl:px-8">
-              <span>Rank</span>
+          <div className="relative hidden shrink-0 grid-cols-[70px_76px_minmax(180px,1.35fr)_minmax(120px,1fr)_150px_130px] items-center gap-3 border-b border-white/[0.045] px-6 py-2.5 text-[7px] font-black uppercase tracking-[0.16em] text-zinc-800 md:grid lg:px-7">
+            <span>Rank</span>
 
-              <span>Participant</span>
+            <span />
 
-              <span className="text-right">
-                Score
-              </span>
+            <span>Participant</span>
 
-              <span className="text-right">
-                Time
-              </span>
-            </div>
+            <span>Place</span>
 
-            {/* LIST */}
+            <span className="text-right">
+              Score
+            </span>
 
-            <div className="relative min-h-0 flex-1 p-3 lg:p-4 2xl:p-5">
-              {!currentChapter ? (
-                <EmptyLeaderboard
-                  title="Waiting for a chapter"
-                  description="Activate a chapter from quiz configuration to begin the live display."
-                />
-              ) : resultsLoading &&
-                results.length === 0 ? (
-                <LeaderboardSkeleton />
-              ) : topFive.length === 0 ? (
-                <EmptyLeaderboard
-                  title="Waiting for players"
-                  description="The leaderboard will appear as soon as the first participant completes the quiz."
-                />
-              ) : (
-                <motion.div
-                  layout
-                  className="flex h-full flex-col gap-2 lg:gap-2.5 2xl:gap-3"
+            <span className="text-right">
+              Time
+            </span>
+          </div>
+
+          {/* ROW AREA */}
+
+          <div className="relative min-h-0 flex-1 overflow-hidden px-3 py-3 lg:px-4">
+            {!currentChapter ? (
+              <EmptyLeaderboard
+                title="Waiting for a chapter"
+                description="Activate a chapter from quiz configuration to begin the live display."
+              />
+            ) : resultsLoading &&
+              results.length === 0 ? (
+              <LeaderboardSkeleton />
+            ) : results.length === 0 ? (
+              <EmptyLeaderboard
+                title="Waiting for players"
+                description="Live standings will appear as participants complete the challenge."
+              />
+            ) : liveVisiblePlayers.length ===
+              0 ? (
+              <SecretLeaderboardState
+                completedCount={
+                  completedCount
+                }
+              />
+            ) : (
+              <div className="flex h-full min-h-0 flex-col justify-center gap-2">
+                <AnimatePresence
+                  initial={false}
+                  mode="popLayout"
                 >
-                  <AnimatePresence
-                    initial={false}
-                    mode="popLayout"
-                  >
-                    {topFive.map(
-                      (player, index) => (
+                  {liveVisiblePlayers.map(
+                    (player, index) => {
+                      const realRank =
+                        index +
+                        HIDDEN_WINNER_COUNT +
+                        1;
+
+                      return (
                         <LeaderboardRow
                           key={player.id}
                           player={player}
-                          rank={index + 1}
+                          rank={realRank}
                           totalQuestions={
                             totalQuestions
                           }
@@ -1217,48 +1512,101 @@ export default function LiveDisplay() {
                             highlightedPlayerId ===
                             player.id
                           }
-                          newLeader={
-                            newLeaderId ===
+                          newLiveLeader={
+                            newLiveLeaderId ===
                             player.id
                           }
                         />
-                      )
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </div>
-          </motion.section>
-        </div>
+                      );
+                    }
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </motion.section>
 
-        {/* ===================================================
-            WINNER MODE
-        =================================================== */}
+        {/* ====================================================
+            ROTATION PROGRESS
+        ==================================================== */}
 
         <AnimatePresence>
-          {winnerMode && (
-            <WinnerMode
-              chapter={currentChapter}
-              winners={topFive.slice(0, 3)}
-              totalQuestions={
-                totalQuestions
-              }
-              revealStep={
-                winnerRevealStep
-              }
-              onRevealNext={
-                revealNextWinner
-              }
-              onExit={exitWinnerMode}
-            />
-          )}
+          {activeChapters.length > 1 &&
+            !winnerMode && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  y: 5,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                }}
+                className="shrink-0 pt-2"
+              >
+                <div className="flex items-center justify-between pb-1.5">
+                  <div className="flex items-center gap-2">
+                    {rotationPaused ? (
+                      <Pause
+                        size={9}
+                        className="text-amber-400"
+                      />
+                    ) : (
+                      <Play
+                        size={9}
+                        className="text-violet-400"
+                      />
+                    )}
+
+                    <p
+                      className={`text-[7px] font-black uppercase tracking-[0.15em] ${
+                        rotationPaused
+                          ? "text-amber-400"
+                          : "text-zinc-700"
+                      }`}
+                    >
+                      {rotationPaused
+                        ? "Chapter rotation paused"
+                        : `Next chapter in ${rotationSecondsLeft}s`}
+                    </p>
+                  </div>
+
+                  <p className="text-[7px] font-black uppercase tracking-[0.14em] text-zinc-800">
+                    {chapterIndex + 1} /{" "}
+                    {
+                      activeChapters.length
+                    }
+                  </p>
+                </div>
+
+                <div className="relative h-[3px] overflow-hidden rounded-full bg-white/[0.045]">
+                  <motion.div
+                    className={`absolute inset-y-0 left-0 rounded-full ${
+                      rotationPaused
+                        ? "bg-amber-400/70"
+                        : "bg-gradient-to-r from-violet-600 via-violet-400 to-indigo-400"
+                    }`}
+                    animate={{
+                      width: `${rotationProgress}%`,
+                    }}
+                    transition={{
+                      duration: 0.1,
+                      ease: "linear",
+                    }}
+                  />
+                </div>
+              </motion.div>
+            )}
         </AnimatePresence>
 
-        {/* ===================================================
+        {/* ====================================================
             FOOTER
-        =================================================== */}
+        ==================================================== */}
 
-        <footer className="flex shrink-0 items-center justify-between gap-5 border-t border-white/[0.05] pt-3 lg:pt-4">
+        <footer className="flex shrink-0 items-center justify-between gap-5 border-t border-white/[0.05] pt-2">
           <div className="flex items-center gap-2">
             <span
               className={`h-1.5 w-1.5 rounded-full ${
@@ -1268,7 +1616,7 @@ export default function LiveDisplay() {
               }`}
             />
 
-            <p className="text-[8px] font-black uppercase tracking-[0.16em] text-zinc-700 lg:text-[9px]">
+            <p className="text-[7px] font-black uppercase tracking-[0.16em] text-zinc-700">
               {connected
                 ? "Results update live"
                 : "Connection interrupted"}
@@ -1276,7 +1624,7 @@ export default function LiveDisplay() {
           </div>
 
           {lastUpdated && (
-            <p className="hidden text-[8px] font-bold uppercase tracking-[0.12em] text-zinc-800 sm:block">
+            <p className="hidden text-[7px] font-bold uppercase tracking-[0.12em] text-zinc-800 sm:block">
               Updated{" "}
               {lastUpdated.toLocaleTimeString(
                 [],
@@ -1289,132 +1637,179 @@ export default function LiveDisplay() {
             </p>
           )}
 
-          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-zinc-800 lg:text-[9px]">
+          <p className="text-[7px] font-black uppercase tracking-[0.16em] text-zinc-800">
             QUIZTIANS · Live Event
           </p>
         </footer>
       </div>
+
+      {/* ======================================================
+          HOST CONTROLS
+      ====================================================== */}
+
+      <AnimatePresence>
+        {hostControlsOpen &&
+          !winnerMode && (
+            <HostControls
+              currentChapter={
+                currentChapter
+              }
+              chapterIndex={
+                chapterIndex
+              }
+              chapterCount={
+                activeChapters.length
+              }
+              rotationPaused={
+                rotationPaused
+              }
+              isFullscreen={
+                isFullscreen
+              }
+              canRevealWinners={
+                canRevealWinners
+              }
+              onClose={() =>
+                setHostControlsOpen(false)
+              }
+              onPrevious={
+                showPreviousChapter
+              }
+              onNext={
+                showNextChapter
+              }
+              onToggleRotation={
+                toggleRotation
+              }
+              onToggleFullscreen={
+                toggleFullscreen
+              }
+              onRevealWinners={
+                enterWinnerMode
+              }
+            />
+          )}
+      </AnimatePresence>
+
+      {/* ======================================================
+          WINNER MODE
+      ====================================================== */}
+
+      <AnimatePresence>
+        {winnerMode && (
+          <WinnerMode
+            chapter={currentChapter}
+            winners={winners}
+            totalQuestions={
+              totalQuestions
+            }
+            revealStep={
+              winnerRevealStep
+            }
+            onRevealNext={
+              revealNextWinner
+            }
+            onExit={exitWinnerMode}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
 
 /* ============================================================
-   STATUS BADGE
+   BANNER STAT
 ============================================================ */
 
-function StatusBadge({ state }) {
-  const config = {
-    live: {
-      classes:
-        "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-400",
-      dot: "bg-emerald-400",
-    },
-
-    upcoming: {
-      classes:
-        "border-amber-500/20 bg-amber-500/[0.07] text-amber-400",
-      dot: "bg-amber-400",
-    },
-
-    ended: {
-      classes:
-        "border-violet-500/20 bg-violet-500/[0.07] text-violet-400",
-      dot: "bg-violet-400",
-    },
-
-    waiting: {
-      classes:
-        "border-white/[0.07] bg-white/[0.025] text-zinc-500",
-      dot: "bg-zinc-600",
-    },
-  };
-
-  const current =
-    config[state.status] || config.waiting;
-
-  return (
-    <div
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 lg:px-4 ${current.classes}`}
-    >
-      <span className="relative flex h-2 w-2">
-        {state.status === "live" && (
-          <span
-            className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-50 ${current.dot}`}
-          />
-        )}
-
-        <span
-          className={`relative inline-flex h-2 w-2 rounded-full ${current.dot}`}
-        />
-      </span>
-
-      <span className="text-[9px] font-black uppercase tracking-[0.16em] lg:text-[10px]">
-        {state.label}
-      </span>
-    </div>
-  );
-}
-
-/* ============================================================
-   CONNECTION BADGE
-============================================================ */
-
-function ConnectionBadge({ connected }) {
-  return (
-    <div
-      className={`hidden items-center gap-2 rounded-full border px-3 py-2 sm:flex ${
-        connected
-          ? "border-white/[0.06] bg-white/[0.025] text-zinc-600"
-          : "border-red-500/15 bg-red-500/[0.05] text-red-400"
-      }`}
-    >
-      {connected ? (
-        <Wifi size={13} />
-      ) : (
-        <WifiOff size={13} />
-      )}
-
-      <span className="text-[8px] font-black uppercase tracking-[0.14em]">
-        {connected
-          ? "Connected"
-          : "Offline"}
-      </span>
-    </div>
-  );
-}
-
-/* ============================================================
-   STAT CARD
-============================================================ */
-
-function StatCard({
+function BannerStat({
   icon: Icon,
   label,
   value,
-  description,
+  accent = "violet",
 }) {
-  return (
-    <div className="rounded-[22px] border border-white/[0.07] bg-[#101013] p-4 lg:rounded-[24px] lg:p-5 2xl:p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/15 bg-violet-500/[0.06] lg:h-10 lg:w-10">
-          <Icon
-            size={17}
-            className="text-violet-400"
-          />
-        </div>
+  const amber =
+    accent === "amber";
 
-        <p className="text-[8px] font-black uppercase tracking-[0.16em] text-zinc-700">
-          {label}
-        </p>
+  return (
+    <div className="flex min-w-[105px] items-center gap-3 rounded-[16px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
+          amber
+            ? "border-amber-400/15 bg-amber-400/[0.055]"
+            : "border-violet-500/15 bg-violet-500/[0.055]"
+        }`}
+      >
+        <Icon
+          size={14}
+          className={
+            amber
+              ? "text-amber-400"
+              : "text-violet-400"
+          }
+        />
       </div>
 
-      <p className="mt-4 text-2xl font-black tracking-[-0.045em] text-white lg:text-3xl 2xl:text-4xl">
-        {value}
-      </p>
+      <div>
+        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-zinc-700">
+          {label}
+        </p>
 
-      <p className="mt-1 text-[9px] font-medium text-zinc-700 lg:text-[10px]">
-        {description}
-      </p>
+        <p
+          className={`mt-0.5 text-sm font-black ${
+            amber
+              ? "text-amber-200"
+              : "text-zinc-200"
+          }`}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   TIMER CARD
+============================================================ */
+
+function TimerCard({ quizState }) {
+  let label = "Status";
+  let value = quizState.label;
+
+  if (quizState.status === "upcoming") {
+    label = "Starts In";
+
+    value = formatCountdown(
+      quizState.countdown
+    );
+  }
+
+  if (quizState.status === "live") {
+    label = "Time Left";
+
+    value = formatCountdown(
+      quizState.countdown
+    );
+  }
+
+  return (
+    <div className="flex min-w-[120px] items-center gap-3 rounded-[16px] border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.025]">
+        <Clock3
+          size={14}
+          className="text-zinc-500"
+        />
+      </div>
+
+      <div>
+        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-zinc-700">
+          {label}
+        </p>
+
+        <p className="mt-0.5 whitespace-nowrap font-mono text-xs font-black text-zinc-300">
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1428,67 +1823,14 @@ function LeaderboardRow({
   rank,
   totalQuestions,
   highlighted,
-  newLeader,
+  newLiveLeader,
 }) {
-  const rankConfig = {
-    1: {
-      medal: "🥇",
-      label: "1",
-      row:
-        "border-amber-500/20 bg-amber-500/[0.055]",
-      avatar:
-        "border-amber-500/25 bg-amber-500/[0.09] text-amber-200",
-      score: "text-amber-300",
-    },
-
-    2: {
-      medal: "🥈",
-      label: "2",
-      row:
-        "border-zinc-400/10 bg-zinc-400/[0.025]",
-      avatar:
-        "border-zinc-400/15 bg-zinc-400/[0.06] text-zinc-300",
-      score: "text-zinc-200",
-    },
-
-    3: {
-      medal: "🥉",
-      label: "3",
-      row:
-        "border-orange-500/10 bg-orange-500/[0.025]",
-      avatar:
-        "border-orange-500/15 bg-orange-500/[0.055] text-orange-300",
-      score: "text-zinc-300",
-    },
-
-    4: {
-      medal: null,
-      label: "4",
-      row:
-        "border-white/[0.045] bg-white/[0.015]",
-      avatar:
-        "border-white/[0.06] bg-white/[0.03] text-zinc-400",
-      score: "text-zinc-300",
-    },
-
-    5: {
-      medal: null,
-      label: "5",
-      row:
-        "border-white/[0.045] bg-white/[0.015]",
-      avatar:
-        "border-white/[0.06] bg-white/[0.03] text-zinc-400",
-      score: "text-zinc-300",
-    },
-  };
-
-  const style = rankConfig[rank];
-
-  const highlightClass = newLeader
-    ? "border-amber-400/50 bg-amber-400/[0.10] shadow-[0_0_45px_rgba(245,158,11,0.12)]"
-    : highlighted
-      ? "border-violet-400/35 bg-violet-500/[0.09] shadow-[0_0_40px_rgba(139,92,246,0.10)]"
-      : style.row;
+  const highlightClass =
+    newLiveLeader
+      ? "border-violet-400/40 bg-violet-500/[0.09] shadow-[0_0_40px_rgba(139,92,246,0.10)]"
+      : highlighted
+        ? "border-indigo-400/30 bg-indigo-500/[0.07]"
+        : "border-white/[0.055] bg-white/[0.018]";
 
   return (
     <motion.div
@@ -1496,21 +1838,22 @@ function LeaderboardRow({
       layoutId={`live-player-${player.id}`}
       initial={{
         opacity: 0,
-        y: 18,
-        scale: 0.97,
+        y: 14,
+        scale: 0.985,
       }}
       animate={{
         opacity: 1,
         y: 0,
         scale:
-          highlighted || newLeader
-            ? [1, 1.018, 1]
+          highlighted ||
+          newLiveLeader
+            ? [1, 1.01, 1]
             : 1,
       }}
       exit={{
         opacity: 0,
-        x: 40,
-        scale: 0.97,
+        x: 35,
+        scale: 0.98,
       }}
       transition={{
         layout: {
@@ -1520,170 +1863,127 @@ function LeaderboardRow({
         },
 
         opacity: {
-          duration: 0.25,
-        },
-
-        scale: {
-          duration: 0.6,
+          duration: 0.22,
         },
       }}
-      className={`relative grid min-h-0 flex-1 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-[18px] border px-3 py-2.5 transition-[border-color,background-color,box-shadow] duration-500 sm:grid-cols-[60px_minmax(0,1fr)_110px_120px] sm:gap-4 sm:px-4 lg:rounded-[20px] lg:px-5 2xl:grid-cols-[72px_minmax(0,1fr)_130px_140px] 2xl:px-6 ${highlightClass}`}
+      className={`relative grid h-[66px] shrink-0 grid-cols-[52px_minmax(0,1fr)_100px] items-center gap-3 overflow-hidden rounded-[17px] border px-3 sm:h-[70px] md:grid-cols-[70px_76px_minmax(180px,1.35fr)_minmax(120px,1fr)_150px_130px] md:px-5 lg:h-[74px] lg:gap-3 lg:px-6 2xl:h-[78px] ${highlightClass}`}
     >
-      {/* HIGHLIGHT SWEEP */}
+      {/* SHIMMER */}
 
       <AnimatePresence>
-        {(highlighted || newLeader) && (
+        {(highlighted ||
+          newLiveLeader) && (
           <motion.div
             initial={{
               opacity: 0,
               x: "-100%",
             }}
             animate={{
-              opacity: [0, 0.8, 0],
-              x: "140%",
-            }}
-            exit={{
-              opacity: 0,
+              opacity: [
+                0,
+                0.7,
+                0,
+              ],
+              x: "160%",
             }}
             transition={{
-              duration: 1.4,
-              ease: "easeInOut",
+              duration: 1.3,
             }}
-            className={`pointer-events-none absolute inset-y-0 w-1/3 skew-x-[-18deg] ${
-              newLeader
-                ? "bg-gradient-to-r from-transparent via-amber-300/10 to-transparent"
-                : "bg-gradient-to-r from-transparent via-violet-300/10 to-transparent"
-            }`}
+            className="pointer-events-none absolute inset-y-0 w-1/4 skew-x-[-18deg] bg-gradient-to-r from-transparent via-violet-300/10 to-transparent"
           />
         )}
       </AnimatePresence>
 
       {/* RANK */}
 
-      <div className="relative flex items-center gap-2">
-        <span className="text-xl lg:text-2xl">
-          {style.medal || (
-            <span className="text-sm font-black text-zinc-700 lg:text-base">
-              #{style.label}
-            </span>
-          )}
-        </span>
+      <div className="relative">
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-xl border text-[10px] font-black lg:h-10 lg:w-10 ${
+            rank === 4
+              ? "border-violet-500/20 bg-violet-500/[0.07] text-violet-300"
+              : "border-white/[0.06] bg-white/[0.025] text-zinc-500"
+          }`}
+        >
+          #{rank}
+        </div>
       </div>
 
-      {/* PLAYER */}
+      {/* AVATAR */}
 
-      <div className="relative flex min-w-0 items-center gap-3 lg:gap-4">
-        <motion.div
-          animate={
-            newLeader
-              ? {
-                  scale: [1, 1.12, 1],
-                }
-              : {}
-          }
-          transition={{
-            duration: 0.6,
-          }}
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-[10px] font-black lg:h-12 lg:w-12 lg:rounded-2xl lg:text-xs 2xl:h-14 2xl:w-14 2xl:text-sm ${style.avatar}`}
-        >
+      <div className="relative hidden md:block">
+        <div className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/[0.07] bg-white/[0.035] text-[10px] font-black text-zinc-400">
           {initials(player.name)}
-        </motion.div>
-
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-sm font-black tracking-[-0.02em] text-zinc-100 lg:text-base 2xl:text-lg">
-              {player.name || "Unknown"}
-            </p>
-
-            <AnimatePresence>
-              {newLeader && (
-                <motion.span
-                  initial={{
-                    opacity: 0,
-                    scale: 0.8,
-                    x: -5,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    x: 0,
-                  }}
-                  exit={{
-                    opacity: 0,
-                    scale: 0.9,
-                  }}
-                  className="hidden shrink-0 items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/[0.10] px-2 py-1 text-[7px] font-black uppercase tracking-[0.1em] text-amber-300 md:inline-flex"
-                >
-                  <Sparkles size={9} />
-                  New Leader
-                </motion.span>
-              )}
-
-              {highlighted &&
-                !newLeader && (
-                  <motion.span
-                    initial={{
-                      opacity: 0,
-                      scale: 0.8,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      scale: 1,
-                    }}
-                    exit={{
-                      opacity: 0,
-                    }}
-                    className="hidden shrink-0 rounded-full border border-violet-400/20 bg-violet-500/[0.09] px-2 py-1 text-[7px] font-black uppercase tracking-[0.1em] text-violet-300 md:inline-flex"
-                  >
-                    New
-                  </motion.span>
-                )}
-            </AnimatePresence>
-          </div>
-
-          <p className="mt-0.5 truncate text-[9px] font-medium text-zinc-700 lg:text-[10px] 2xl:text-xs">
-            {player.place || "—"}
-          </p>
         </div>
+      </div>
+
+      {/* PARTICIPANT */}
+
+      <div className="relative min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate text-sm font-black tracking-[-0.02em] text-zinc-100 lg:text-base 2xl:text-lg">
+            {player.name ||
+              "Unknown"}
+          </p>
+
+          <AnimatePresence>
+            {newLiveLeader && (
+              <motion.span
+                initial={{
+                  opacity: 0,
+                  scale: 0.8,
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                }}
+                exit={{
+                  opacity: 0,
+                }}
+                className="hidden shrink-0 rounded-full border border-violet-400/20 bg-violet-500/[0.09] px-2 py-1 text-[6px] font-black uppercase tracking-[0.1em] text-violet-300 lg:inline-flex"
+              >
+                Now #4
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <p className="mt-1 truncate text-[8px] font-medium text-zinc-700 md:hidden">
+          {player.place || "—"}
+        </p>
+      </div>
+
+      {/* PLACE */}
+
+      <div className="relative hidden min-w-0 md:block">
+        <p className="truncate text-xs font-bold text-zinc-500 lg:text-sm">
+          {player.place || "—"}
+        </p>
       </div>
 
       {/* SCORE */}
 
-      <div className="relative text-right">
-        <motion.p
-          key={`${player.id}-${player.score}`}
-          initial={{
-            opacity: 0.5,
-            scale: 0.9,
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-          }}
-          className={`text-lg font-black tracking-[-0.035em] lg:text-xl 2xl:text-2xl ${style.score}`}
-        >
+      <div className="relative flex items-baseline justify-end whitespace-nowrap text-right">
+        <span className="text-lg font-black tracking-[-0.04em] text-zinc-100 lg:text-xl 2xl:text-2xl">
           {player.score ?? 0}
+        </span>
 
-          {totalQuestions > 0 && (
-            <span className="ml-1 text-[9px] font-bold text-zinc-700 lg:text-[10px]">
-              / {totalQuestions}
-            </span>
-          )}
-        </motion.p>
-
-        <p className="mt-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-zinc-800 sm:hidden">
-          Score
-        </p>
+        {totalQuestions > 0 && (
+          <span className="ml-1.5 text-[9px] font-bold text-zinc-600 lg:text-[10px]">
+            / {totalQuestions}
+          </span>
+        )}
       </div>
 
       {/* TIME */}
 
-      <div className="relative hidden text-right sm:block">
-        <p className="font-mono text-[11px] font-black text-zinc-500 lg:text-xs 2xl:text-sm">
-          {formatTime(player.time_taken)}
+      <div className="relative hidden text-right md:block">
+        <p className="whitespace-nowrap font-mono text-xs font-black text-zinc-400 lg:text-sm">
+          {formatTime(
+            player.time_taken
+          )}
         </p>
 
-        <p className="mt-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-zinc-800">
+        <p className="mt-1 text-[6px] font-black uppercase tracking-[0.12em] text-zinc-800">
           Time
         </p>
       </div>
@@ -1692,7 +1992,572 @@ function LeaderboardRow({
 }
 
 /* ============================================================
+   SECRET LEADERBOARD STATE
+============================================================ */
+
+function SecretLeaderboardState({
+  completedCount,
+}) {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="max-w-sm text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px] border border-amber-400/10 bg-amber-400/[0.035]">
+          <LockKeyhole
+            size={22}
+            className="text-amber-400/70"
+          />
+        </div>
+
+        <h3 className="mt-4 text-base font-black text-zinc-300">
+          The podium is taking shape
+        </h3>
+
+        <p className="mx-auto mt-2 max-w-xs text-[9px] leading-5 text-zinc-700">
+          {completedCount === 1
+            ? "The first result is in, but the podium remains secret."
+            : `${completedCount} results are in. The Top 3 remain hidden until the final reveal.`}
+        </p>
+
+        <div className="mt-5 flex items-center justify-center gap-2">
+          <span className="text-xl opacity-25">
+            🥇
+          </span>
+
+          <span className="text-xl opacity-25">
+            🥈
+          </span>
+
+          <span className="text-xl opacity-25">
+            🥉
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   STATUS BADGE
+============================================================ */
+
+function StatusBadge({ state }) {
+  const config = {
+    live: {
+      classes:
+        "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-400",
+
+      dot: "bg-emerald-400",
+    },
+
+    upcoming: {
+      classes:
+        "border-amber-500/20 bg-amber-500/[0.07] text-amber-400",
+
+      dot: "bg-amber-400",
+    },
+
+    ended: {
+      classes:
+        "border-violet-500/20 bg-violet-500/[0.07] text-violet-400",
+
+      dot: "bg-violet-400",
+    },
+
+    waiting: {
+      classes:
+        "border-white/[0.07] bg-white/[0.025] text-zinc-500",
+
+      dot: "bg-zinc-600",
+    },
+  };
+
+  const current =
+    config[state.status] ||
+    config.waiting;
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 ${current.classes}`}
+    >
+      <span className="relative flex h-2 w-2">
+        {state.status === "live" && (
+          <span
+            className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-50 ${current.dot}`}
+          />
+        )}
+
+        <span
+          className={`relative inline-flex h-2 w-2 rounded-full ${current.dot}`}
+        />
+      </span>
+
+      <span className="text-[8px] font-black uppercase tracking-[0.16em] lg:text-[9px]">
+        {state.label}
+      </span>
+    </div>
+  );
+}
+
+/* ============================================================
+   CONNECTION BADGE
+============================================================ */
+
+function ConnectionBadge({
+  connected,
+}) {
+  return (
+    <div
+      className={`hidden items-center gap-2 rounded-full border px-3 py-2 sm:flex ${
+        connected
+          ? "border-white/[0.06] bg-white/[0.025] text-zinc-600"
+          : "border-red-500/15 bg-red-500/[0.05] text-red-400"
+      }`}
+    >
+      {connected ? (
+        <Wifi size={12} />
+      ) : (
+        <WifiOff size={12} />
+      )}
+
+      <span className="text-[7px] font-black uppercase tracking-[0.14em]">
+        {connected
+          ? "Connected"
+          : "Offline"}
+      </span>
+    </div>
+  );
+}
+
+/* ============================================================
+   HOST CONTROLS
+============================================================ */
+
+function HostControls({
+  currentChapter,
+  chapterIndex,
+  chapterCount,
+  rotationPaused,
+  isFullscreen,
+  canRevealWinners,
+  onClose,
+  onPrevious,
+  onNext,
+  onToggleRotation,
+  onToggleFullscreen,
+  onRevealWinners,
+}) {
+  const multipleChapters =
+    chapterCount > 1;
+
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+      }}
+      animate={{
+        opacity: 1,
+      }}
+      exit={{
+        opacity: 0,
+      }}
+      className="fixed inset-0 z-[90] flex items-start justify-end bg-black/25 p-4 backdrop-blur-[2px] lg:p-6"
+      onMouseDown={(event) => {
+        if (
+          event.target ===
+          event.currentTarget
+        ) {
+          onClose();
+        }
+      }}
+    >
+      <motion.div
+        initial={{
+          opacity: 0,
+          x: 30,
+          scale: 0.97,
+        }}
+        animate={{
+          opacity: 1,
+          x: 0,
+          scale: 1,
+        }}
+        exit={{
+          opacity: 0,
+          x: 30,
+          scale: 0.97,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 28,
+        }}
+        className="relative max-h-[calc(100vh-48px)] w-full max-w-[380px] overflow-y-auto rounded-[28px] border border-white/[0.09] bg-[#101013]/95 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {/* GLOW */}
+
+        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-violet-600/[0.10] blur-[90px]" />
+
+        {/* HEADER */}
+
+        <div className="relative flex items-center justify-between border-b border-white/[0.06] px-5 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/15 bg-violet-500/[0.07]">
+              <Settings2
+                size={17}
+                className="text-violet-400"
+              />
+            </div>
+
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-violet-400">
+                QUIZTIANS Live
+              </p>
+
+              <h2 className="mt-0.5 text-sm font-black text-white">
+                Event Controls
+              </h2>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.025] text-zinc-600 transition hover:bg-white/[0.05] hover:text-white"
+            aria-label="Close event controls"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* CURRENT CHAPTER */}
+
+        <div className="relative px-5 pt-5">
+          <div className="rounded-[20px] border border-white/[0.06] bg-white/[0.025] p-4">
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-zinc-700">
+              Current Chapter
+            </p>
+
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <p className="min-w-0 truncate text-lg font-black tracking-[-0.03em] text-white">
+                {currentChapter ||
+                  "No active chapter"}
+              </p>
+
+              {chapterCount > 0 && (
+                <span className="shrink-0 rounded-full border border-white/[0.06] bg-white/[0.025] px-2.5 py-1 text-[8px] font-black text-zinc-500">
+                  {chapterIndex + 1}/
+                  {chapterCount}
+                </span>
+              )}
+            </div>
+
+            {multipleChapters && (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={onPrevious}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-3 text-[9px] font-black uppercase tracking-[0.12em] text-zinc-500 transition hover:border-violet-500/20 hover:bg-violet-500/[0.06] hover:text-violet-300"
+                >
+                  <ChevronLeft
+                    size={15}
+                  />
+
+                  Previous
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onNext}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-3 text-[9px] font-black uppercase tracking-[0.12em] text-zinc-500 transition hover:border-violet-500/20 hover:bg-violet-500/[0.06] hover:text-violet-300"
+                >
+                  Next
+
+                  <ChevronRight
+                    size={15}
+                  />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* EVENT ACTIONS */}
+
+        <div className="relative space-y-2 px-5 py-5">
+          {/* ROTATION */}
+
+          <button
+            type="button"
+            onClick={onToggleRotation}
+            disabled={!multipleChapters}
+            className={`flex w-full items-center justify-between rounded-[18px] border px-4 py-3.5 text-left transition ${
+              !multipleChapters
+                ? "cursor-not-allowed border-white/[0.035] bg-white/[0.012] opacity-40"
+                : rotationPaused
+                  ? "border-emerald-500/15 bg-emerald-500/[0.05]"
+                  : "border-white/[0.06] bg-white/[0.025] hover:border-violet-500/15 hover:bg-white/[0.035]"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.03] text-zinc-500">
+                {rotationPaused ? (
+                  <Play size={15} />
+                ) : (
+                  <Pause size={15} />
+                )}
+              </div>
+
+              <div>
+                <p className="text-[10px] font-black text-zinc-200">
+                  {rotationPaused
+                    ? "Resume Rotation"
+                    : "Pause Rotation"}
+                </p>
+
+                <p className="mt-0.5 text-[8px] text-zinc-700">
+                  {multipleChapters
+                    ? rotationPaused
+                      ? "Automatic switching is paused"
+                      : "Chapters rotate every 15 seconds"
+                    : "Only one active chapter"}
+                </p>
+              </div>
+            </div>
+
+            {multipleChapters && (
+              <ShortcutKey>
+                P
+              </ShortcutKey>
+            )}
+          </button>
+
+          {/* FULLSCREEN */}
+
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            className="flex w-full items-center justify-between rounded-[18px] border border-white/[0.06] bg-white/[0.025] px-4 py-3.5 text-left transition hover:border-violet-500/15 hover:bg-white/[0.035]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.03] text-zinc-500">
+                {isFullscreen ? (
+                  <Minimize2
+                    size={15}
+                  />
+                ) : (
+                  <Maximize2
+                    size={15}
+                  />
+                )}
+              </div>
+
+              <div>
+                <p className="text-[10px] font-black text-zinc-200">
+                  {isFullscreen
+                    ? "Exit Fullscreen"
+                    : "Enter Fullscreen"}
+                </p>
+
+                <p className="mt-0.5 text-[8px] text-zinc-700">
+                  Projector / TV display
+                </p>
+              </div>
+            </div>
+
+            <ShortcutKey>
+              F
+            </ShortcutKey>
+          </button>
+
+          {/* WINNERS */}
+
+          <button
+            type="button"
+            disabled={
+              !canRevealWinners
+            }
+            onClick={
+              onRevealWinners
+            }
+            className={`flex w-full items-center justify-between rounded-[18px] border px-4 py-3.5 text-left transition ${
+              canRevealWinners
+                ? "border-amber-400/15 bg-amber-400/[0.055] hover:border-amber-400/25 hover:bg-amber-400/[0.075]"
+                : "cursor-not-allowed border-white/[0.035] bg-white/[0.012] opacity-40"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/[0.06] text-amber-300">
+                <Crown
+                  size={16}
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] font-black text-amber-200">
+                  Reveal Winners
+                </p>
+
+                <p className="mt-0.5 text-[8px] text-zinc-700">
+                  {canRevealWinners
+                    ? "Start the secret Top 3 reveal"
+                    : "Available when quiz is completed"}
+                </p>
+              </div>
+            </div>
+
+            {canRevealWinners && (
+              <ShortcutKey>
+                W
+              </ShortcutKey>
+            )}
+          </button>
+        </div>
+
+        {/* KEYBOARD SHORTCUTS */}
+
+        <div className="relative border-t border-white/[0.06] px-5 py-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-[0.18em] text-violet-400">
+                Keyboard
+              </p>
+
+              <p className="mt-1 text-[10px] font-black text-zinc-300">
+                Event Shortcuts
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+
+              <span className="text-[7px] font-black uppercase tracking-[0.12em] text-zinc-700">
+                Active
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[18px] border border-white/[0.055] bg-black/10">
+            <KeyboardShortcut
+              shortcut="F"
+              label="Fullscreen"
+            />
+
+            <KeyboardShortcut
+              shortcut="←"
+              label="Previous chapter"
+              disabled={
+                !multipleChapters
+              }
+            />
+
+            <KeyboardShortcut
+              shortcut="→"
+              label="Next chapter"
+              disabled={
+                !multipleChapters
+              }
+            />
+
+            <KeyboardShortcut
+              shortcut="P"
+              label={
+                rotationPaused
+                  ? "Resume rotation"
+                  : "Pause rotation"
+              }
+              disabled={
+                !multipleChapters
+              }
+            />
+
+            <KeyboardShortcut
+              shortcut="W"
+              label="Reveal winners"
+              disabled={
+                !canRevealWinners
+              }
+            />
+
+            <KeyboardShortcut
+              shortcut="Space"
+              label="Next winner reveal"
+              hint="Winner Mode"
+              last
+            />
+          </div>
+
+          <p className="mt-3 text-[7px] leading-4 text-zinc-800">
+            Winner Mode locks chapter
+            navigation. Space or Enter
+            reveals the podium in order:
+            3rd → 2nd → Champion.
+          </p>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   SHORTCUT KEY
+============================================================ */
+
+function ShortcutKey({
+  children,
+}) {
+  return (
+    <kbd className="inline-flex min-w-[28px] items-center justify-center rounded-lg border border-white/[0.08] bg-black/20 px-2 py-1.5 font-mono text-[8px] font-black text-zinc-600 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
+      {children}
+    </kbd>
+  );
+}
+
+/* ============================================================
+   KEYBOARD SHORTCUT ROW
+============================================================ */
+
+function KeyboardShortcut({
+  shortcut,
+  label,
+  hint,
+  disabled = false,
+  last = false,
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-4 px-3.5 py-2.5 ${
+        !last
+          ? "border-b border-white/[0.045]"
+          : ""
+      } ${
+        disabled
+          ? "opacity-30"
+          : ""
+      }`}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <ShortcutKey>
+          {shortcut}
+        </ShortcutKey>
+
+        <span className="truncate text-[9px] font-bold text-zinc-500">
+          {label}
+        </span>
+      </div>
+
+      {hint && (
+        <span className="shrink-0 text-[6px] font-black uppercase tracking-[0.12em] text-zinc-800">
+          {hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    WINNER MODE
+   Premium stage reveal:
+   🥉 Bronze -> 🥈 Silver -> 🥇 Champion -> Final Podium
 ============================================================ */
 
 function WinnerMode({
@@ -1707,102 +2572,106 @@ function WinnerMode({
   const second = winners[1];
   const third = winners[2];
 
-  const revealComplete =
-    revealStep >= 4;
+  const revealComplete = revealStep >= 4;
 
-  const getButtonText = () => {
-    if (revealStep === 0) {
-      return "Reveal 3rd Place";
-    }
-
-    if (revealStep === 1) {
-      return "Reveal 2nd Place";
-    }
-
-    if (revealStep === 2) {
-      return "Reveal Champion";
-    }
-
-    if (revealStep === 3) {
-      return "Show Final Podium";
-    }
-
-    return "Podium Complete";
-  };
+  const buttonText =
+    revealStep === 0
+      ? "Reveal 3rd Place"
+      : revealStep === 1
+        ? "Reveal 2nd Place"
+        : revealStep === 2
+          ? "Reveal Champion"
+          : revealStep === 3
+            ? "Show Final Podium"
+            : "Podium Complete";
 
   return (
     <motion.div
-      initial={{
-        opacity: 0,
-      }}
-      animate={{
-        opacity: 1,
-      }}
-      exit={{
-        opacity: 0,
-      }}
-      transition={{
-        duration: 0.4,
-      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
       className="fixed inset-0 z-[100] overflow-hidden bg-[#070709]"
     >
-      {/* BACKGROUND */}
+      {/* ======================================================
+          SUBTLE BACKGROUND
+      ====================================================== */}
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          initial={{
-            opacity: 0,
-            scale: 0.7,
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-          }}
-          transition={{
-            duration: 1.2,
-          }}
-          className="absolute left-1/2 top-[-300px] h-[850px] w-[850px] -translate-x-1/2 rounded-full bg-amber-500/[0.08] blur-[190px]"
-        />
+        {/* Very soft top ambience */}
 
-        <div className="absolute -bottom-[280px] -left-[200px] h-[600px] w-[600px] rounded-full bg-violet-600/[0.07] blur-[180px]" />
+        <div className="absolute left-1/2 top-[-280px] h-[520px] w-[720px] -translate-x-1/2 rounded-full bg-amber-500/[0.018] blur-[180px]" />
 
-        <div className="absolute -bottom-[280px] -right-[200px] h-[600px] w-[600px] rounded-full bg-indigo-600/[0.06] blur-[180px]" />
+        {/* Very soft lower ambience */}
+
+        <div className="absolute -bottom-[300px] -left-[180px] h-[500px] w-[500px] rounded-full bg-violet-600/[0.025] blur-[180px]" />
+
+        <div className="absolute -bottom-[300px] -right-[180px] h-[500px] w-[500px] rounded-full bg-indigo-600/[0.02] blur-[180px]" />
+
+        {/* Grid */}
 
         <div
-          className="absolute inset-0 opacity-[0.018]"
+          className="absolute inset-0 opacity-[0.012]"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)
+              linear-gradient(rgba(255,255,255,.28) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,.28) 1px, transparent 1px)
             `,
-            backgroundSize: "58px 58px",
+            backgroundSize: "64px 64px",
           }}
         />
 
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+        {/* Top line */}
+
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/10 to-transparent" />
       </div>
 
-      {/* SCREEN */}
+      {/* ======================================================
+          REVEAL ATMOSPHERE
+      ====================================================== */}
 
-      <div className="relative z-10 flex h-screen flex-col px-6 py-5 lg:px-10 lg:py-6 2xl:px-14">
+      <AnimatePresence mode="wait">
+        {revealStep > 0 && (
+          <RevealAtmosphere
+            key={`winner-atmosphere-${revealStep}`}
+            revealStep={revealStep}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ======================================================
+          FINAL CELEBRATION
+      ====================================================== */}
+
+      <AnimatePresence>
+        {revealComplete && (
+          <CelebrationSparkles />
+        )}
+      </AnimatePresence>
+
+      {/* ======================================================
+          CONTENT
+      ====================================================== */}
+
+      <div className="relative z-10 flex h-screen flex-col px-5 py-4 sm:px-7 lg:px-10 lg:py-5 2xl:px-14">
         {/* HEADER */}
 
-        <header className="flex shrink-0 items-center justify-between border-b border-white/[0.06] pb-4">
-          <div className="flex items-center gap-3 lg:gap-4">
+        <header className="flex shrink-0 items-center justify-between border-b border-white/[0.055] pb-3">
+          <div className="flex items-center gap-3">
             <img
               src="/branding/quiztians-q.png"
               alt=""
-              className="h-10 w-10 object-contain lg:h-12 lg:w-12"
+              className="h-10 w-10 object-contain lg:h-11 lg:w-11"
             />
 
             <div>
               <img
                 src="/branding/quiztians-wordmark.png"
                 alt="QUIZTIANS"
-                className="h-9 w-auto object-contain object-left lg:h-11"
+                className="h-8 w-auto object-contain object-left lg:h-9"
               />
 
-              <p className="mt-[-3px] text-[8px] font-black uppercase tracking-[0.22em] text-zinc-700">
+              <p className="mt-[-2px] text-[7px] font-black uppercase tracking-[0.22em] text-zinc-700">
                 Learn • Play • Compete
               </p>
             </div>
@@ -1811,201 +2680,357 @@ function WinnerMode({
           <button
             type="button"
             onClick={onExit}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-zinc-500 transition hover:border-violet-500/20 hover:bg-violet-500/[0.06] hover:text-zinc-200"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-zinc-500 transition hover:border-white/[0.1] hover:bg-white/[0.045] hover:text-zinc-300"
           >
-            <RotateCcw
-              size={14}
-              strokeWidth={1.8}
-            />
+            <RotateCcw size={14} />
 
-            <span className="text-[9px] font-black uppercase tracking-[0.12em]">
+            <span className="text-[8px] font-black uppercase tracking-[0.12em]">
               Return to Live
             </span>
           </button>
         </header>
 
-        {/* TITLE */}
+        {/* ====================================================
+            TITLE
+        ==================================================== */}
 
-        <div className="shrink-0 pt-5 text-center lg:pt-6">
+        <div className="shrink-0 pt-3 text-center lg:pt-4">
           <motion.div
-            initial={{
-              opacity: 0,
-              y: -10,
+            animate={
+              revealComplete
+                ? {
+                    scale: [1, 1.025, 1],
+                  }
+                : {}
+            }
+            transition={{
+              duration: 2.8,
+              repeat: revealComplete
+                ? Infinity
+                : 0,
+              ease: "easeInOut",
             }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
+            className="inline-flex items-center gap-2 rounded-full border border-amber-400/15 bg-amber-400/[0.04] px-3 py-1.5"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/15 bg-amber-400/[0.05] px-3 py-1.5">
-              <Trophy
-                size={12}
-                className="text-amber-400"
-              />
+            <Trophy
+              size={11}
+              className="text-amber-400"
+            />
 
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-400">
-                Final Results
-              </span>
-            </div>
-
-            <h1 className="mt-3 text-[clamp(1.8rem,3vw,3.4rem)] font-black tracking-[-0.055em] text-white">
-              {chapter}
-            </h1>
-
-            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-zinc-700">
-              QUIZTIANS Champions
-            </p>
+            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-amber-400">
+              Final Results
+            </span>
           </motion.div>
+
+          <h1 className="mx-auto mt-2 max-w-5xl text-[clamp(1.25rem,2vw,2.35rem)] font-black leading-tight tracking-[-0.045em] text-white">
+            {chapter}
+          </h1>
+
+          <p className="mt-1 text-[7px] font-black uppercase tracking-[0.18em] text-zinc-700">
+            QUIZTIANS Champions
+          </p>
         </div>
 
-        {/* PODIUM */}
+        {/* ====================================================
+            PODIUM
+        ==================================================== */}
 
-        <div className="flex min-h-0 flex-1 items-end justify-center py-5 lg:py-7">
-          <div className="grid w-full max-w-6xl grid-cols-3 items-end gap-4 lg:gap-6">
-            {/* SECOND */}
+        <div className="flex min-h-0 flex-1 items-end justify-center py-3 lg:py-4">
+          <div className="grid w-full max-w-[1180px] grid-cols-[0.92fr_1.18fr_0.92fr] items-end gap-3 lg:gap-5">
+            {/* =================================================
+                SECOND PLACE
+            ================================================= */}
 
-            <div className="flex justify-center">
-              <AnimatePresence mode="wait">
-                {revealStep >= 2 ? (
-                  <PodiumWinner
-                    key="second-place"
-                    player={second}
-                    rank={2}
-                    totalQuestions={
-                      totalQuestions
-                    }
-                    finalMode={
-                      revealComplete
-                    }
-                  />
-                ) : (
-                  <HiddenPodium
-                    rank={2}
-                    label="2nd Place"
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+            <AnimatePresence mode="wait">
+              {revealStep >= 2 ? (
+                <PodiumWinner
+                  key="second-place"
+                  player={second}
+                  rank={2}
+                  totalQuestions={totalQuestions}
+                  finalMode={revealComplete}
+                />
+              ) : (
+                <HiddenPodium
+                  key="second-hidden"
+                  rank={2}
+                  label="2nd Place"
+                  active={revealStep === 1}
+                />
+              )}
+            </AnimatePresence>
 
-            {/* FIRST */}
+            {/* =================================================
+                CHAMPION
+            ================================================= */}
 
-            <div className="flex justify-center">
-              <AnimatePresence mode="wait">
-                {revealStep >= 3 ? (
-                  <PodiumWinner
-                    key="first-place"
-                    player={first}
-                    rank={1}
-                    totalQuestions={
-                      totalQuestions
-                    }
-                    finalMode={
-                      revealComplete
-                    }
-                  />
-                ) : (
-                  <HiddenPodium
-                    rank={1}
-                    label="Champion"
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+            <AnimatePresence mode="wait">
+              {revealStep >= 3 ? (
+                <PodiumWinner
+                  key="champion"
+                  player={first}
+                  rank={1}
+                  totalQuestions={totalQuestions}
+                  finalMode={revealComplete}
+                />
+              ) : (
+                <HiddenPodium
+                  key="champion-hidden"
+                  rank={1}
+                  label="Champion"
+                  active={revealStep === 2}
+                />
+              )}
+            </AnimatePresence>
 
-            {/* THIRD */}
+            {/* =================================================
+                THIRD PLACE
+            ================================================= */}
 
-            <div className="flex justify-center">
-              <AnimatePresence mode="wait">
-                {revealStep >= 1 ? (
-                  <PodiumWinner
-                    key="third-place"
-                    player={third}
-                    rank={3}
-                    totalQuestions={
-                      totalQuestions
-                    }
-                    finalMode={
-                      revealComplete
-                    }
-                  />
-                ) : (
-                  <HiddenPodium
-                    rank={3}
-                    label="3rd Place"
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+            <AnimatePresence mode="wait">
+              {revealStep >= 1 ? (
+                <PodiumWinner
+                  key="third-place"
+                  player={third}
+                  rank={3}
+                  totalQuestions={totalQuestions}
+                  finalMode={revealComplete}
+                />
+              ) : (
+                <HiddenPodium
+                  key="third-hidden"
+                  rank={3}
+                  label="3rd Place"
+                  active={revealStep === 0}
+                />
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* REVEAL CONTROLS */}
+        {/* ====================================================
+            REVEAL CONTROL
+        ==================================================== */}
 
-        <div className="shrink-0 border-t border-white/[0.06] pt-4">
-          <div className="flex items-center justify-center">
-            {!revealComplete ? (
+        <div className="shrink-0 border-t border-white/[0.055] pt-3 text-center">
+          {!revealComplete ? (
+            <>
               <motion.button
-                key={revealStep}
                 type="button"
-                initial={{
-                  opacity: 0,
-                  scale: 0.96,
-                }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                }}
+                onClick={onRevealNext}
                 whileHover={{
                   scale: 1.025,
                 }}
                 whileTap={{
-                  scale: 0.98,
+                  scale: 0.975,
                 }}
-                onClick={onRevealNext}
-                className={`inline-flex min-w-[210px] items-center justify-center gap-2 rounded-2xl border px-7 py-3.5 text-[10px] font-black uppercase tracking-[0.15em] transition ${
+                animate={
                   revealStep === 2
-                    ? "border-amber-400/30 bg-amber-400/[0.10] text-amber-300 shadow-[0_0_40px_rgba(245,158,11,0.08)]"
-                    : "border-violet-500/20 bg-violet-500/[0.07] text-violet-300"
-                }`}
+                    ? {
+                        borderColor: [
+                          "rgba(251,191,36,0.18)",
+                          "rgba(251,191,36,0.35)",
+                          "rgba(251,191,36,0.18)",
+                        ],
+                      }
+                    : {}
+                }
+                transition={
+                  revealStep === 2
+                    ? {
+                        duration: 1.8,
+                        repeat: Infinity,
+                      }
+                    : {}
+                }
+                className="inline-flex min-w-[220px] items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] px-7 py-3 text-[9px] font-black uppercase tracking-[0.15em] text-amber-300 transition-colors hover:bg-amber-400/[0.09]"
               >
                 {revealStep === 2 ? (
-                  <Crown size={16} />
+                  <Crown size={15} />
                 ) : (
-                  <Medal size={16} />
+                  <Medal size={15} />
                 )}
 
-                {getButtonText()}
+                {buttonText}
               </motion.button>
-            ) : (
+
+              <p className="mt-1.5 text-[6px] font-black uppercase tracking-[0.13em] text-zinc-800">
+                Press Space or Enter
+              </p>
+            </>
+          ) : (
+            <motion.div
+              initial={{
+                opacity: 0,
+                y: 8,
+                scale: 0.92,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 170,
+                damping: 15,
+              }}
+              className="flex items-center justify-center gap-3 text-amber-400"
+            >
               <motion.div
-                initial={{
-                  opacity: 0,
-                  y: 8,
-                }}
                 animate={{
-                  opacity: 1,
-                  y: 0,
+                  rotate: [0, 12, -12, 0],
+                  scale: [1, 1.15, 1],
                 }}
-                className="flex items-center gap-2"
+                transition={{
+                  duration: 2.2,
+                  repeat: Infinity,
+                }}
               >
-                <Sparkles
-                  size={14}
-                  className="text-amber-400"
-                />
-
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-400">
-                  Congratulations Champions
-                </p>
-
-                <Sparkles
-                  size={14}
-                  className="text-amber-400"
-                />
+                <Sparkles size={15} />
               </motion.div>
-            )}
-          </div>
+
+              <motion.span
+                animate={{
+                  opacity: [0.72, 1, 0.72],
+                }}
+                transition={{
+                  duration: 2.4,
+                  repeat: Infinity,
+                }}
+                className="text-[9px] font-black uppercase tracking-[0.24em]"
+              >
+                Congratulations Champions
+              </motion.span>
+
+              <motion.div
+                animate={{
+                  rotate: [0, -12, 12, 0],
+                  scale: [1, 1.15, 1],
+                }}
+                transition={{
+                  duration: 2.2,
+                  repeat: Infinity,
+                }}
+              >
+                <Sparkles size={15} />
+              </motion.div>
+            </motion.div>
+          )}
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   REVEAL ATMOSPHERE
+
+   Intentionally subtle.
+   The animation focus stays on the winner cards.
+============================================================ */
+
+function RevealAtmosphere({
+  revealStep,
+}) {
+  const isBronze = revealStep === 1;
+  const isSilver = revealStep === 2;
+  const isChampion = revealStep >= 3;
+
+  const glowClass = isBronze
+    ? "bg-orange-400"
+    : isSilver
+      ? "bg-zinc-200"
+      : "bg-amber-400";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="pointer-events-none absolute inset-0 z-[2] overflow-hidden"
+    >
+      {/* SMALL LOCALIZED STAGE GLOW */}
+
+      <motion.div
+        initial={{
+          opacity: 0,
+          scale: 0.65,
+        }}
+        animate={{
+          opacity: isChampion
+            ? 0.042
+            : 0.025,
+          scale: 1,
+        }}
+        transition={{
+          duration: isChampion
+            ? 1.15
+            : 0.8,
+          ease: "easeOut",
+        }}
+        className={`absolute left-1/2 top-[57%] h-[380px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[135px] ${glowClass}`}
+      />
+
+      {/* SHORT REVEAL FLASH */}
+
+      <motion.div
+        initial={{
+          opacity: isChampion
+            ? 0.025
+            : 0.012,
+        }}
+        animate={{
+          opacity: 0,
+        }}
+        transition={{
+          duration: 0.5,
+          ease: "easeOut",
+        }}
+        className={`absolute inset-0 ${glowClass}`}
+      />
+
+      {/* CHAMPION SPOTLIGHT LINES */}
+
+      {isChampion && (
+        <>
+          <motion.div
+            initial={{
+              opacity: 0,
+              rotate: -8,
+              scaleY: 0.4,
+            }}
+            animate={{
+              opacity: [0, 0.025, 0.012],
+              rotate: 3,
+              scaleY: 1,
+            }}
+            transition={{
+              duration: 1.5,
+              ease: "easeOut",
+            }}
+            className="absolute left-[43%] top-[-12%] h-[95%] w-[7%] origin-top bg-gradient-to-b from-amber-200/40 via-amber-200/[0.05] to-transparent blur-xl"
+          />
+
+          <motion.div
+            initial={{
+              opacity: 0,
+              rotate: 8,
+              scaleY: 0.4,
+            }}
+            animate={{
+              opacity: [0, 0.025, 0.012],
+              rotate: -3,
+              scaleY: 1,
+            }}
+            transition={{
+              duration: 1.5,
+              ease: "easeOut",
+            }}
+            className="absolute right-[43%] top-[-12%] h-[95%] w-[7%] origin-top bg-gradient-to-b from-amber-200/40 via-amber-200/[0.05] to-transparent blur-xl"
+          />
+        </>
+      )}
     </motion.div>
   );
 }
@@ -2022,178 +3047,670 @@ function PodiumWinner({
 }) {
   if (!player) {
     return (
-      <div className="flex h-[270px] w-full max-w-[290px] items-center justify-center rounded-[28px] border border-white/[0.05] bg-white/[0.02]">
-        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-700">
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 40,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        className="flex h-[250px] items-center justify-center rounded-[28px] border border-white/[0.05] bg-white/[0.02]"
+      >
+        <span className="text-zinc-700">
           No Result
-        </p>
-      </div>
+        </span>
+      </motion.div>
     );
   }
+
+  const champion = rank === 1;
 
   const styles = {
     1: {
       medal: "🥇",
       title: "Champion",
-      container:
-        "border-amber-400/30 bg-gradient-to-b from-amber-400/[0.10] to-[#111114]",
-      avatar:
-        "border-amber-400/30 bg-amber-400/[0.10] text-amber-200",
-      titleColor: "text-amber-300",
-      scoreColor: "text-amber-300",
       height:
-        "min-h-[330px] lg:min-h-[380px]",
+        "min-h-[390px] lg:min-h-[430px] 2xl:min-h-[455px]",
+      box:
+        "border-amber-400/35 bg-gradient-to-b from-amber-400/[0.075] via-amber-400/[0.035] to-white/[0.018] shadow-[0_20px_70px_rgba(0,0,0,0.32)]",
+      text: "text-amber-300",
+      glow: "bg-amber-400",
+      ring: "border-amber-300/25",
     },
 
     2: {
       medal: "🥈",
       title: "2nd Place",
-      container:
-        "border-zinc-300/15 bg-gradient-to-b from-zinc-300/[0.055] to-[#111114]",
-      avatar:
-        "border-zinc-300/20 bg-zinc-300/[0.07] text-zinc-200",
-      titleColor: "text-zinc-300",
-      scoreColor: "text-zinc-300",
       height:
-        "min-h-[285px] lg:min-h-[325px]",
+        "min-h-[285px] lg:min-h-[315px] 2xl:min-h-[330px]",
+      box:
+        "border-zinc-300/15 bg-zinc-300/[0.028] shadow-[0_16px_50px_rgba(0,0,0,0.24)]",
+      text: "text-zinc-300",
+      glow: "bg-zinc-200",
+      ring: "border-zinc-200/15",
     },
 
     3: {
       medal: "🥉",
       title: "3rd Place",
-      container:
-        "border-orange-400/15 bg-gradient-to-b from-orange-400/[0.045] to-[#111114]",
-      avatar:
-        "border-orange-400/20 bg-orange-400/[0.07] text-orange-300",
-      titleColor: "text-orange-300",
-      scoreColor: "text-orange-300",
       height:
-        "min-h-[255px] lg:min-h-[290px]",
+        "min-h-[255px] lg:min-h-[280px] 2xl:min-h-[295px]",
+      box:
+        "border-orange-400/15 bg-orange-400/[0.028] shadow-[0_16px_50px_rgba(0,0,0,0.24)]",
+      text: "text-orange-300",
+      glow: "bg-orange-400",
+      ring: "border-orange-300/15",
     },
   };
 
   const style = styles[rank];
 
+  const entranceDelay = champion
+    ? 0.12
+    : 0.05;
+
   return (
     <motion.div
       initial={{
         opacity: 0,
-        y: 80,
-        scale: 0.82,
+        y: champion ? 145 : 85,
+        scale: champion ? 0.7 : 0.84,
+        filter: champion
+          ? "blur(10px)"
+          : "blur(6px)",
       }}
       animate={{
         opacity: 1,
-        y: 0,
-        scale: 1,
+        y: champion ? -10 : 0,
+        scale:
+          champion && finalMode
+            ? [1, 1.012, 1]
+            : 1,
+        filter: "blur(0px)",
+      }}
+      exit={{
+        opacity: 0,
+        y: 30,
+        scale: 0.95,
       }}
       transition={{
-        type: "spring",
-        stiffness:
-          rank === 1 ? 130 : 160,
-        damping: 17,
-      }}
-      className={`relative flex w-full max-w-[320px] flex-col items-center justify-center overflow-hidden rounded-[28px] border p-5 text-center lg:rounded-[32px] lg:p-7 ${style.container} ${style.height}`}
-    >
-      {/* CHAMPION GLOW */}
+        opacity: {
+          duration: 0.35,
+          delay: entranceDelay,
+        },
 
-      {rank === 1 && (
+        filter: {
+          duration: 0.4,
+          delay: entranceDelay,
+        },
+
+        y: {
+          type: "spring",
+          stiffness: champion ? 92 : 140,
+          damping: champion ? 13 : 17,
+          mass: champion ? 1.1 : 1,
+          delay: entranceDelay,
+        },
+
+        scale:
+          champion && finalMode
+            ? {
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }
+            : {
+                type: "spring",
+                stiffness: champion ? 105 : 145,
+                damping: champion ? 13 : 16,
+                delay: entranceDelay,
+              },
+      }}
+      className={`relative flex w-full flex-col items-center justify-center overflow-hidden rounded-[30px] border text-center ${
+        champion
+          ? "z-20 px-7 py-7 lg:px-8 lg:py-8"
+          : "z-10 px-5 py-6"
+      } ${style.height} ${style.box}`}
+    >
+      {/* ======================================================
+          LOCAL CARD GLOW
+      ====================================================== */}
+
+      <motion.div
+        initial={{
+          opacity: 0,
+          scale: 0.55,
+        }}
+        animate={{
+          opacity: champion
+            ? 0.055
+            : 0.025,
+          scale: 1,
+        }}
+        transition={{
+          duration: champion
+            ? 1.1
+            : 0.75,
+          delay: entranceDelay + 0.08,
+        }}
+        className={`pointer-events-none absolute left-1/2 top-[-110px] -translate-x-1/2 rounded-full blur-[90px] ${
+          champion
+            ? "h-64 w-64"
+            : "h-48 w-48"
+        } ${style.glow}`}
+      />
+
+      {/* ======================================================
+          CHAMPION TOP ACCENT
+      ====================================================== */}
+
+      {champion && (
         <>
           <motion.div
             initial={{
+              scaleX: 0,
               opacity: 0,
             }}
             animate={{
-              opacity: finalMode
-                ? [0.3, 0.8, 0.3]
-                : 0.45,
+              scaleX: 1,
+              opacity: 1,
             }}
             transition={{
-              duration: 2.5,
-              repeat: finalMode
-                ? Infinity
-                : 0,
+              duration: 0.8,
+              delay: 0.35,
+              ease: "easeOut",
             }}
-            className="pointer-events-none absolute left-1/2 top-[-130px] h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-amber-400/[0.14] blur-[100px]"
+            className="absolute inset-x-[18%] top-0 h-px origin-center bg-gradient-to-r from-transparent via-amber-300/80 to-transparent"
           />
 
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
+          <motion.div
+            initial={{
+              opacity: 0,
+              scale: 0.8,
+            }}
+            animate={{
+              opacity: [0, 0.7, 0.35],
+              scale: [0.8, 1.08, 1],
+            }}
+            transition={{
+              duration: 1.1,
+              delay: 0.5,
+            }}
+            className="pointer-events-none absolute left-1/2 top-5 h-20 w-20 -translate-x-1/2 rounded-full border border-amber-300/10"
+          />
         </>
       )}
 
+      {/* ======================================================
+          SHIMMER
+      ====================================================== */}
+
+      <motion.div
+        initial={{
+          x: "-180%",
+          opacity: 0,
+        }}
+        animate={{
+          x: "300%",
+          opacity: champion
+            ? [0, 0.18, 0]
+            : [0, 0.1, 0],
+        }}
+        transition={{
+          duration: champion ? 1.45 : 1,
+          delay: entranceDelay + 0.38,
+          ease: "easeInOut",
+        }}
+        className={`pointer-events-none absolute inset-y-0 skew-x-[-18deg] bg-gradient-to-r from-transparent via-white/20 to-transparent ${
+          champion
+            ? "w-[20%]"
+            : "w-[24%]"
+        }`}
+      />
+
+      {/* ======================================================
+          MEDAL / CHAMPION CROWN AREA
+      ====================================================== */}
+
       <div className="relative">
+        {champion && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: -45,
+              scale: 0,
+              rotate: -20,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: [0, 1.28, 1],
+              rotate: 0,
+            }}
+            transition={{
+              opacity: {
+                duration: 0.2,
+                delay: 0.3,
+              },
+
+              y: {
+                type: "spring",
+                stiffness: 210,
+                damping: 11,
+                delay: 0.3,
+              },
+
+              scale: {
+                duration: 0.75,
+                delay: 0.38,
+              },
+
+              rotate: {
+                type: "spring",
+                stiffness: 170,
+                damping: 11,
+                delay: 0.3,
+              },
+            }}
+            className="absolute -top-8 left-1/2 -translate-x-1/2 text-amber-300"
+          >
+            <Crown
+              size={30}
+              strokeWidth={1.7}
+            />
+          </motion.div>
+        )}
+
         <motion.div
           initial={{
-            scale: 0,
-            rotate: -20,
+            opacity: 0,
+            y: champion ? -20 : -25,
+            scale: 0.25,
+            rotate: champion ? -12 : -7,
           }}
           animate={{
-            scale: 1,
+            opacity: 1,
+            y: 0,
+            scale: champion
+              ? [1, 1.18, 1]
+              : [1, 1.1, 1],
             rotate: 0,
           }}
           transition={{
-            delay: 0.15,
-            type: "spring",
-            stiffness: 170,
+            opacity: {
+              duration: 0.2,
+              delay: champion ? 0.45 : 0.22,
+            },
+
+            y: {
+              type: "spring",
+              stiffness: 220,
+              damping: 12,
+              delay: champion ? 0.45 : 0.22,
+            },
+
+            scale: {
+              duration: champion ? 0.8 : 0.55,
+              delay: champion ? 0.5 : 0.3,
+            },
+
+            rotate: {
+              type: "spring",
+              stiffness: 180,
+              damping: 12,
+              delay: champion ? 0.45 : 0.22,
+            },
           }}
-          className="text-4xl lg:text-5xl 2xl:text-6xl"
+          className={
+            champion
+              ? "text-7xl lg:text-8xl"
+              : "text-5xl lg:text-6xl"
+          }
         >
           {style.medal}
         </motion.div>
+      </div>
 
+      {/* ======================================================
+          PLACE LABEL
+      ====================================================== */}
+
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 8,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.35,
+          delay: champion ? 0.68 : 0.4,
+        }}
+        className={
+          champion
+            ? "mt-4"
+            : "mt-3"
+        }
+      >
         <p
-          className={`mt-3 text-[8px] font-black uppercase tracking-[0.22em] lg:text-[9px] ${style.titleColor}`}
+          className={`font-black uppercase ${
+            champion
+              ? "text-[11px] tracking-[0.26em]"
+              : "text-[8px] tracking-[0.2em]"
+          } ${style.text}`}
         >
           {style.title}
         </p>
 
+        {champion && (
+          <motion.div
+            initial={{
+              width: 0,
+            }}
+            animate={{
+              width: 54,
+            }}
+            transition={{
+              duration: 0.6,
+              delay: 0.78,
+            }}
+            className="mx-auto mt-2 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent"
+          />
+        )}
+      </motion.div>
+
+      {/* ======================================================
+          AVATAR
+      ====================================================== */}
+
+      <motion.div
+        initial={{
+          opacity: 0,
+          scale: 0.45,
+          rotate: champion ? -8 : 0,
+        }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          rotate: 0,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 170,
+          damping: 13,
+          delay: champion ? 0.76 : 0.48,
+        }}
+        className={`flex items-center justify-center border bg-white/[0.04] font-black text-white ${
+          champion
+            ? `mt-5 h-20 w-20 rounded-[24px] text-2xl ${style.ring}`
+            : `mt-4 h-14 w-14 rounded-[18px] text-base ${style.ring}`
+        }`}
+      >
+        {initials(player.name)}
+      </motion.div>
+
+      {/* ======================================================
+          NAME
+      ====================================================== */}
+
+      <motion.h2
+        initial={{
+          opacity: 0,
+          y: 14,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.42,
+          delay: champion ? 0.9 : 0.58,
+        }}
+        className={`max-w-full truncate font-black tracking-[-0.035em] text-white ${
+          champion
+            ? "mt-4 text-2xl lg:text-3xl 2xl:text-[2rem]"
+            : "mt-3 text-lg lg:text-xl"
+        }`}
+      >
+        {player.name}
+      </motion.h2>
+
+      {/* PLACE */}
+
+      <motion.p
+        initial={{
+          opacity: 0,
+        }}
+        animate={{
+          opacity: 1,
+        }}
+        transition={{
+          duration: 0.35,
+          delay: champion ? 1 : 0.68,
+        }}
+        className={`max-w-full truncate text-zinc-600 ${
+          champion
+            ? "mt-1.5 text-[11px]"
+            : "mt-1 text-[9px]"
+        }`}
+      >
+        {player.place || "—"}
+      </motion.p>
+
+      {/* ======================================================
+          STATS
+      ====================================================== */}
+
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 12,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.42,
+          delay: champion ? 1.08 : 0.74,
+        }}
+        className={`flex items-center border-t border-white/[0.06] ${
+          champion
+            ? "mt-6 gap-7 pt-5"
+            : "mt-4 gap-5 pt-4"
+        }`}
+      >
+        <div>
+          <p
+            className={`font-black ${style.text} ${
+              champion
+                ? "text-2xl lg:text-3xl"
+                : "text-lg lg:text-xl"
+            }`}
+          >
+            {player.score ?? 0}
+
+            {totalQuestions > 0 &&
+              ` / ${totalQuestions}`}
+          </p>
+
+          <p className="mt-1 text-[6px] font-black uppercase tracking-[0.13em] text-zinc-800">
+            Score
+          </p>
+        </div>
+
         <div
-          className={`mx-auto mt-5 flex h-16 w-16 items-center justify-center rounded-[20px] border text-base font-black lg:h-20 lg:w-20 lg:rounded-[24px] lg:text-xl ${style.avatar}`}
-        >
-          {initials(player.name)}
+          className={
+            champion
+              ? "h-10 w-px bg-white/[0.07]"
+              : "h-8 w-px bg-white/[0.06]"
+          }
+        />
+
+        <div>
+          <p
+            className={`font-mono font-black text-zinc-400 ${
+              champion
+                ? "text-base lg:text-lg"
+                : "text-xs lg:text-sm"
+            }`}
+          >
+            {formatTime(
+              player.time_taken
+            )}
+          </p>
+
+          <p className="mt-1 text-[6px] font-black uppercase tracking-[0.13em] text-zinc-800">
+            Time
+          </p>
         </div>
+      </motion.div>
 
-        <h2 className="mt-4 truncate text-xl font-black tracking-[-0.04em] text-white lg:text-2xl 2xl:text-3xl">
-          {player.name || "Unknown"}
-        </h2>
+      {/* ======================================================
+          CHAMPION SPARKLES
+      ====================================================== */}
 
-        <p className="mt-1 truncate text-[9px] font-medium text-zinc-600 lg:text-[10px]">
-          {player.place || "—"}
-        </p>
+      {champion && (
+        <ChampionSparkles
+          finalMode={finalMode}
+        />
+      )}
 
-        <div className="mt-5 flex items-center justify-center gap-5 border-t border-white/[0.06] pt-4">
-          <div>
-            <p
-              className={`text-xl font-black tracking-[-0.04em] lg:text-2xl ${style.scoreColor}`}
-            >
-              {player.score ?? 0}
+      {/* ======================================================
+          FINAL CHAMPION BORDER PULSE
+      ====================================================== */}
 
-              {totalQuestions > 0 && (
-                <span className="ml-1 text-[9px] font-bold text-zinc-700">
-                  / {totalQuestions}
-                </span>
-              )}
-            </p>
-
-            <p className="mt-1 text-[7px] font-black uppercase tracking-[0.14em] text-zinc-800">
-              Score
-            </p>
-          </div>
-
-          <div className="h-8 w-px bg-white/[0.06]" />
-
-          <div>
-            <p className="font-mono text-sm font-black text-zinc-400 lg:text-base">
-              {formatTime(
-                player.time_taken
-              )}
-            </p>
-
-            <p className="mt-1 text-[7px] font-black uppercase tracking-[0.14em] text-zinc-800">
-              Time
-            </p>
-          </div>
-        </div>
-      </div>
+      {champion && finalMode && (
+        <motion.div
+          animate={{
+            opacity: [0.15, 0.42, 0.15],
+          }}
+          transition={{
+            duration: 2.8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="pointer-events-none absolute inset-[3px] rounded-[27px] border border-amber-300/20"
+        />
+      )}
     </motion.div>
+  );
+}
+
+/* ============================================================
+   CHAMPION SPARKLES
+============================================================ */
+
+function ChampionSparkles({
+  finalMode,
+}) {
+  const sparkles = [
+    {
+      left: "10%",
+      top: "18%",
+      delay: 0.75,
+      size: 18,
+    },
+    {
+      left: "84%",
+      top: "20%",
+      delay: 0.92,
+      size: 15,
+    },
+    {
+      left: "16%",
+      top: "47%",
+      delay: 1.05,
+      size: 11,
+    },
+    {
+      left: "88%",
+      top: "52%",
+      delay: 1.18,
+      size: 12,
+    },
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {sparkles.map(
+        (sparkle, index) => (
+          <motion.div
+            key={index}
+            initial={{
+              opacity: 0,
+              scale: 0,
+              rotate: 0,
+            }}
+            animate={
+              finalMode
+                ? {
+                    opacity: [
+                      0.15,
+                      0.85,
+                      0.15,
+                    ],
+                    scale: [
+                      0.7,
+                      1.15,
+                      0.7,
+                    ],
+                    rotate: [
+                      0,
+                      35,
+                      70,
+                    ],
+                  }
+                : {
+                    opacity: [
+                      0,
+                      0.9,
+                      0,
+                    ],
+                    scale: [
+                      0,
+                      1.2,
+                      0.65,
+                    ],
+                    rotate: [
+                      0,
+                      35,
+                      65,
+                    ],
+                  }
+            }
+            transition={
+              finalMode
+                ? {
+                    duration: 2.4,
+                    delay: sparkle.delay,
+                    repeat: Infinity,
+                    repeatDelay: 0.45,
+                    ease: "easeInOut",
+                  }
+                : {
+                    duration: 1.25,
+                    delay: sparkle.delay,
+                    ease: "easeOut",
+                  }
+            }
+            style={{
+              left: sparkle.left,
+              top: sparkle.top,
+            }}
+            className="absolute text-amber-300/80"
+          >
+            <Sparkles
+              size={sparkle.size}
+            />
+          </motion.div>
+        )
+      )}
+    </div>
   );
 }
 
@@ -2204,12 +3721,270 @@ function PodiumWinner({
 function HiddenPodium({
   rank,
   label,
+  active = false,
 }) {
+  const champion = rank === 1;
+
   const heights = {
-    1: "min-h-[330px] lg:min-h-[380px]",
-    2: "min-h-[285px] lg:min-h-[325px]",
-    3: "min-h-[255px] lg:min-h-[290px]",
+    1: "min-h-[390px] lg:min-h-[430px] 2xl:min-h-[455px]",
+    2: "min-h-[285px] lg:min-h-[315px] 2xl:min-h-[330px]",
+    3: "min-h-[255px] lg:min-h-[280px] 2xl:min-h-[295px]",
   };
+
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 15,
+      }}
+      animate={{
+        opacity: 1,
+        y: champion ? -10 : 0,
+
+        scale: active
+          ? champion
+            ? [1, 1.018, 1]
+            : [1, 1.01, 1]
+          : 1,
+
+        borderColor: active
+          ? [
+              "rgba(255,255,255,0.045)",
+              champion
+                ? "rgba(251,191,36,0.18)"
+                : "rgba(251,191,36,0.11)",
+              "rgba(255,255,255,0.045)",
+            ]
+          : "rgba(255,255,255,0.045)",
+      }}
+      transition={
+        active
+          ? {
+              duration: champion
+                ? 1.8
+                : 2.2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }
+          : {
+              duration: 0.3,
+            }
+      }
+      className={`relative flex w-full flex-col items-center justify-center overflow-hidden rounded-[30px] border bg-white/[0.012] ${heights[rank]}`}
+    >
+      {/* LOCAL ACTIVE GLOW */}
+
+      {active && (
+        <motion.div
+          animate={{
+            opacity: champion
+              ? [0.015, 0.04, 0.015]
+              : [0.01, 0.025, 0.01],
+
+            scale: [
+              0.85,
+              1.08,
+              0.85,
+            ],
+          }}
+          transition={{
+            duration: champion
+              ? 1.8
+              : 2.2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 blur-[100px] ${
+            champion
+              ? "h-56 w-56"
+              : "h-44 w-44"
+          }`}
+        />
+      )}
+
+      {/* ICON */}
+
+      <motion.div
+        animate={{
+          opacity: active
+            ? [0.35, 0.8, 0.35]
+            : [0.22, 0.38, 0.22],
+
+          scale: active
+            ? champion
+              ? [1, 1.14, 1]
+              : [1, 1.08, 1]
+            : 1,
+
+          y:
+            active && champion
+              ? [0, -5, 0]
+              : 0,
+        }}
+        transition={{
+          duration: active
+            ? champion
+              ? 1.5
+              : 1.8
+            : 2.3,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="relative"
+      >
+        {champion ? (
+          <Crown
+            size={active ? 42 : 36}
+            strokeWidth={1.6}
+            className={
+              active
+                ? "text-amber-400/75"
+                : "text-zinc-700"
+            }
+          />
+        ) : (
+          <Medal
+            size={active ? 32 : 29}
+            className={
+              active
+                ? "text-amber-400/55"
+                : "text-zinc-700"
+            }
+          />
+        )}
+      </motion.div>
+
+      <p
+        className={`relative mt-4 font-black uppercase ${
+          champion
+            ? "text-[10px] tracking-[0.22em]"
+            : "text-[8px] tracking-[0.18em]"
+        } ${
+          active
+            ? "text-amber-400/60"
+            : "text-zinc-800"
+        }`}
+      >
+        {label}
+      </p>
+
+      <motion.p
+        animate={
+          active
+            ? {
+                opacity: [
+                  0.4,
+                  0.8,
+                  0.4,
+                ],
+              }
+            : {}
+        }
+        transition={{
+          duration: 1.8,
+          repeat: active
+            ? Infinity
+            : 0,
+        }}
+        className={`relative mt-2 font-black ${
+          champion
+            ? "text-base"
+            : "text-sm"
+        } ${
+          active
+            ? "text-zinc-500"
+            : "text-zinc-700"
+        }`}
+      >
+        {active
+          ? champion
+            ? "Champion incoming..."
+            : "Ready to reveal..."
+          : "Waiting"}
+      </motion.p>
+
+      {/* CHAMPION WAITING ACCENT */}
+
+      {champion && active && (
+        <motion.div
+          initial={{
+            width: 0,
+            opacity: 0,
+          }}
+          animate={{
+            width: [30, 70, 30],
+            opacity: [0.2, 0.65, 0.2],
+          }}
+          transition={{
+            duration: 1.8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="relative mt-4 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent"
+        />
+      )}
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   FINAL CELEBRATION
+
+   Kept around the podium edges instead of creating a giant
+   background glow.
+============================================================ */
+
+function CelebrationSparkles() {
+  const particles = [
+    {
+      left: "7%",
+      top: "20%",
+      delay: 0,
+      size: 14,
+    },
+    {
+      left: "14%",
+      top: "52%",
+      delay: 0.3,
+      size: 10,
+    },
+    {
+      left: "24%",
+      top: "16%",
+      delay: 0.55,
+      size: 11,
+    },
+    {
+      left: "35%",
+      top: "27%",
+      delay: 0.8,
+      size: 9,
+    },
+    {
+      left: "65%",
+      top: "25%",
+      delay: 0.25,
+      size: 10,
+    },
+    {
+      left: "76%",
+      top: "15%",
+      delay: 0.65,
+      size: 11,
+    },
+    {
+      left: "86%",
+      top: "50%",
+      delay: 0.15,
+      size: 10,
+    },
+    {
+      left: "93%",
+      top: "22%",
+      delay: 0.5,
+      size: 14,
+    },
+  ];
 
   return (
     <motion.div
@@ -2221,44 +3996,84 @@ function HiddenPodium({
       }}
       exit={{
         opacity: 0,
-        scale: 0.95,
       }}
-      className={`flex w-full max-w-[320px] flex-col items-center justify-center rounded-[28px] border border-white/[0.045] bg-white/[0.015] p-5 text-center lg:rounded-[32px] ${heights[rank]}`}
+      className="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
     >
+      {particles.map(
+        (particle, index) => (
+          <motion.div
+            key={index}
+            initial={{
+              opacity: 0,
+              scale: 0,
+              y: 12,
+            }}
+            animate={{
+              opacity: [
+                0,
+                0.65,
+                0.18,
+                0,
+              ],
+
+              scale: [
+                0,
+                1,
+                0.75,
+                0,
+              ],
+
+              y: [
+                12,
+                -5,
+                -18,
+                -34,
+              ],
+
+              rotate: [
+                0,
+                35,
+                70,
+                110,
+              ],
+            }}
+            transition={{
+              duration: 3,
+              delay: particle.delay,
+              repeat: Infinity,
+              repeatDelay: 1.1,
+              ease: "easeInOut",
+            }}
+            style={{
+              left: particle.left,
+              top: particle.top,
+            }}
+            className="absolute text-amber-300/60"
+          >
+            <Sparkles
+              size={particle.size}
+            />
+          </motion.div>
+        )
+      )}
+
+      {/* VERY SUBTLE FINAL LIGHT SWEEP */}
+
       <motion.div
+        initial={{
+          x: "-160%",
+        }}
         animate={{
-          opacity: [0.25, 0.5, 0.25],
-          scale: [1, 1.04, 1],
+          x: "220%",
         }}
         transition={{
-          duration: 2.2,
+          duration: 2.3,
           repeat: Infinity,
+          repeatDelay: 4,
           ease: "easeInOut",
         }}
-        className="flex h-16 w-16 items-center justify-center rounded-[20px] border border-white/[0.05] bg-white/[0.02] lg:h-20 lg:w-20"
-      >
-        {rank === 1 ? (
-          <Crown
-            size={26}
-            strokeWidth={1.3}
-            className="text-zinc-800"
-          />
-        ) : (
-          <Medal
-            size={26}
-            strokeWidth={1.3}
-            className="text-zinc-800"
-          />
-        )}
-      </motion.div>
-
-      <p className="mt-5 text-[9px] font-black uppercase tracking-[0.18em] text-zinc-800">
-        {label}
-      </p>
-
-      <p className="mt-2 text-sm font-black text-zinc-700">
-        Ready to reveal
-      </p>
+        className="absolute inset-y-[15%] w-[10%] skew-x-[-18deg] bg-gradient-to-r from-transparent via-amber-100/[0.018] to-transparent"
+      />
     </motion.div>
   );
 }
@@ -2272,21 +4087,20 @@ function EmptyLeaderboard({
   description,
 }) {
   return (
-    <div className="flex h-full min-h-[300px] items-center justify-center">
+    <div className="flex h-full items-center justify-center">
       <div className="max-w-sm text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] border border-white/[0.06] bg-white/[0.025]">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px] border border-white/[0.06] bg-white/[0.025]">
           <Trophy
-            size={26}
-            strokeWidth={1.6}
+            size={23}
             className="text-zinc-700"
           />
         </div>
 
-        <h3 className="mt-5 text-base font-black tracking-[-0.025em] text-zinc-400 lg:text-lg">
+        <h3 className="mt-4 text-base font-black text-zinc-400">
           {title}
         </h3>
 
-        <p className="mx-auto mt-2 max-w-xs text-[10px] leading-5 text-zinc-700 lg:text-xs">
+        <p className="mx-auto mt-2 max-w-xs text-[9px] leading-5 text-zinc-700">
           {description}
         </p>
       </div>
@@ -2300,38 +4114,27 @@ function EmptyLeaderboard({
 
 function LeaderboardSkeleton() {
   return (
-    <div className="flex h-full flex-col gap-2.5">
-      {[1, 2, 3, 4, 5].map((item) => (
-        <div
-          key={item}
-          className="min-h-[64px] flex-1 animate-pulse rounded-[20px] border border-white/[0.04] bg-white/[0.02]"
-        />
-      ))}
+    <div className="flex h-full flex-col justify-center gap-2">
+      {[1, 2, 3, 4, 5].map(
+        (item) => (
+          <div
+            key={item}
+            className="h-[74px] shrink-0 animate-pulse rounded-[17px] border border-white/[0.04] bg-white/[0.02]"
+          />
+        )
+      )}
     </div>
   );
 }
 
 /* ============================================================
-   INITIAL LOADING
+   LOADING SCREEN
 ============================================================ */
 
 function LiveDisplayLoading() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070709] text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-600/[0.09] blur-[150px]" />
-
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px)
-            `,
-            backgroundSize: "54px 54px",
-          }}
-        />
-      </div>
+    <main className="relative flex h-screen items-center justify-center overflow-hidden bg-[#070709] text-white">
+      <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-600/[0.09] blur-[150px]" />
 
       <motion.div
         initial={{
@@ -2347,13 +4150,13 @@ function LiveDisplayLoading() {
         <img
           src="/branding/quiztians-q.png"
           alt=""
-          className="mx-auto h-16 w-16 object-contain lg:h-20 lg:w-20"
+          className="mx-auto h-16 w-16 object-contain"
         />
 
         <img
           src="/branding/quiztians-wordmark.png"
           alt="QUIZTIANS"
-          className="mx-auto mt-3 h-11 w-auto object-contain lg:h-14"
+          className="mx-auto mt-3 h-11 w-auto object-contain"
         />
 
         <div className="mx-auto mt-7 h-1 w-36 overflow-hidden rounded-full bg-white/[0.05]">
