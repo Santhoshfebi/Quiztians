@@ -75,6 +75,12 @@ const BASE_NAV_ITEMS = [
         route: "/admin/view-results",
     },
     {
+        label: "Analytics",
+        shortLabel: "Analytics",
+        icon: Activity,
+        route: "/admin/analytics",
+    },
+    {
         label: "Announcements",
         shortLabel: "News",
         icon: Megaphone,
@@ -136,6 +142,11 @@ const PAGE_META = {
     "/admin/view-results": {
         eyebrow: "Analytics",
         title: "Results",
+    },
+
+    "/admin/analytics": {
+        eyebrow: "Analytics",
+        title: "Quiz Analytics",
     },
 
     "/admin/announcements": {

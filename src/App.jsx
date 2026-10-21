@@ -33,6 +33,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AddQuestions from "./pages/AddQuestions";
 import QuizConfig from "./pages/QuizConfig";
 import ViewResults from "./pages/ViewResults";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
@@ -99,6 +100,8 @@ function AppRoutes() {
       <Route path="/admin/preview-quiz" element={<QuizPreview />} />
       <Route path="/admin/quiz-config" element={<QuizConfig />} />
       <Route path="/admin/view-results" element={<ViewResults />} />
+      <Route path="/admin/analytics" element={<AdminAnalytics />}
+      />
       <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
       <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
       <Route path="/admin/announcements" element={<AdminAnnouncements />} />
