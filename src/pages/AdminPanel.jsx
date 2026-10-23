@@ -423,35 +423,6 @@ function DashboardContent({
 }) {
   const navigate = useNavigate();
 
-  const handleTestNotification = async () => {
-    try {
-      const result = await sendPushNotification({
-        title: "QUIZTIANS Admin 🔔",
-        body: "Secure admin notifications are working!",
-        screen: "home",
-        type: "admin_test",
-      });
-
-      console.log(
-        "✅ Notification result:",
-        result
-      );
-
-      alert(
-        `Notification sent to ${result.recipients} device(s).`
-      );
-    } catch (error) {
-      console.error(
-        "❌ Notification test failed:",
-        error
-      );
-
-      alert(
-        error?.message ||
-        "Notification failed."
-      );
-    }
-  };
   // =========================================================
   // CHART COLORS
   // ===========================================================
@@ -680,8 +651,8 @@ function DashboardContent({
 
             <QuickActionPill
               icon={Megaphone}
-              label="Test Notification"
-              onClick={handleTestNotification}
+              label="Mobil Notification"
+              onClick={() => navigate("/admin/notifications")}
               theme={theme}
             />
           </div>
