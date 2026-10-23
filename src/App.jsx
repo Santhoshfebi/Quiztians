@@ -39,6 +39,7 @@ import QuestionPreviewPage from "./pages/QuestionPreviewPage";
 import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
+import AdminNotifications from "./pages/AdminNotifications";
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -106,6 +107,7 @@ function AppRoutes() {
       <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
       <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
       <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+      <Route path="/admin/notifications" element={<AdminNotifications />} />
     </Routes>
   );
 }

@@ -7,6 +7,7 @@ import AdminChatBot from "./chatbot/AdminChatBot";
 import {
     Activity,
     BarChart3,
+    Bell,
     ChevronRight,
     Clock3,
     FileQuestion,
@@ -93,6 +94,12 @@ const BASE_NAV_ITEMS = [
         route: "/admin/announcements",
     },
     {
+        label: "Push Notifications",
+        shortLabel: "Notify",
+        icon: Bell,
+        route: "/admin/notifications",
+    },
+    {
         label: "Activity Logs",
         shortLabel: "Activity",
         icon: Activity,
@@ -163,6 +170,11 @@ const PAGE_META = {
     "/admin/announcements": {
         eyebrow: "Communication",
         title: "Announcements",
+    },
+
+    "/admin/notifications": {
+        eyebrow: "Communication",
+        title: "Push Notifications",
     },
 
     "/admin/activity-logs": {

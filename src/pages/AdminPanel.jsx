@@ -33,6 +33,7 @@ import {
 
 import { supabase } from "../supabaseClient";
 import AdminLayout from "../components/admin/AdminLayout";
+import { sendPushNotification } from "../services/notificationService";
 
 // ===========================================================
 // DASHBOARD
@@ -421,6 +422,36 @@ function DashboardContent({
   latestAnnouncement,
 }) {
   const navigate = useNavigate();
+
+  const handleTestNotification = async () => {
+    try {
+      const result = await sendPushNotification({
+        title: "QUIZTIANS Admin 🔔",
+        body: "Secure admin notifications are working!",
+        screen: "home",
+        type: "admin_test",
+      });
+
+      console.log(
+        "✅ Notification result:",
+        result
+      );
+
+      alert(
+        `Notification sent to ${result.recipients} device(s).`
+      );
+    } catch (error) {
+      console.error(
+        "❌ Notification test failed:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        "Notification failed."
+      );
+    }
+  };
   // =========================================================
   // CHART COLORS
   // ===========================================================
@@ -428,21 +459,21 @@ function DashboardContent({
   const chartColors = useMemo(() => {
     const palette = isSuperAdmin
       ? [
-          "#B86C3A",
-          "#D09A72",
-          "#9A5423",
-          "#E1B18D",
-          "#74401F",
-          "#C47C4B",
-        ]
+        "#B86C3A",
+        "#D09A72",
+        "#9A5423",
+        "#E1B18D",
+        "#74401F",
+        "#C47C4B",
+      ]
       : [
-          "#8B5CF6",
-          "#6366F1",
-          "#A78BFA",
-          "#7C3AED",
-          "#818CF8",
-          "#C4B5FD",
-        ];
+        "#8B5CF6",
+        "#6366F1",
+        "#A78BFA",
+        "#7C3AED",
+        "#818CF8",
+        "#C4B5FD",
+      ];
 
     return chapterStats.map(
       (_, index) =>
@@ -646,6 +677,13 @@ function DashboardContent({
               onClick={() => navigate("/admin/announcements")}
               theme={theme}
             />
+
+            <QuickActionPill
+              icon={Megaphone}
+              label="Test Notification"
+              onClick={handleTestNotification}
+              theme={theme}
+            />
           </div>
         </div>
       </motion.section>
@@ -710,7 +748,7 @@ function DashboardContent({
                             key={index}
                             fill={
                               chartColors[
-                                index
+                              index
                               ]
                             }
                           />
@@ -749,7 +787,7 @@ function DashboardContent({
                             style={{
                               backgroundColor:
                                 chartColors[
-                                  index
+                                index
                                 ],
                             }}
                           />
@@ -939,18 +977,18 @@ function DashboardContent({
 
                         {entry.score !==
                           undefined && (
-                          <div className="text-right">
-                            <p className="text-[13px] font-black text-zinc-900">
-                              {
-                                entry.score
-                              }
-                            </p>
+                            <div className="text-right">
+                              <p className="text-[13px] font-black text-zinc-900">
+                                {
+                                  entry.score
+                                }
+                              </p>
 
-                            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-400">
-                              Score
-                            </p>
-                          </div>
-                        )}
+                              <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-400">
+                                Score
+                              </p>
+                            </div>
+                          )}
 
                         <span className="hidden text-[11px] text-zinc-400 sm:block">
                           now
