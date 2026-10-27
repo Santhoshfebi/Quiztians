@@ -8,6 +8,7 @@ import {
     Activity,
     BarChart3,
     Bell,
+    ChevronLeft,
     ChevronRight,
     Clock3,
     FileQuestion,
@@ -223,6 +224,13 @@ export default function AdminLayout({
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        if (typeof window === "undefined") return false;
+
+        return window.localStorage.getItem(
+            "quiztians-admin-sidebar-collapsed"
+        ) === "true";
+    });
 
     // =========================================================
     // SESSION
@@ -298,6 +306,17 @@ export default function AdminLayout({
             document.body.style.overflow = previousOverflow;
         };
     }, [mobileMenuOpen]);
+
+    // =========================================================
+    // REMEMBER DESKTOP SIDEBAR STATE
+    // =========================================================
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            "quiztians-admin-sidebar-collapsed",
+            String(sidebarCollapsed)
+        );
+    }, [sidebarCollapsed]);
 
     // =========================================================
     // USER / ROLE
@@ -460,6 +479,10 @@ export default function AdminLayout({
                 isRouteActive={isRouteActive}
                 onNavigate={handleNavigate}
                 onLogout={handleLogout}
+                collapsed={sidebarCollapsed}
+                onToggleCollapsed={() =>
+                    setSidebarCollapsed((previous) => !previous)
+                }
             />
 
             {/* =====================================================
@@ -485,7 +508,13 @@ export default function AdminLayout({
                 MAIN
             ===================================================== */}
 
-            <div className="relative min-h-screen lg:pl-[270px]">
+            <div
+                className={`relative min-h-screen transition-[padding] duration-300 ease-out ${
+                    sidebarCollapsed
+                        ? "lg:pl-[84px]"
+                        : "lg:pl-[270px]"
+                }`}
+            >
                 {/* ===================================================
                     HEADER
                 =================================================== */}
@@ -592,32 +621,110 @@ function DesktopSidebar({
     isRouteActive,
     onNavigate,
     onLogout,
+    collapsed,
+    onToggleCollapsed,
 }) {
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 hidden w-[270px] border-r border-zinc-200/80 bg-white/95 shadow-[8px_0_30px_rgba(24,24,27,0.025)] backdrop-blur-xl lg:flex lg:flex-col">
+        <motion.aside
+            initial={false}
+            animate={{
+                width: collapsed ? 84 : 270,
+            }}
+            transition={{
+                duration: 0.28,
+                ease: [0.22, 1, 0.36, 1],
+            }}
+            className="fixed inset-y-0 left-0 z-50 hidden border-r border-zinc-200/80 bg-white/95 shadow-[8px_0_30px_rgba(24,24,27,0.025)] backdrop-blur-xl lg:flex lg:flex-col"
+        >
+            {/* =====================================================
+                COLLAPSE / EXPAND
+            ===================================================== */}
+
+            <button
+                type="button"
+                onClick={onToggleCollapsed}
+                aria-label={
+                    collapsed
+                        ? "Expand sidebar"
+                        : "Collapse sidebar"
+                }
+                title={
+                    collapsed
+                        ? "Expand sidebar"
+                        : "Collapse sidebar"
+                }
+                className="absolute -right-3.5 top-[34px] z-20 flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-[0_4px_14px_rgba(24,24,27,0.10)] transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+            >
+                {collapsed ? (
+                    <ChevronRight size={14} strokeWidth={2.2} />
+                ) : (
+                    <ChevronLeft size={14} strokeWidth={2.2} />
+                )}
+            </button>
+
             {/* =====================================================
                 BRAND
             ===================================================== */}
 
-            <div className="shrink-0 border-b border-zinc-200/70 px-6 py-6">
-                <img
-                    src={WORDMARK_LOGO}
-                    alt="QUIZTIANS"
-                    className="h-[48px] w-auto max-w-[180px] object-contain object-left"
-                />
-
-                <div className="mt-3 flex items-center gap-2">
-                    <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                            backgroundColor: theme.accent,
-                        }}
-                    />
-
-                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">
-                        Admin Console
-                    </p>
+            <div
+                className={`shrink-0 border-b border-zinc-200/70 transition-[padding] duration-300 ${
+                    collapsed
+                        ? "px-3 py-5"
+                        : "px-6 py-6"
+                }`}
+            >
+                <div
+                    className={`flex ${
+                        collapsed
+                            ? "justify-center"
+                            : "justify-start"
+                    }`}
+                >
+                    <AnimatePresence mode="wait" initial={false}>
+                        {collapsed ? (
+                            <motion.img
+                                key="q-logo"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.16 }}
+                                src={Q_LOGO}
+                                alt="Quiztians"
+                                className="h-10 w-10 object-contain"
+                            />
+                        ) : (
+                            <motion.img
+                                key="wordmark-logo"
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -6 }}
+                                transition={{ duration: 0.16 }}
+                                src={WORDMARK_LOGO}
+                                alt="QUIZTIANS"
+                                className="h-[48px] w-auto max-w-[180px] object-contain object-left"
+                            />
+                        )}
+                    </AnimatePresence>
                 </div>
+
+                {!collapsed && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mt-3 flex items-center gap-2"
+                    >
+                        <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                                backgroundColor: theme.accent,
+                            }}
+                        />
+
+                        <p className="whitespace-nowrap text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">
+                            Admin Console
+                        </p>
+                    </motion.div>
+                )}
             </div>
 
             {/* =====================================================
@@ -625,12 +732,16 @@ function DesktopSidebar({
             ===================================================== */}
 
             <nav
-                className="admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-5"
+                className={`admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto py-5 transition-[padding] duration-300 ${
+                    collapsed ? "px-2.5" : "px-3"
+                }`}
                 style={hiddenScrollbarStyle}
             >
-                <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-                    Workspace
-                </p>
+                {!collapsed && (
+                    <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">
+                        Workspace
+                    </p>
+                )}
 
                 <div className="space-y-1">
                     {navItems.map((item) => {
@@ -642,18 +753,23 @@ function DesktopSidebar({
                                 key={item.route}
                                 type="button"
                                 onClick={() => onNavigate(item.route)}
-                                className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
-                                    ? "bg-zinc-100/90"
-                                    : "text-zinc-900 hover:bg-zinc-100/70"
-                                    }`}
+                                title={collapsed ? item.label : undefined}
+                                aria-label={item.label}
+                                className={`group relative flex w-full items-center rounded-xl py-3 text-left transition ${
+                                    collapsed
+                                        ? "justify-center px-2"
+                                        : "gap-3 px-3"
+                                } ${
+                                    active
+                                        ? "bg-zinc-100/90"
+                                        : "text-zinc-900 hover:bg-zinc-100/70"
+                                }`}
                                 style={{
                                     color: active
                                         ? theme.accent
                                         : undefined,
                                 }}
                             >
-                                {/* ACTIVE INDICATOR */}
-
                                 {active && (
                                     <motion.span
                                         layoutId="desktop-admin-active-nav"
@@ -665,13 +781,12 @@ function DesktopSidebar({
                                     />
                                 )}
 
-                                {/* ICON */}
-
                                 <div
-                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${active
-                                        ? "bg-white shadow-sm"
-                                        : "group-hover:bg-white"
-                                        }`}
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
+                                        active
+                                            ? "bg-white shadow-sm"
+                                            : "group-hover:bg-white"
+                                    }`}
                                 >
                                     <Icon
                                         size={17}
@@ -686,21 +801,29 @@ function DesktopSidebar({
                                     />
                                 </div>
 
-                                {/* LABEL */}
+                                {!collapsed && (
+                                    <>
+                                        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+                                            {item.label}
+                                        </span>
 
-                                <span className="flex-1 text-[13px] font-semibold">
-                                    {item.label}
-                                </span>
+                                        {active && (
+                                            <ChevronRight
+                                                size={14}
+                                                className="shrink-0"
+                                                style={{
+                                                    color:
+                                                        theme.accent,
+                                                }}
+                                            />
+                                        )}
+                                    </>
+                                )}
 
-                                {/* ARROW */}
-
-                                {active && (
-                                    <ChevronRight
-                                        size={14}
-                                        style={{
-                                            color: theme.accent,
-                                        }}
-                                    />
+                                {collapsed && (
+                                    <span className="pointer-events-none absolute left-[calc(100%+10px)] z-[80] hidden whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 shadow-lg group-hover:block">
+                                        {item.label}
+                                    </span>
                                 )}
                             </button>
                         );
@@ -712,13 +835,78 @@ function DesktopSidebar({
                 USER CARD
             ===================================================== */}
 
-            <SidebarUserCard
-                user={user}
-                role={role}
-                theme={theme}
-                onLogout={onLogout}
-            />
-        </aside>
+            {collapsed ? (
+                <CollapsedSidebarUserCard
+                    user={user}
+                    role={role}
+                    theme={theme}
+                    onLogout={onLogout}
+                />
+            ) : (
+                <SidebarUserCard
+                    user={user}
+                    role={role}
+                    theme={theme}
+                    onLogout={onLogout}
+                />
+            )}
+        </motion.aside>
+    );
+}
+
+function CollapsedSidebarUserCard({
+    user,
+    role,
+    theme,
+    onLogout,
+}) {
+    const roleLabel =
+        role === "superadmin"
+            ? "Super Administrator"
+            : "Administrator";
+
+    const displayName =
+        user?.user_metadata?.full_name || roleLabel;
+
+    return (
+        <div className="shrink-0 border-t border-zinc-200/70 px-2.5 py-4">
+            <div className="flex flex-col items-center gap-2">
+                <div className="group relative">
+                    <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border"
+                        style={{
+                            borderColor: `${theme.accent}25`,
+                            backgroundColor: theme.accentSoft,
+                        }}
+                    >
+                        <ShieldCheck
+                            size={18}
+                            style={{
+                                color: theme.accent,
+                            }}
+                        />
+                    </div>
+
+                    <span className="pointer-events-none absolute bottom-1/2 left-[calc(100%+12px)] z-[80] hidden -translate-y-[-50%] whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 shadow-lg group-hover:block">
+                        {displayName}
+                    </span>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={onLogout}
+                    aria-label="Sign out"
+                    title="Sign out"
+                    className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-500 transition hover:border-red-300 hover:bg-red-100 hover:text-red-600"
+                >
+                    <LogOut size={15} />
+
+                    <span className="pointer-events-none absolute bottom-1/2 left-[calc(100%+12px)] z-[80] hidden -translate-y-[-50%] whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-700 shadow-lg group-hover:block">
+                        Sign Out
+                    </span>
+                </button>
+            </div>
+        </div>
     );
 }
 
