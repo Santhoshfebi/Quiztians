@@ -732,7 +732,7 @@ export default function ResultsTable({
                               phone
                             )
                           }
-                          className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-[#F8FAFC] px-3 text-zinc-500 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-auto" className="flex h-9 items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-[#F8FAFC] px-3 text-zinc-500 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 sm:h-10"
+                          className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-[#F8FAFC] px-3 text-zinc-500 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-auto"
                         >
                           <Copy
                             size={
@@ -1131,7 +1131,7 @@ function ResultsPagination({
   totalRows,
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-zinc-200/80 bg-[#FCFCFD] px-3.5 py-4 min-[400px]:px-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" className="flex flex-col gap-3 border-t border-zinc-200/80 bg-[#FCFCFD] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="flex flex-col gap-3 border-t border-zinc-200/80 bg-[#FCFCFD] px-3.5 py-4 min-[400px]:px-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       {/* ================================================
           RANGE
       ================================================ */}
