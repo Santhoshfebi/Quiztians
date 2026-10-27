@@ -1,15 +1,22 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+
 import {
   Activity,
   BookOpen,
   CircleGauge,
-  Trophy,
-  UserRound,
+  Clock3,
   Users,
 } from "lucide-react";
 
-export default function ResultsStats({ allRows, theme }) {
+/* ==========================================================
+   RESULTS STATS
+========================================================== */
+
+export default function ResultsStats({
+  allRows,
+  theme,
+}) {
   const stats = useMemo(
     () => calculateStats(allRows),
     [allRows]
@@ -17,49 +24,51 @@ export default function ResultsStats({ allRows, theme }) {
 
   const items = [
     {
-      title: "Total Attempts",
+      title: "Total Submissions",
       value: stats.total,
       icon: Activity,
+      description: "All quiz submissions",
     },
     {
       title: "Unique Participants",
       value: stats.uniqueParticipants,
       icon: Users,
-    },
-    {
-      title: "Total Chapters",
-      value: stats.totalChapters,
-      icon: BookOpen,
+      description: "Unique phone numbers",
     },
     {
       title: "Average Score",
       value: stats.avgScore,
       icon: CircleGauge,
+      description: "Across all submissions",
     },
     {
-      title: "Top Chapter",
-      value: stats.topScoringChapter,
-      icon: Trophy,
+      title: "Fastest Completion",
+      value: stats.fastestCompletion,
+      icon: Clock3,
+      description: "Best valid completion time",
       textValue: true,
-      highlight: true,
     },
     {
-      title: "New Today",
-      value: stats.newToday,
-      icon: UserRound,
+      title: "Active Chapters",
+      value: stats.totalChapters,
+      icon: BookOpen,
+      description: "Chapters with results",
+      spanLast: true,
     },
   ];
 
   return (
-    <section className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-      {items.map((item, index) => (
-        <StatCard
-          key={item.title}
-          {...item}
-          index={index}
-          theme={theme}
-        />
-      ))}
+    <section className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 xl:grid-cols-5">
+      {items.map(
+        (item, index) => (
+          <StatCard
+            key={item.title}
+            {...item}
+            index={index}
+            theme={theme}
+          />
+        )
+      )}
     </section>
   );
 }
@@ -71,10 +80,11 @@ export default function ResultsStats({ allRows, theme }) {
 function StatCard({
   title,
   value,
+  description,
   icon: Icon,
   theme,
   textValue = false,
-  highlight = false,
+  spanLast = false,
   index,
 }) {
   return (
@@ -88,12 +98,15 @@ function StatCard({
         y: 0,
       }}
       transition={{
-        delay: index * 0.035,
+        delay: index * 0.04,
       }}
       whileHover={{
         y: -2,
       }}
-      className="group relative min-w-0 overflow-hidden rounded-[18px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] transition duration-200 hover:border-zinc-300 hover:shadow-[0_12px_30px_rgba(24,24,27,0.09)]"
+      className={`group relative min-w-0 overflow-hidden rounded-[16px] border border-zinc-200/90 bg-white p-3 shadow-[0_6px_20px_rgba(24,24,27,0.055)] transition duration-200 hover:border-zinc-300 hover:shadow-[0_10px_26px_rgba(24,24,27,0.08)] min-[400px]:p-3.5 sm:rounded-[18px] sm:p-4 ${spanLast
+          ? "col-span-2 md:col-span-1"
+          : ""
+        }`}
     >
       {/* =====================================================
           SUBTLE ROLE GLOW
@@ -102,42 +115,63 @@ function StatCard({
       <div
         className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-0 blur-[45px] transition-opacity duration-300 group-hover:opacity-100"
         style={{
-          backgroundColor: `${theme.accent}12`,
+          backgroundColor:
+            `${theme.accent}12`,
         }}
       />
 
-      <div className="relative">
+      {/* =====================================================
+          CONTENT
+      ===================================================== */}
+
+      <div className="relative flex h-full min-h-[150px] flex-col min-[400px]:min-h-[158px] sm:min-h-[170px] xl:min-h-[178px]">
         {/* ===================================================
-            ICON
+            TOP ROW
         =================================================== */}
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-2">
+          {/* ICON */}
+
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border sm:h-10 sm:w-10 sm:rounded-xl"
             style={{
-              borderColor: `${theme.accent}18`,
-              backgroundColor: theme.accentSoft,
-              color: theme.accent,
+              borderColor:
+                `${theme.accent}18`,
+              backgroundColor:
+                theme.accentSoft,
+              color:
+                theme.accent,
             }}
           >
             <Icon
-              size={17}
+              size={16}
               strokeWidth={1.9}
+              className="sm:h-[17px] sm:w-[17px]"
             />
           </div>
 
-          {highlight && (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-amber-700">
-              Best
+          {/* LIVE INDICATOR */}
+
+          <div className="flex shrink-0 items-center gap-1.5 pt-1">
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{
+                backgroundColor:
+                  theme.accent,
+              }}
+            />
+
+            <span className="hidden text-[8px] font-black uppercase tracking-[0.1em] text-zinc-400 sm:block">
+              Live
             </span>
-          )}
+          </div>
         </div>
 
         {/* ===================================================
             LABEL
         =================================================== */}
 
-        <p className="mt-4 text-[11px] font-bold leading-4 text-zinc-500 sm:text-[12px]">
+        <p className="mt-3 line-clamp-2 min-h-[32px] text-[9px] font-bold leading-4 text-zinc-500 min-[400px]:text-[10px] sm:mt-4 sm:min-h-0 sm:text-[11px] lg:text-[12px]">
           {title}
         </p>
 
@@ -146,11 +180,10 @@ function StatCard({
         =================================================== */}
 
         <p
-          className={`mt-1.5 font-black tracking-[-0.035em] text-zinc-900 ${
-            textValue
-              ? "truncate text-[15px] sm:text-[16px]"
-              : "text-[30px] sm:text-[32px]"
-          }`}
+          className={`mt-1 min-w-0 font-black tracking-[-0.035em] text-zinc-900 ${textValue
+              ? "truncate text-[18px] min-[400px]:text-[20px] sm:text-[22px] xl:text-[24px]"
+              : "text-[25px] min-[400px]:text-[27px] sm:text-[30px] xl:text-[32px]"
+            }`}
           title={
             textValue
               ? String(value)
@@ -161,16 +194,27 @@ function StatCard({
         </p>
 
         {/* ===================================================
+            DESCRIPTION
+        =================================================== */}
+
+        <p className="mt-1 line-clamp-2 text-[8px] leading-3.5 text-zinc-400 min-[400px]:text-[9px] min-[400px]:leading-4 sm:mt-1.5 sm:text-[10px]">
+          {description}
+        </p>
+
+        {/* ===================================================
             BOTTOM ACCENT
         =================================================== */}
 
-        <div className="mt-4 h-1 overflow-hidden rounded-full bg-zinc-100">
-          <div
-            className="h-full w-8 rounded-full transition-all duration-300 group-hover:w-14"
-            style={{
-              backgroundColor: theme.accent,
-            }}
-          />
+        <div className="mt-auto pt-3 sm:pt-4">
+          <div className="h-1 overflow-hidden rounded-full bg-zinc-100">
+            <div
+              className="h-full w-7 rounded-full transition-all duration-300 group-hover:w-12 sm:w-8 sm:group-hover:w-14"
+              style={{
+                backgroundColor:
+                  theme.accent,
+              }}
+            />
+          </div>
         </div>
       </div>
     </motion.div>
@@ -181,95 +225,112 @@ function StatCard({
    STAT CALCULATIONS
 ========================================================== */
 
-function calculateStats(allRows) {
+function calculateStats(allRows = []) {
+  /* ========================================================
+     TOTAL SUBMISSIONS
+  ======================================================== */
+
   const total = allRows.length;
 
-  // Unique chapters
+  /* ========================================================
+     ACTIVE CHAPTERS
+
+     Counts unique chapters represented in the results table.
+  ======================================================== */
+
   const chapters = [
     ...new Set(
       allRows
         .map((row) => row.chapter)
         .filter(Boolean)
+        .map((chapter) =>
+          String(chapter).trim()
+        )
+        .filter(Boolean)
     ),
   ];
 
-  // Average score
-  const totalScore = allRows.reduce(
-    (sum, row) =>
-      sum + Number(row.score || 0),
-    0
-  );
+  /* ========================================================
+     AVERAGE SCORE
+  ======================================================== */
+
+  const validScores = allRows
+    .map((row) => Number(row.score))
+    .filter((score) =>
+      Number.isFinite(score)
+    );
+
+  const totalScore =
+    validScores.reduce(
+      (sum, score) =>
+        sum + score,
+      0
+    );
 
   const avgScore =
-    total > 0
-      ? (totalScore / total).toFixed(2)
+    validScores.length > 0
+      ? (
+        totalScore /
+        validScores.length
+      ).toFixed(2)
       : "0.00";
 
-  // Unique participants by phone
+  /* ========================================================
+     UNIQUE PARTICIPANTS
+
+     Phone number is the primary participant identifier.
+
+     Empty phone values are ignored so they do not become one
+     artificial participant.
+  ======================================================== */
+
   const phones = allRows
     .map((row) => row.phone)
-    .filter(Boolean)
+    .filter(
+      (phone) =>
+        phone !== null &&
+        phone !== undefined
+    )
     .map((phone) =>
       String(phone).trim()
-    );
+    )
+    .filter(Boolean);
 
   const uniqueParticipants =
     new Set(phones).size;
 
-  // Chapter score calculations
-  const chapterScores = {};
-  const chapterCounts = {};
+  /* ========================================================
+     FASTEST COMPLETION
 
-  allRows.forEach((row) => {
-    if (
-      !row.chapter ||
-      row.score === null ||
-      row.score === undefined
-    ) {
-      return;
-    }
+     time_taken is expected to contain elapsed seconds.
 
-    chapterScores[row.chapter] =
-      (chapterScores[row.chapter] || 0) +
-      Number(row.score);
+     Ignore:
+       - null
+       - undefined
+       - non-numeric values
+       - zero
+       - negative values
+  ======================================================== */
 
-    chapterCounts[row.chapter] =
-      (chapterCounts[row.chapter] || 0) + 1;
-  });
-
-  const chapterAverages =
-    Object.entries(chapterScores).map(
-      ([chapter, score]) => ({
-        chapter,
-        avgScore:
-          score /
-          chapterCounts[chapter],
-      })
+  const validTimes = allRows
+    .map((row) =>
+      Number(row.time_taken)
+    )
+    .filter(
+      (time) =>
+        Number.isFinite(time) &&
+        time > 0
     );
 
-  const topScoringChapter =
-    chapterAverages.sort(
-      (a, b) =>
-        b.avgScore - a.avgScore
-    )[0]?.chapter || "N/A";
+  const fastestSeconds =
+    validTimes.length > 0
+      ? Math.min(...validTimes)
+      : null;
 
-  // New attempts today
-  const today =
-    new Date().toDateString();
-
-  const newToday = allRows.filter(
-    (row) => {
-      if (!row.created_at) {
-        return false;
-      }
-
-      return (
-        new Date(
-          row.created_at
-        ).toDateString() === today
-      );
-    }
-  ).length;
+  const fastestCompletion =
+    formatCompletionTime(
+      fastestSeconds
+    );
 
   return {
     total,
@@ -277,7 +338,48 @@ function calculateStats(allRows) {
     totalChapters:
       chapters.length,
     avgScore,
-    topScoringChapter,
-    newToday,
+    fastestCompletion,
   };
+}
+
+/* ==========================================================
+   COMPLETION TIME FORMATTER
+========================================================== */
+
+function formatCompletionTime(
+  seconds
+) {
+  if (
+    seconds === null ||
+    seconds === undefined ||
+    !Number.isFinite(seconds) ||
+    seconds <= 0
+  ) {
+    return "—";
+  }
+
+  const roundedSeconds =
+    Math.round(seconds);
+
+  if (roundedSeconds < 60) {
+    return `${roundedSeconds}s`;
+  }
+
+  const minutes =
+    Math.floor(
+      roundedSeconds / 60
+    );
+
+  const remainingSeconds =
+    roundedSeconds % 60;
+
+  if (
+    remainingSeconds === 0
+  ) {
+    return `${minutes}m`;
+  }
+
+  return `${minutes}m ${String(
+    remainingSeconds
+  ).padStart(2, "0")}s`;
 }
