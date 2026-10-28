@@ -14,6 +14,7 @@ import {
   PencilLine,
   Save,
   Sparkles,
+  TriangleAlert,
   X,
 } from "lucide-react";
 
@@ -94,6 +95,8 @@ export default function EditQuestions() {
   // ===========================================================
 
   const [question, setQuestion] = useState(null);
+  const [originalQuestion, setOriginalQuestion] = useState(null);
+  const [originalCorrectOption, setOriginalCorrectOption] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -105,6 +108,9 @@ export default function EditQuestions() {
     useState("");
 
   const [chapterOpen, setChapterOpen] =
+    useState(false);
+
+  const [showDiscardDialog, setShowDiscardDialog] =
     useState(false);
 
   // =========================================================
@@ -131,9 +137,14 @@ export default function EditQuestions() {
 
         if (!mounted) return;
 
+        const resolvedCorrectOption =
+          resolveCorrectOption(qData);
+
         setQuestion(qData);
-        setCorrectOption(
-          resolveCorrectOption(qData)
+        setOriginalQuestion(qData);
+        setCorrectOption(resolvedCorrectOption);
+        setOriginalCorrectOption(
+          resolvedCorrectOption
         );
 
         const {
@@ -205,6 +216,66 @@ export default function EditQuestions() {
   };
 
   // =========================================================
+  // UNSAVED CHANGES
+  // ===========================================================
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!question || !originalQuestion) {
+      return false;
+    }
+
+    return (
+      JSON.stringify(question) !==
+      JSON.stringify(originalQuestion) ||
+      correctOption !== originalCorrectOption
+    );
+  }, [
+    question,
+    originalQuestion,
+    correctOption,
+    originalCorrectOption,
+  ]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedChanges || saving) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener(
+      "beforeunload",
+      handleBeforeUnload
+    );
+
+    return () => {
+      window.removeEventListener(
+        "beforeunload",
+        handleBeforeUnload
+      );
+    };
+  }, [hasUnsavedChanges, saving]);
+
+  const handleExitRequest = () => {
+    if (saving) return;
+
+    if (hasUnsavedChanges) {
+      setShowDiscardDialog(true);
+      return;
+    }
+
+    navigate("/admin/preview-questions");
+  };
+
+  const handleDiscardChanges = () => {
+    setShowDiscardDialog(false);
+    navigate("/admin/preview-questions");
+  };
+
+  // =========================================================
   // LANGUAGE COMPLETION
   // ===========================================================
 
@@ -215,14 +286,14 @@ export default function EditQuestions() {
       normalizeValue(
         question.question_en
       ) &&
-        OPTION_KEYS.every((key) =>
-          normalizeValue(
-            question[
-              `option_${key}_en`
-            ]
-          )
-        ) &&
-        correctOption
+      OPTION_KEYS.every((key) =>
+        normalizeValue(
+          question[
+          `option_${key}_en`
+          ]
+        )
+      ) &&
+      correctOption
     );
   }, [question, correctOption]);
 
@@ -233,14 +304,14 @@ export default function EditQuestions() {
       normalizeValue(
         question.question_ta
       ) &&
-        OPTION_KEYS.every((key) =>
-          normalizeValue(
-            question[
-              `option_${key}_ta`
-            ]
-          )
-        ) &&
-        correctOption
+      OPTION_KEYS.every((key) =>
+        normalizeValue(
+          question[
+          `option_${key}_ta`
+          ]
+        )
+      ) &&
+      correctOption
     );
   }, [question, correctOption]);
 
@@ -253,26 +324,26 @@ export default function EditQuestions() {
 
     return Boolean(
       normalizeValue(question.chapter) &&
-        normalizeValue(
-          question.question_en
-        ) &&
-        normalizeValue(
-          question.question_ta
-        ) &&
-        OPTION_KEYS.every(
-          (key) =>
-            normalizeValue(
-              question[
-                `option_${key}_en`
-              ]
-            ) &&
-            normalizeValue(
-              question[
-                `option_${key}_ta`
-              ]
-            )
-        ) &&
-        correctOption
+      normalizeValue(
+        question.question_en
+      ) &&
+      normalizeValue(
+        question.question_ta
+      ) &&
+      OPTION_KEYS.every(
+        (key) =>
+          normalizeValue(
+            question[
+            `option_${key}_en`
+            ]
+          ) &&
+          normalizeValue(
+            question[
+            `option_${key}_ta`
+            ]
+          )
+      ) &&
+      correctOption
     );
   }, [question, correctOption]);
 
@@ -301,6 +372,10 @@ export default function EditQuestions() {
       "option_b_en",
       "option_c_en",
       "option_d_en",
+      "option_a_ta",
+      "option_b_ta",
+      "option_c_ta",
+      "option_d_ta",
     ];
 
     for (const field of required) {
@@ -335,12 +410,12 @@ export default function EditQuestions() {
 
       const correctAnswerEN =
         question[
-          `option_${correctKey}_en`
+        `option_${correctKey}_en`
         ];
 
       const correctAnswerTA =
         question[
-          `option_${correctKey}_ta`
+        `option_${correctKey}_ta`
         ];
 
       const {
@@ -375,6 +450,17 @@ export default function EditQuestions() {
         targetId: id,
         targetType: "question",
       });
+
+      setOriginalQuestion({
+        ...question,
+        correct_answer: normalizeValue(
+          correctAnswerEN
+        ),
+        correct_answer_ta: normalizeValue(
+          correctAnswerTA
+        ),
+      });
+      setOriginalCorrectOption(correctOption);
 
       toast.success(
         "Question updated successfully!"
@@ -536,11 +622,7 @@ export default function EditQuestions() {
 
               <button
                 type="button"
-                onClick={() =>
-                  navigate(
-                    "/admin/preview-questions"
-                  )
-                }
+                onClick={handleExitRequest}
                 className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-white px-4 text-[12px] font-bold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
               >
                 <ArrowLeft size={15} />
@@ -554,7 +636,7 @@ export default function EditQuestions() {
               STATUS STRIP
           ================================================= */}
 
-          <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatusCard
               label="Question ID"
               value={`#${question.id}`}
@@ -580,7 +662,7 @@ export default function EditQuestions() {
               }
             />
 
-            <div className="col-span-2 sm:col-span-1">
+            <div>
               <StatusCard
                 label="Tamil"
                 value={
@@ -599,6 +681,22 @@ export default function EditQuestions() {
                 }
               />
             </div>
+
+            <StatusCard
+              label="Changes"
+              value={
+                hasUnsavedChanges
+                  ? "Unsaved"
+                  : "Saved"
+              }
+              icon={
+                hasUnsavedChanges
+                  ? TriangleAlert
+                  : CheckCircle2
+              }
+              theme={theme}
+              success={!hasUnsavedChanges}
+            />
           </section>
 
           {/* =================================================
@@ -667,11 +765,10 @@ export default function EditQuestions() {
 
                     <ChevronDown
                       size={16}
-                      className={`text-zinc-500 transition-transform ${
-                        chapterOpen
+                      className={`text-zinc-500 transition-transform ${chapterOpen
                           ? "rotate-180"
                           : ""
-                      }`}
+                        }`}
                     />
                   </button>
 
@@ -738,11 +835,10 @@ export default function EditQuestions() {
                                       false
                                     );
                                   }}
-                                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                                    active
+                                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${active
                                       ? "bg-zinc-100"
                                       : "hover:bg-zinc-50"
-                                  }`}
+                                    }`}
                                 >
                                   <div
                                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -765,11 +861,10 @@ export default function EditQuestions() {
                                   </div>
 
                                   <span
-                                    className={`min-w-0 flex-1 truncate text-[12px] font-semibold ${
-                                      active
+                                    className={`min-w-0 flex-1 truncate text-[12px] font-semibold ${active
                                         ? "text-zinc-900"
                                         : "text-zinc-600"
-                                    }`}
+                                      }`}
                                   >
                                     {
                                       chapter
@@ -888,7 +983,7 @@ export default function EditQuestions() {
                     rows={4}
                     value={
                       question[
-                        `question_${langTab}`
+                      `question_${langTab}`
                       ] || ""
                     }
                     onChange={(event) =>
@@ -942,7 +1037,7 @@ export default function EditQuestions() {
                               }
                               value={
                                 question[
-                                  `option_${key}_${langTab}`
+                                `option_${key}_${langTab}`
                                 ] || ""
                               }
                               onChange={(
@@ -1003,21 +1098,20 @@ export default function EditQuestions() {
                                   option
                                 )
                               }
-                              className={`relative flex h-12 items-center justify-center rounded-xl border text-[14px] font-black transition ${
-                                selected
+                              className={`relative flex h-12 items-center justify-center rounded-xl border text-[14px] font-black transition ${selected
                                   ? ""
                                   : "border-zinc-200 bg-white text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
-                              }`}
+                                }`}
                               style={
                                 selected
                                   ? {
-                                      borderColor:
-                                        `${theme.accent}45`,
-                                      backgroundColor:
-                                        theme.accentSoft,
-                                      color:
-                                        theme.accent,
-                                    }
+                                    borderColor:
+                                      `${theme.accent}45`,
+                                    backgroundColor:
+                                      theme.accentSoft,
+                                    color:
+                                      theme.accent,
+                                  }
                                   : undefined
                               }
                             >
@@ -1074,25 +1168,26 @@ export default function EditQuestions() {
                   type="button"
                   disabled={
                     saving ||
-                    !formComplete
+                    !formComplete ||
+                    !hasUnsavedChanges
                   }
                   onClick={handleSave}
-                  className={`flex h-12 flex-1 items-center justify-center gap-2.5 rounded-xl px-5 text-[13px] font-black transition ${
-                    !saving &&
-                    formComplete
+                  className={`flex h-12 flex-1 items-center justify-center gap-2.5 rounded-xl px-5 text-[13px] font-black transition ${!saving &&
+                      formComplete &&
+                      hasUnsavedChanges
                       ? "text-white hover:-translate-y-0.5"
                       : "cursor-not-allowed border border-zinc-200 bg-zinc-100 text-zinc-400"
-                  }`}
+                    }`}
                   style={
                     !saving &&
-                    formComplete
+                      formComplete &&
+                      hasUnsavedChanges
                       ? {
-                          background: `linear-gradient(90deg, ${theme.accent}, ${
-                            theme.chartSecondary ||
-                            theme.accent
+                        background: `linear-gradient(90deg, ${theme.accent}, ${theme.chartSecondary ||
+                          theme.accent
                           })`,
-                          boxShadow: `0 12px 30px ${theme.accent}20`,
-                        }
+                        boxShadow: `0 12px 30px ${theme.accent}20`,
+                      }
                       : undefined
                   }
                 >
@@ -1114,11 +1209,7 @@ export default function EditQuestions() {
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={() =>
-                    navigate(
-                      "/admin/preview-questions"
-                    )
-                  }
+                  onClick={handleExitRequest}
                   className="flex h-12 items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-white px-5 text-[13px] font-bold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[140px]"
                 >
                   <X size={15} />
@@ -1136,6 +1227,14 @@ export default function EditQuestions() {
                   saving.
                 </p>
               )}
+
+              {formComplete &&
+                !hasUnsavedChanges && (
+                  <p className="mt-3 text-center text-[11px] leading-5 text-zinc-400">
+                    No changes to save. Edit any field to
+                    enable Save Changes.
+                  </p>
+                )}
             </motion.div>
 
             {/* ===============================================
@@ -1165,9 +1264,88 @@ export default function EditQuestions() {
               />
             </motion.div>
           </section>
+
+          <AnimatePresence>
+            {showDiscardDialog && (
+              <DiscardChangesDialog
+                saving={saving}
+                onCancel={() =>
+                  setShowDiscardDialog(false)
+                }
+                onDiscard={handleDiscardChanges}
+              />
+            )}
+          </AnimatePresence>
         </>
       )}
     </AdminLayout>
+  );
+}
+
+// ===========================================================
+// DISCARD CHANGES DIALOG
+// ===========================================================
+
+function DiscardChangesDialog({
+  saving,
+  onCancel,
+  onDiscard,
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/45 p-4 backdrop-blur-[2px]"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onCancel();
+        }
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.18 }}
+        className="w-full max-w-md overflow-hidden rounded-[22px] border border-zinc-800 bg-zinc-950 shadow-[0_30px_80px_rgba(0,0,0,0.35)]"
+      >
+        <div className="p-5 sm:p-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
+            <TriangleAlert size={19} />
+          </div>
+
+          <h3 className="mt-4 text-[18px] font-black text-white">
+            Discard unsaved changes?
+          </h3>
+
+          <p className="mt-2 text-[12px] leading-6 text-zinc-400">
+            You have changes that have not been saved.
+            Leaving this page will permanently discard them.
+          </p>
+
+          <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onCancel}
+              className="h-11 rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-[12px] font-bold text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-800 disabled:opacity-50"
+            >
+              Keep Editing
+            </button>
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onDiscard}
+              className="h-11 rounded-xl border border-red-500/20 bg-red-500 px-4 text-[12px] font-black text-white transition hover:bg-red-600 disabled:opacity-50"
+            >
+              Discard Changes
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -1212,17 +1390,16 @@ function LanguageTabs({
             onClick={() =>
               onChange(tab.value)
             }
-            className={`relative flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-[12px] font-black transition ${
-              active
+            className={`relative flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-[12px] font-black transition ${active
                 ? ""
                 : "text-zinc-500 hover:bg-white/70 hover:text-zinc-900"
-            }`}
+              }`}
             style={
               active
                 ? {
-                    color:
-                      theme.accent,
-                  }
+                  color:
+                    theme.accent,
+                }
                 : undefined
             }
           >
@@ -1243,17 +1420,17 @@ function LanguageTabs({
               style={
                 active
                   ? {
-                      backgroundColor:
-                        `${theme.accent}15`,
-                      color:
-                        theme.accent,
-                    }
+                    backgroundColor:
+                      `${theme.accent}15`,
+                    color:
+                      theme.accent,
+                  }
                   : {
-                      backgroundColor:
-                        "#E4E4E7",
-                      color:
-                        "#52525B",
-                    }
+                    backgroundColor:
+                      "#E4E4E7",
+                    color:
+                      "#52525B",
+                  }
               }
             >
               {tab.short}
@@ -1307,21 +1484,21 @@ function OptionInput({
             style={
               selected
                 ? {
-                    color:
-                      theme.accent,
-                    borderColor:
-                      `${theme.accent}30`,
-                    backgroundColor:
-                      theme.accentSoft,
-                  }
+                  color:
+                    theme.accent,
+                  borderColor:
+                    `${theme.accent}30`,
+                  backgroundColor:
+                    theme.accentSoft,
+                }
                 : {
-                    color:
-                      "#52525B",
-                    borderColor:
-                      "#E4E4E7",
-                    backgroundColor:
-                      "#FFFFFF",
-                  }
+                  color:
+                    "#52525B",
+                  borderColor:
+                    "#E4E4E7",
+                  backgroundColor:
+                    "#FFFFFF",
+                }
             }
           >
             {label}
@@ -1421,7 +1598,7 @@ function LivePreview({
                 key.toUpperCase(),
               value:
                 question[
-                  `option_${key}_en`
+                `option_${key}_en`
                 ] || "",
             })
           )}
@@ -1458,7 +1635,7 @@ function LivePreview({
                 key.toUpperCase(),
               value:
                 question[
-                  `option_${key}_ta`
+                `option_${key}_ta`
                 ] || "",
             })
           )}
@@ -1529,18 +1706,16 @@ function PreviewLanguage({
           return (
             <div
               key={option.key}
-              className={`flex items-start gap-3 rounded-xl border px-3 py-3 ${
-                correct
+              className={`flex items-start gap-3 rounded-xl border px-3 py-3 ${correct
                   ? "border-emerald-200 bg-emerald-50/70"
                   : "border-zinc-200/90 bg-[#F8FAFC]"
-              }`}
+                }`}
             >
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${
-                  correct
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${correct
                     ? "bg-emerald-100 text-emerald-700"
                     : "border border-zinc-200 bg-white text-zinc-500"
-                }`}
+                  }`}
               >
                 {correct ? (
                   <Check size={13} />
@@ -1550,11 +1725,10 @@ function PreviewLanguage({
               </span>
 
               <p
-                className={`min-w-0 flex-1 break-words pt-1 text-[12px] leading-5 ${
-                  correct
+                className={`min-w-0 flex-1 break-words pt-1 text-[12px] leading-5 ${correct
                     ? "font-semibold text-emerald-800"
                     : "font-medium text-zinc-600"
-                }`}
+                  }`}
               >
                 {option.value ||
                   "—"}
@@ -1602,22 +1776,21 @@ function StatusCard({
         </p>
 
         <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
-            success
+          className={`flex h-8 w-8 items-center justify-center rounded-lg border ${success
               ? "border-emerald-200 bg-emerald-50 text-emerald-600"
               : ""
-          }`}
+            }`}
           style={
             success
               ? undefined
               : {
-                  borderColor:
-                    `${theme.accent}20`,
-                  backgroundColor:
-                    theme.accentSoft,
-                  color:
-                    theme.accent,
-                }
+                borderColor:
+                  `${theme.accent}20`,
+                backgroundColor:
+                  theme.accentSoft,
+                color:
+                  theme.accent,
+              }
           }
         >
           <Icon size={14} />
@@ -1625,11 +1798,10 @@ function StatusCard({
       </div>
 
       <p
-        className={`mt-3 truncate text-[14px] font-black ${
-          success
+        className={`mt-3 truncate text-[14px] font-black ${success
             ? "text-emerald-700"
             : "text-zinc-900"
-        }`}
+          }`}
       >
         {value}
       </p>
@@ -1647,18 +1819,16 @@ function LanguageProgress({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl border px-3 py-3 ${
-        complete
+      className={`flex items-center gap-3 rounded-xl border px-3 py-3 ${complete
           ? "border-emerald-200 bg-emerald-50/70"
           : "border-zinc-200/90 bg-[#F8FAFC]"
-      }`}
+        }`}
     >
       <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          complete
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${complete
             ? "bg-emerald-100 text-emerald-700"
             : "border border-zinc-200 bg-white text-zinc-400"
-        }`}
+          }`}
       >
         {complete ? (
           <Check size={15} />
@@ -1673,11 +1843,10 @@ function LanguageProgress({
         </p>
 
         <p
-          className={`mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${
-            complete
+          className={`mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${complete
               ? "text-emerald-600"
               : "text-zinc-400"
-          }`}
+            }`}
         >
           {complete
             ? "Complete"
@@ -1698,11 +1867,10 @@ function CompletionBadge({
 }) {
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
-        complete
+      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${complete
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
           : "border-zinc-200 bg-[#F8FAFC] text-zinc-400"
-      }`}
+        }`}
     >
       {complete && (
         <Check size={10} />
