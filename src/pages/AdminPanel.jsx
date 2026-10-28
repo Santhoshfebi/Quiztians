@@ -763,7 +763,7 @@ function DashboardContent({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-4 lg:gap-3">
           <CommandCenterCard
             icon={Plus}
             title="Add Questions"
@@ -1232,67 +1232,108 @@ function CommandCenterCard({
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.98 }}
-      className="group relative min-h-[132px] overflow-hidden rounded-[20px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(24,24,27,0.06)] transition-[border-color,box-shadow] duration-200 hover:shadow-[0_14px_32px_rgba(24,24,27,0.10)] sm:min-h-[145px] sm:p-5"
-      style={{
-        borderColor: featured ? `${theme.accent}38` : "rgba(212,212,216,0.9)",
+      whileHover={{
+        y: -2,
       }}
+      whileTap={{
+        scale: 0.98,
+      }}
+      className="group relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-full border bg-white px-3 py-2.5 text-left shadow-[0_5px_16px_rgba(24,24,27,0.05)] transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-[0_8px_22px_rgba(24,24,27,0.09)] min-[400px]:gap-3 min-[400px]:px-3.5 sm:px-4 sm:py-3"
+      style={{
+        borderColor: featured
+          ? `${theme.accent}38`
+          : "rgba(212,212,216,0.9)",
+      }}
+      title={description}
     >
+      {/* =====================================================
+          SUBTLE ACCENT GLOW
+      ===================================================== */}
+
       <div
-        className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full blur-[45px] transition-transform duration-300 group-hover:scale-125"
-        style={{ backgroundColor: theme.accentSoft }}
+        className="pointer-events-none absolute -left-5 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full blur-[30px] transition-transform duration-300 group-hover:scale-125"
+        style={{
+          backgroundColor:
+            theme.accentSoft,
+        }}
       />
+
+      {/* =====================================================
+          ICON
+      ===================================================== */}
+
+      <div
+        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border min-[400px]:h-9 min-[400px]:w-9"
+        style={{
+          borderColor:
+            `${theme.accent}24`,
+          backgroundColor:
+            theme.accentSoft,
+        }}
+      >
+        <Icon
+          size={15}
+          strokeWidth={2}
+          style={{
+            color:
+              theme.accent,
+          }}
+          className="min-[400px]:h-4 min-[400px]:w-4"
+        />
+      </div>
+
+      {/* =====================================================
+          TITLE
+      ===================================================== */}
+
+      <div className="relative min-w-0 flex-1">
+        <h4 className="truncate text-[10px] font-black leading-none text-zinc-800 min-[400px]:text-[11px] sm:text-[12px]">
+          {title}
+        </h4>
+      </div>
+
+      {/* =====================================================
+          FEATURED INDICATOR
+      ===================================================== */}
 
       {featured && (
         <span
-          className="absolute right-3 top-3 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.1em]"
+          className="relative hidden shrink-0 rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] sm:inline-flex"
           style={{
-            borderColor: `${theme.accent}28`,
-            backgroundColor: theme.accentSoft,
-            color: theme.accent,
+            borderColor:
+              `${theme.accent}28`,
+            backgroundColor:
+              theme.accentSoft,
+            color:
+              theme.accent,
           }}
         >
           Create
         </span>
       )}
 
-      <div
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm sm:h-11 sm:w-11"
-        style={{
-          borderColor: `${theme.accent}24`,
-          backgroundColor: theme.accentSoft,
-        }}
-      >
-        <Icon
-          size={18}
-          strokeWidth={1.9}
-          style={{ color: theme.accent }}
+      {/* =====================================================
+          ARROW
+      ===================================================== */}
+
+      <div className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 group-hover:bg-zinc-100 group-hover:text-zinc-700 min-[400px]:h-7 min-[400px]:w-7">
+        <ArrowUpRight
+          size={12}
+          strokeWidth={2.2}
+          className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 min-[400px]:h-[13px] min-[400px]:w-[13px]"
         />
       </div>
 
-      <div className="relative mt-4 flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          <h4 className="text-[12px] font-black leading-5 text-zinc-900 sm:text-[13px]">
-            {title}
-          </h4>
-          <p className="mt-1 line-clamp-2 text-[9px] leading-4 text-zinc-500 sm:text-[10px]">
-            {description}
-          </p>
-        </div>
-
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-[#F8FAFC] text-zinc-400 transition-all duration-200 group-hover:border-zinc-300 group-hover:bg-white group-hover:text-zinc-700">
-          <ArrowUpRight
-            size={13}
-            strokeWidth={2}
-            className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-          />
-        </div>
-      </div>
+      {/* =====================================================
+          HOVER ACCENT
+      ===================================================== */}
 
       <div
-        className="absolute bottom-0 left-0 h-[3px] w-0 rounded-r-full transition-all duration-300 group-hover:w-16"
-        style={{ backgroundColor: theme.accent }}
+        className="absolute bottom-0 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full transition-all duration-300 group-hover:w-1/3"
+        style={{
+          backgroundColor:
+            theme.accent,
+        }}
       />
     </motion.button>
   );
@@ -1578,7 +1619,7 @@ function DashboardHealthSection({
 
   const hasValidStartTime = Boolean(
     quizConfig?.start_time &&
-      Number.isFinite(new Date(quizConfig.start_time).getTime())
+    Number.isFinite(new Date(quizConfig.start_time).getTime())
   );
 
   const questionBankReady =
@@ -1597,9 +1638,8 @@ function DashboardHealthSection({
       status: questionBankReady ? "Ready" : "Needs attention",
       detail:
         totalQuestionCount > 0
-          ? `${totalQuestionCount} ${
-              totalQuestionCount === 1 ? "question" : "questions"
-            } available`
+          ? `${totalQuestionCount} ${totalQuestionCount === 1 ? "question" : "questions"
+          } available`
           : "No questions available",
       tone: questionBankReady ? "success" : "warning",
     },
@@ -1608,9 +1648,8 @@ function DashboardHealthSection({
       title: "Quiz Configuration",
       status: quizConfigReady ? "Ready" : "Needs attention",
       detail: quizConfigReady
-        ? `${activeChapterCount} active ${
-            activeChapterCount === 1 ? "chapter" : "chapters"
-          }`
+        ? `${activeChapterCount} active ${activeChapterCount === 1 ? "chapter" : "chapters"
+        }`
         : !hasValidStartTime
           ? "Quiz start time is not set"
           : "No active chapters selected",
@@ -1627,9 +1666,8 @@ function DashboardHealthSection({
         totalQuestionCount === 0
           ? "Add questions to measure coverage"
           : needsReviewCount > 0
-            ? `${needsReviewCount} ${
-                needsReviewCount === 1 ? "question needs" : "questions need"
-              } review`
+            ? `${needsReviewCount} ${needsReviewCount === 1 ? "question needs" : "questions need"
+            } review`
             : "All questions are bilingual ready",
       tone:
         totalQuestionCount === 0
