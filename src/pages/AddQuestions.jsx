@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
+import * as XLSX from "xlsx";
 
 import {
   ArrowRight,
@@ -8,11 +9,16 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  Download,
   FileQuestion,
+  FileSpreadsheet,
   Languages,
   Plus,
   Save,
   Sparkles,
+  Upload,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 
 import { supabase } from "../supabaseClient";
@@ -25,6 +31,22 @@ import AdminLayout from "../components/admin/AdminLayout";
 
 const OPTION_LABELS = ["A", "B", "C", "D"];
 
+const IMPORT_COLUMNS = [
+  "chapter", "question_en", "question_ta",
+  "option_a_en", "option_b_en", "option_c_en", "option_d_en",
+  "option_a_ta", "option_b_ta", "option_c_ta", "option_d_ta",
+  "correct_answer",
+];
+
+const IMPORT_TEMPLATE_ROW = {
+  chapter: "John",
+  question_en: "Who came to Jesus at night?",
+  question_ta: "இரவில் இயேசுவிடம் வந்தவர் யார்?",
+  option_a_en: "Peter", option_b_en: "Nicodemus", option_c_en: "John", option_d_en: "Thomas",
+  option_a_ta: "பேதுரு", option_b_ta: "நிக்கொதேமு", option_c_ta: "யோவான்", option_d_ta: "தோமா",
+  correct_answer: "B",
+};
+
 // ===========================================================
 // ADD QUESTIONS
 // ===========================================================
@@ -35,6 +57,13 @@ export default function AddQuestions() {
   // ===========================================================
 
   const [loading, setLoading] = useState(false);
+
+  const importInputRef = useRef(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importRows, setImportRows] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const [importDragActive, setImportDragActive] = useState(false);
 
   const [chapter, setChapter] = useState("");
   const [allChapters, setAllChapters] = useState([]);
@@ -209,7 +238,7 @@ export default function AddQuestions() {
 
   const handleCorrectAnswer = (option) => {
     /*
-      Preserve existing behavior:
+      This intentionally preserves your original behavior:
       selecting A/B/C/D applies the same option position
       to both English and Tamil.
     */
@@ -316,10 +345,20 @@ export default function AddQuestions() {
 
       toast.success("Question added!");
 
-      // Keep chapter selected for quick batch entry.
+      /*
+        Keep chapter selected so multiple questions can be
+        entered into the same chapter quickly.
+
+        Your original page also did not clear chapter.
+      */
+
       resetForm();
 
-      // Add a newly-created chapter to suggestions.
+      /*
+        If this was a brand-new chapter, make it immediately
+        available in the chapter suggestions.
+      */
+
       setAllChapters((prev) => {
         const cleanChapter = chapter.trim();
 
@@ -345,6 +384,115 @@ export default function AddQuestions() {
     } finally {
       setLoading(false);
     }
+  };
+
+
+  // =========================================================
+  // BULK QUESTION IMPORT
+  // =========================================================
+
+  const resetImport = () => {
+    setImportFile(null);
+    setImportRows([]);
+    setImportDragActive(false);
+    if (importInputRef.current) importInputRef.current.value = "";
+  };
+
+  const closeImport = () => {
+    if (importing) return;
+    setImportOpen(false);
+    resetImport();
+  };
+
+  const normalizeImportValue = (value) =>
+    value === null || value === undefined ? "" : String(value).trim();
+
+  const validateImportRow = (rawRow, index) => {
+    const row = {};
+    IMPORT_COLUMNS.forEach((column) => { row[column] = normalizeImportValue(rawRow?.[column]); });
+    const errors = [];
+    const requiredFields = [
+      ["chapter", "Chapter"], ["question_en", "English question"], ["question_ta", "Tamil question"],
+      ["option_a_en", "English option A"], ["option_b_en", "English option B"], ["option_c_en", "English option C"], ["option_d_en", "English option D"],
+      ["option_a_ta", "Tamil option A"], ["option_b_ta", "Tamil option B"], ["option_c_ta", "Tamil option C"], ["option_d_ta", "Tamil option D"],
+      ["correct_answer", "Correct answer"],
+    ];
+    requiredFields.forEach(([field, label]) => { if (!row[field]) errors.push(`${label} is missing`); });
+    const correctLetter = row.correct_answer.toUpperCase();
+    if (row.correct_answer && !OPTION_LABELS.includes(correctLetter)) errors.push("Correct answer must be A, B, C or D");
+    return { id: `import-${index}-${Date.now()}`, rowNumber: index + 2, data: { ...row, correct_answer: correctLetter }, errors, valid: errors.length === 0 };
+  };
+
+  const parseImportFile = async (file) => {
+    if (!file) return;
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (!["xlsx", "xls", "csv"].includes(extension)) { toast.error("Please upload an Excel (.xlsx/.xls) or CSV file"); return; }
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) throw new Error("The uploaded spreadsheet does not contain a sheet");
+      const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: "", raw: false });
+      if (!jsonRows.length) throw new Error("The uploaded file does not contain any questions");
+      const normalizedRows = jsonRows.map((rawRow) => {
+        const normalized = {};
+        Object.entries(rawRow || {}).forEach(([key, value]) => { normalized[String(key).trim().toLowerCase()] = value; });
+        return normalized;
+      });
+      const validatedRows = normalizedRows.map(validateImportRow);
+      setImportFile(file); setImportRows(validatedRows);
+      const validCount = validatedRows.filter((row) => row.valid).length;
+      const invalidCount = validatedRows.length - validCount;
+      if (invalidCount) toast.error(`${invalidCount} ${invalidCount === 1 ? "row needs" : "rows need"} attention`);
+      else toast.success(`${validCount} ${validCount === 1 ? "question is" : "questions are"} ready to import`);
+    } catch (error) {
+      console.error("Unable to parse import file:", error); resetImport();
+      toast.error(error?.message || "Unable to read the selected file");
+    }
+  };
+
+  const handleImportFileChange = async (event) => { const file = event.target.files?.[0]; if (file) await parseImportFile(file); };
+  const handleImportDrop = async (event) => { event.preventDefault(); setImportDragActive(false); const file = event.dataTransfer.files?.[0]; if (file) await parseImportFile(file); };
+
+  const downloadImportTemplate = () => {
+    const worksheet = XLSX.utils.json_to_sheet([IMPORT_TEMPLATE_ROW], { header: IMPORT_COLUMNS });
+    worksheet["!cols"] = [{ wch: 20 }, { wch: 45 }, { wch: 45 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 16 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Questions");
+    XLSX.writeFile(workbook, "quiztians-question-import-template.xlsx");
+    toast.success("Import template downloaded");
+  };
+
+  const validImportRows = importRows.filter((row) => row.valid);
+  const invalidImportRows = importRows.filter((row) => !row.valid);
+
+  const handleBulkImport = async () => {
+    if (importing || !validImportRows.length) return;
+    if (invalidImportRows.length) { toast.error("Fix the invalid rows before importing"); return; }
+    setImporting(true);
+    try {
+      const questionsToInsert = validImportRows.map(({ data }) => {
+        const key = data.correct_answer.toLowerCase();
+        return {
+          chapter: data.chapter.trim(), question_en: data.question_en.trim(), question_ta: data.question_ta.trim(),
+          option_a_en: data.option_a_en.trim(), option_b_en: data.option_b_en.trim(), option_c_en: data.option_c_en.trim(), option_d_en: data.option_d_en.trim(),
+          option_a_ta: data.option_a_ta.trim(), option_b_ta: data.option_b_ta.trim(), option_c_ta: data.option_c_ta.trim(), option_d_ta: data.option_d_ta.trim(),
+          correct_answer: data[`option_${key}_en`].trim(), correct_answer_ta: data[`option_${key}_ta`].trim(), created_at: new Date().toISOString(),
+        };
+      });
+      const { error } = await supabase.from("questions").insert(questionsToInsert);
+      if (error) throw error;
+      const importedChapters = [...new Set(questionsToInsert.map((q) => q.chapter))];
+      setAllChapters((previous) => {
+        const map = new Map(previous.map((item) => [item.toLowerCase(), item]));
+        importedChapters.forEach((item) => { if (!map.has(item.toLowerCase())) map.set(item.toLowerCase(), item); });
+        return Array.from(map.values());
+      });
+      await logAdminActivity({ action: "IMPORT_QUESTIONS", module: "Questions", description: `Imported ${questionsToInsert.length} questions from "${importFile?.name || "spreadsheet"}"`, targetType: "question" });
+      toast.success(`${questionsToInsert.length} ${questionsToInsert.length === 1 ? "question" : "questions"} imported successfully`);
+      setImportOpen(false); resetImport();
+    } catch (error) { console.error("Question import failed:", error); toast.error(error?.message || "Unable to import questions"); }
+    finally { setImporting(false); }
   };
 
   // =========================================================
@@ -394,6 +542,15 @@ export default function AddQuestions() {
             }}
           />
 
+          {/* IMPORT NOTE */}
+          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-sky-500/10 bg-sky-500/[0.04] px-4 py-3.5">
+            <FileSpreadsheet size={17} className="mt-0.5 shrink-0 text-sky-400" />
+            <p className="text-[11px] leading-5 text-zinc-500 sm:text-[12px]">
+              <span className="font-black text-zinc-900">Quick tip:</span>{" "}
+              You can import questions using the Import Questions option. Download the template, fill in your bilingual questions, then upload the Excel or CSV file to add multiple questions at once.
+            </p>
+          </div>
+
           {/* =================================================
               PAGE INTRO
           ================================================= */}
@@ -407,22 +564,11 @@ export default function AddQuestions() {
               opacity: 1,
               y: 0,
             }}
-            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 shadow-[0_10px_30px_rgba(24,24,27,0.07)] sm:p-6 lg:p-7"
+            className="relative overflow-hidden rounded-[24px] border border-zinc-200/90 bg-white p-5 sm:p-6 lg:p-7"
           >
             <div
               className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full blur-[100px]"
-              style={{
-                backgroundColor: `${theme.accent}10`,
-              }}
-            />
-
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.025]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(24,24,27,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(24,24,27,.18) 1px, transparent 1px)",
-                backgroundSize: "34px 34px",
-              }}
+              style={{ backgroundColor: `${theme.accent}10` }}
             />
 
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -449,39 +595,23 @@ export default function AddQuestions() {
                   Create a new quiz question
                 </h2>
 
-                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-zinc-600">
+                <p className="mt-2 max-w-2xl text-[13px] leading-6 text-zinc-500">
                   Build the English and Tamil versions
                   together, select the correct answer and
                   review everything before publishing.
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border"
-                  style={{
-                    borderColor: `${theme.accent}20`,
-                    backgroundColor:
-                      theme.accentSoft,
-                  }}
-                >
-                  <Languages
-                    size={18}
-                    style={{
-                      color: theme.accent,
-                    }}
-                  />
+              <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
+                <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={{ borderColor: `${theme.accent}20`, backgroundColor: theme.accentSoft }}>
+                    <Languages size={18} style={{ color: theme.accent }} />
+                  </div>
+                  <div><p className="text-[12px] font-black text-zinc-900">Bilingual question</p><p className="mt-1 text-[11px] text-zinc-500">English + Tamil</p></div>
                 </div>
-
-                <div>
-                  <p className="text-[12px] font-black text-zinc-900">
-                    Bilingual question
-                  </p>
-
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    English + Tamil
-                  </p>
-                </div>
+                <button type="button" onClick={() => setImportOpen(true)} className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-[11px] font-black text-zinc-400 transition hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900">
+                  <Upload size={15} style={{ color: theme.accent }} /> Import Questions
+                </button>
               </div>
             </div>
           </motion.section>
@@ -507,8 +637,12 @@ export default function AddQuestions() {
               transition={{
                 delay: 0.05,
               }}
-              className="rounded-[22px] border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(24,24,27,0.07)] sm:p-5 lg:p-6"
+              className="rounded-[22px] border border-zinc-200/90 bg-white p-4 sm:p-5 lg:p-6"
             >
+              {/* =============================================
+                  CARD HEADER
+              ============================================= */}
+
               <SectionHeading
                 icon={FileQuestion}
                 title="Question Details"
@@ -516,7 +650,9 @@ export default function AddQuestions() {
                 theme={theme}
               />
 
-              {/* CHAPTER */}
+              {/* =============================================
+                  CHAPTER
+              ============================================= */}
 
               <div className="mt-6">
                 <ChapterInput
@@ -527,7 +663,9 @@ export default function AddQuestions() {
                 />
               </div>
 
-              {/* LANGUAGE */}
+              {/* =============================================
+                  LANGUAGE TABS
+              ============================================= */}
 
               <div className="mt-6">
                 <div className="flex items-center justify-between gap-4">
@@ -566,7 +704,9 @@ export default function AddQuestions() {
                 />
               </div>
 
-              {/* LANGUAGE CONTENT */}
+              {/* =============================================
+                  LANGUAGE CONTENT
+              ============================================= */}
 
               <AnimatePresence mode="wait">
                 <motion.div
@@ -588,6 +728,8 @@ export default function AddQuestions() {
                   }}
                   className="mt-6"
                 >
+                  {/* QUESTION */}
+
                   <FieldLabel
                     label={
                       tabIndex === 0
@@ -616,7 +758,7 @@ export default function AddQuestions() {
                         ? "Enter the question in English..."
                         : "தமிழில் கேள்வியை உள்ளிடவும்..."
                     }
-                    className="mt-2 w-full resize-none rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] px-4 py-3.5 text-[14px] leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(24,24,27,0.025)]"
+                    className="mt-2 w-full resize-none rounded-2xl border border-zinc-200 bg-[#F8FAFC] px-4 py-3.5 text-[14px] leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white"
                   />
 
                   {/* OPTIONS */}
@@ -693,8 +835,8 @@ export default function AddQuestions() {
                               )
                             }
                             className={`relative flex h-12 items-center justify-center rounded-xl border text-[14px] font-black transition ${selected
-                                ? ""
-                                : "border-zinc-200 bg-white text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+                              ? "text-zinc-900"
+                              : "border-zinc-200/90 bg-zinc-50 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900"
                               }`}
                             style={
                               selected
@@ -730,7 +872,9 @@ export default function AddQuestions() {
                 </motion.div>
               </AnimatePresence>
 
-              {/* COMPLETION */}
+              {/* =============================================
+                  COMPLETION
+              ============================================= */}
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <LanguageProgress
@@ -746,15 +890,17 @@ export default function AddQuestions() {
                 />
               </div>
 
-              {/* SUBMIT */}
+              {/* =============================================
+                  SUBMIT
+              ============================================= */}
 
               <button
                 type="button"
                 disabled={!allFieldsFilled || loading}
                 onClick={handleAddQuestion}
                 className={`mt-5 flex w-full items-center justify-center gap-2.5 rounded-2xl px-5 py-4 text-[14px] font-black transition ${allFieldsFilled && !loading
-                    ? "text-white shadow-lg hover:-translate-y-0.5"
-                    : "cursor-not-allowed border border-zinc-200 bg-zinc-100 text-zinc-400"
+                  ? "text-white shadow-lg hover:-translate-y-0.5"
+                  : "cursor-not-allowed border border-zinc-200 bg-zinc-50 text-zinc-400"
                   }`}
                 style={
                   allFieldsFilled && !loading
@@ -762,7 +908,7 @@ export default function AddQuestions() {
                       background: `linear-gradient(90deg, ${theme.accent}, ${theme.chartSecondary ||
                         theme.accent
                         })`,
-                      boxShadow: `0 12px 30px ${theme.accent}20`,
+                      boxShadow: `0 12px 30px ${theme.accent}18`,
                     }
                     : undefined
                 }
@@ -770,12 +916,15 @@ export default function AddQuestions() {
                 {loading ? (
                   <>
                     <LoadingSpinner />
+
                     Adding question...
                   </>
                 ) : (
                   <>
                     <Plus size={18} />
+
                     Add Question
+
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -820,10 +969,47 @@ export default function AddQuestions() {
               />
             </motion.div>
           </section>
+          <AnimatePresence>
+            {importOpen && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/35 p-3 backdrop-blur-sm sm:p-5" onMouseDown={(e) => { if (e.target === e.currentTarget && !importing) closeImport(); }}>
+                <motion.div initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: .98 }} className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-[0_30px_100px_rgba(24,24,27,.18)]">
+                  <div className="flex items-start justify-between gap-4 border-b border-zinc-200/90 px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="flex items-start gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={{ borderColor: `${theme.accent}25`, backgroundColor: theme.accentSoft }}><FileSpreadsheet size={18} style={{ color: theme.accent }} /></div><div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: theme.accent }}>Bulk Import</p><h3 className="mt-1 text-[20px] font-black text-zinc-900">Import Questions</h3><p className="mt-1 text-[11px] text-zinc-500">Upload bilingual questions using Excel or CSV.</p></div></div>
+                    <button type="button" disabled={importing} onClick={closeImport} className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200/90 text-zinc-500 hover:text-zinc-900"><X size={16} /></button>
+                  </div>
+                  <div className="overflow-y-auto px-4 py-5 sm:px-6">
+                    <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-[12px] font-black text-zinc-900">Start with our template</p><p className="mt-1 text-[10px] leading-5 text-zinc-500">Keep the column names unchanged. Use A, B, C or D in correct_answer.</p></div><button type="button" onClick={downloadImportTemplate} className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-[10px] font-black text-zinc-400 hover:bg-zinc-100"><Download size={14} /> Download Template</button></div>
+                    <input ref={importInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportFileChange} className="hidden" />
+                    <div onDragEnter={(e) => { e.preventDefault(); setImportDragActive(true) }} onDragOver={(e) => { e.preventDefault(); setImportDragActive(true) }} onDragLeave={(e) => { e.preventDefault(); setImportDragActive(false) }} onDrop={handleImportDrop} className={`mt-4 rounded-[20px] border border-dashed p-6 text-center transition sm:p-8 ${importDragActive ? "border-zinc-300 bg-zinc-100" : "border-zinc-200 bg-zinc-50"}`}>
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border" style={{ borderColor: `${theme.accent}25`, backgroundColor: theme.accentSoft }}><Upload size={20} style={{ color: theme.accent }} /></div><p className="mt-4 text-[13px] font-black text-zinc-900">Drop your spreadsheet here</p><p className="mt-1 text-[10px] text-zinc-500">Excel .xlsx / .xls or CSV</p><button type="button" onClick={() => importInputRef.current?.click()} className="mt-4 rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-2.5 text-[10px] font-black text-zinc-400 hover:bg-zinc-100">Browse File</button>{importFile && <p className="mx-auto mt-4 max-w-md truncate text-[10px] font-bold text-zinc-500">{importFile.name}</p>}
+                    </div>
+                    {importRows.length > 0 && <><div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3"><ImportStat label="Total" value={importRows.length} /><ImportStat label="Ready" value={validImportRows.length} tone="success" /><ImportStat label="Invalid" value={invalidImportRows.length} tone={invalidImportRows.length ? "danger" : "success"} /></div><div className="mt-5"><div className="flex justify-between"><div><p className="text-[12px] font-black text-zinc-900">Import Preview</p><p className="mt-1 text-[10px] text-zinc-500">Review all rows before importing.</p></div><span className="text-[9px] font-black uppercase text-zinc-400">{importRows.length} rows</span></div><div className="mt-3 max-h-[330px] divide-y divide-white/[0.05] overflow-y-auto rounded-2xl border border-zinc-200/90">{importRows.map((row) => <ImportPreviewRow key={row.id} row={row} />)}</div></div></>}
+                  </div>
+                  <div className="border-t border-zinc-200/90 bg-[#F8FAFC] px-4 py-4 sm:px-6">
+                    {invalidImportRows.length > 0 && <div className="mb-3 flex gap-2 rounded-xl border border-amber-500/10 bg-amber-500/[0.04] px-3 py-2.5"><AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-500" /><p className="text-[10px] leading-5 text-amber-500/80">Correct the invalid rows in your spreadsheet and upload it again before importing.</p></div>}
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={importing} onClick={closeImport} className="rounded-xl border border-zinc-200 px-4 py-3 text-[11px] font-black text-zinc-500">Cancel</button><button type="button" disabled={importing || !validImportRows.length || invalidImportRows.length > 0} onClick={handleBulkImport} className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[11px] font-black disabled:border disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400" style={!importing && validImportRows.length && !invalidImportRows.length ? { background: `linear-gradient(90deg, ${theme.accent}, ${theme.chartSecondary || theme.accent})`, color: "#fff" } : undefined}>{importing ? <><LoadingSpinner /> Importing...</> : <><Upload size={15} /> Import {validImportRows.length} {validImportRows.length === 1 ? "Question" : "Questions"}</>}</button></div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </>
       )}
     </AdminLayout>
   );
+}
+
+
+// ===========================================================
+// IMPORT HELPERS
+// ===========================================================
+function ImportStat({ label, value, tone = "neutral" }) {
+  const styles = { neutral: "border-zinc-200/90 bg-zinc-50 text-zinc-400", success: "border-emerald-500/10 bg-emerald-500/[0.04] text-emerald-500", danger: "border-red-500/10 bg-red-500/[0.04] text-red-500" };
+  return <div className={`rounded-2xl border p-3 text-center sm:p-4 ${styles[tone]}`}><p className="text-[20px] font-black">{value}</p><p className="mt-1 text-[8px] font-black uppercase tracking-[.1em] opacity-60 sm:text-[9px]">{label}</p></div>;
+}
+
+function ImportPreviewRow({ row }) {
+  return <div className="bg-[#F8FAFC] p-3.5 sm:p-4"><div className="flex items-start gap-3"><div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${row.valid ? "border-emerald-500/10 bg-emerald-500/[0.04] text-emerald-500" : "border-red-500/10 bg-red-500/[0.04] text-red-500"}`}>{row.valid ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="text-[9px] font-black uppercase text-zinc-400">Row {row.rowNumber}</span><span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase ${row.valid ? "border-emerald-500/10 text-emerald-500" : "border-red-500/10 text-red-500"}`}>{row.valid ? "Ready" : "Invalid"}</span></div><p className="mt-2 truncate text-[11px] font-black text-zinc-400">{row.data.chapter || "No chapter"}</p><p className="mt-1 line-clamp-2 text-[10px] leading-5 text-zinc-500">{row.data.question_en || "English question missing"}</p>{row.valid ? <p className="mt-2 text-[9px] font-bold text-emerald-500/70">Correct option: {row.data.correct_answer}</p> : <div className="mt-2 space-y-1">{row.errors.map((error) => <p key={error} className="text-[9px] leading-4 text-red-400/80">• {error}</p>)}</div>}</div></div></div>;
 }
 
 // ===========================================================
@@ -840,8 +1026,7 @@ function ChapterInput({
 
   const wrapperRef = useRef(null);
 
-  const normalizedValue =
-    value.trim().toLowerCase();
+  const normalizedValue = value.trim().toLowerCase();
 
   const filteredChapters = useMemo(() => {
     if (!normalizedValue) {
@@ -895,7 +1080,7 @@ function ChapterInput({
       <div className="relative mt-2">
         <BookOpen
           size={17}
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"
         />
 
         <input
@@ -907,16 +1092,14 @@ function ChapterInput({
             setOpen(true);
           }}
           placeholder="Select or enter a chapter"
-          className="h-12 w-full rounded-2xl border border-zinc-200/90 bg-[#F8FAFC] pl-11 pr-11 text-[13px] font-medium text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(24,24,27,0.025)]"
+          className="h-12 w-full rounded-2xl border border-zinc-200 bg-[#F8FAFC] pl-11 pr-11 text-[13px] font-medium text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white"
         />
 
         <button
           type="button"
-          onClick={() =>
-            setOpen((prev) => !prev)
-          }
+          onClick={() => setOpen((prev) => !prev)}
           aria-label="Show chapters"
-          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-400"
         >
           <ChevronDown
             size={16}
@@ -926,7 +1109,9 @@ function ChapterInput({
         </button>
       </div>
 
-      {/* DROPDOWN */}
+      {/* =====================================================
+          DROPDOWN
+      ===================================================== */}
 
       <AnimatePresence>
         {open &&
@@ -951,7 +1136,7 @@ function ChapterInput({
               transition={{
                 duration: 0.15,
               }}
-              className="admin-hidden-scrollbar absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[230px] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_18px_50px_rgba(24,24,27,0.14)]"
+              className="admin-hidden-scrollbar absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[230px] overflow-y-auto rounded-2xl border border-zinc-200 bg-[#161619] p-2 shadow-2xl"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
@@ -966,7 +1151,7 @@ function ChapterInput({
                       onChange(item);
                       setOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                   >
                     <BookOpen
                       size={14}
@@ -1004,7 +1189,7 @@ function ChapterInput({
                   <>
                     {filteredChapters.length >
                       0 && (
-                        <div className="my-1 border-t border-zinc-200" />
+                        <div className="my-1 border-t border-zinc-200/90" />
                       )}
 
                     <button
@@ -1031,7 +1216,7 @@ function ChapterInput({
                           Use new chapter
                         </p>
 
-                        <p className="truncate text-[12px] font-bold text-zinc-900">
+                        <p className="truncate text-[12px] font-bold text-zinc-400">
                           {value.trim()}
                         </p>
                       </div>
@@ -1085,25 +1270,19 @@ function LanguageTabs({
               setTabIndex(tab.index)
             }
             className={`relative flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-[12px] font-black transition ${active
-                ? ""
-                : "text-zinc-500 hover:bg-white/70 hover:text-zinc-900"
+              ? "text-zinc-900"
+              : "text-zinc-500 hover:text-zinc-400"
               }`}
-            style={
-              active
-                ? {
-                  color: theme.accent,
-                }
-                : undefined
-            }
           >
             {active && (
               <motion.div
                 layoutId="add-question-language"
-                className="absolute inset-0 rounded-xl border bg-white shadow-sm"
+                className="absolute inset-0 rounded-xl border"
                 style={{
+                  backgroundColor:
+                    theme.accentSoft,
                   borderColor:
-                    `${theme.accent}25`,
-                  boxShadow: `0 4px 14px ${theme.accent}0D`,
+                    `${theme.accent}20`,
                 }}
               />
             )}
@@ -1120,8 +1299,7 @@ function LanguageTabs({
                   }
                   : {
                     backgroundColor:
-                      "#E4E4E7",
-                    color: "#52525B",
+                      "rgba(255,255,255,.03)",
                   }
               }
             >
@@ -1135,7 +1313,7 @@ function LanguageTabs({
             {tab.complete && (
               <CheckCircle2
                 size={14}
-                className="relative text-emerald-600"
+                className="relative text-emerald-500"
               />
             )}
           </button>
@@ -1162,11 +1340,7 @@ function OptionInput({
       style={{
         borderColor: selected
           ? `${theme.accent}35`
-          : "#E4E4E7",
-
-        boxShadow: selected
-          ? `0 5px 18px ${theme.accent}0A`
-          : "none",
+          : "rgba(255,255,255,.055)",
       }}
     >
       <div className="mb-2 flex items-center justify-between">
@@ -1184,11 +1358,11 @@ function OptionInput({
                     theme.accentSoft,
                 }
                 : {
-                  color: "#52525B",
+                  color: "#71717A",
                   borderColor:
-                    "#E4E4E7",
+                    "rgba(255,255,255,.06)",
                   backgroundColor:
-                    "#FFFFFF",
+                    "rgba(255,255,255,.02)",
                 }
             }
           >
@@ -1201,8 +1375,9 @@ function OptionInput({
         </div>
 
         {selected && (
-          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-600">
+          <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-500">
             <Check size={11} />
+
             Correct
           </span>
         )}
@@ -1215,7 +1390,7 @@ function OptionInput({
           onChange(e.target.value)
         }
         placeholder={`Enter option ${label}`}
-        className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-[13px] text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(24,24,27,0.025)]"
+        className="h-10 w-full rounded-xl border border-zinc-200/90 bg-white px-3 text-[13px] text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-300"
       />
     </div>
   );
@@ -1236,10 +1411,10 @@ function LivePreview({
   theme,
 }) {
   return (
-    <div className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white shadow-[0_8px_24px_rgba(24,24,27,0.07)]">
+    <div className="overflow-hidden rounded-[22px] border border-zinc-200/90 bg-white">
       {/* HEADER */}
 
-      <div className="border-b border-zinc-200/80 px-4 py-4 sm:px-5">
+      <div className="border-b border-zinc-200/90 px-4 py-4 sm:px-5">
         <div className="flex items-center justify-between gap-3">
           <SectionHeading
             icon={Save}
@@ -1248,7 +1423,7 @@ function LivePreview({
             theme={theme}
           />
 
-          <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-700">
+          <span className="shrink-0 rounded-full border border-emerald-500/10 bg-emerald-500/[0.04] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-500/70">
             Live
           </span>
         </div>
@@ -1266,8 +1441,8 @@ function LivePreview({
 
           <p
             className={`mt-1.5 text-[13px] font-bold ${chapter
-                ? "text-zinc-900"
-                : "text-zinc-400"
+              ? "text-zinc-400"
+              : "text-zinc-400"
               }`}
           >
             {chapter || "No chapter selected"}
@@ -1288,14 +1463,14 @@ function LivePreview({
         {/* DIVIDER */}
 
         <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-zinc-200" />
+          <div className="h-px flex-1 bg-zinc-100" />
 
           <Languages
             size={14}
             className="text-zinc-400"
           />
 
-          <div className="h-px flex-1 bg-zinc-200" />
+          <div className="h-px flex-1 bg-zinc-100" />
         </div>
 
         {/* TAMIL */}
@@ -1343,7 +1518,7 @@ function PreviewLanguage({
           {languageCode}
         </span>
 
-        <p className="text-[12px] font-black text-zinc-800">
+        <p className="text-[12px] font-black text-zinc-400">
           {label}
         </p>
       </div>
@@ -1373,15 +1548,21 @@ function PreviewLanguage({
             return (
               <div
                 key={option.label}
-                className={`flex items-start gap-3 rounded-xl border px-3 py-3 ${selected
-                    ? "border-emerald-200 bg-emerald-50/70"
-                    : "border-zinc-200/90 bg-[#F8FAFC]"
-                  }`}
+                className="flex items-start gap-3 rounded-xl border px-3 py-3"
+                style={{
+                  borderColor: selected
+                    ? "rgba(34,197,94,.18)"
+                    : "rgba(255,255,255,.05)",
+
+                  backgroundColor: selected
+                    ? "rgba(34,197,94,.045)"
+                    : "rgba(255,255,255,.015)",
+                }}
               >
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black ${selected
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "border border-zinc-200 bg-white text-zinc-500"
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "bg-zinc-50 text-zinc-500"
                     }`}
                 >
                   {selected ? (
@@ -1394,8 +1575,8 @@ function PreviewLanguage({
                 <div className="min-w-0 flex-1">
                   <p
                     className={`break-words text-[12px] leading-5 ${selected
-                        ? "font-semibold text-emerald-800"
-                        : "font-medium text-zinc-600"
+                      ? "font-semibold text-emerald-300/90"
+                      : "font-medium text-zinc-500"
                       }`}
                   >
                     {option.value}
@@ -1403,7 +1584,7 @@ function PreviewLanguage({
                 </div>
 
                 {selected && (
-                  <span className="mt-0.5 shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-600">
+                  <span className="mt-0.5 shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-500/70">
                     Correct
                   </span>
                 )}
@@ -1411,7 +1592,7 @@ function PreviewLanguage({
             );
           })
         ) : (
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-[#F8FAFC] px-4 py-5 text-center">
+          <div className="rounded-xl border border-dashed border-zinc-200/90 px-4 py-5 text-center">
             <p className="text-[11px] text-zinc-400">
               Options will appear here
             </p>
@@ -1433,15 +1614,21 @@ function LanguageProgress({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl border px-3 py-3 ${complete
-          ? "border-emerald-200 bg-emerald-50/70"
-          : "border-zinc-200/90 bg-[#F8FAFC]"
-        }`}
+      className="flex items-center gap-3 rounded-xl border px-3 py-3"
+      style={{
+        borderColor: complete
+          ? "rgba(34,197,94,.12)"
+          : "rgba(255,255,255,.05)",
+
+        backgroundColor: complete
+          ? "rgba(34,197,94,.025)"
+          : "rgba(255,255,255,.012)",
+      }}
     >
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${complete
-            ? "bg-emerald-100 text-emerald-700"
-            : "border border-zinc-200 bg-white text-zinc-400"
+          ? "bg-emerald-500/10 text-emerald-500"
+          : "bg-zinc-50 text-zinc-400"
           }`}
       >
         {complete ? (
@@ -1452,14 +1639,14 @@ function LanguageProgress({
       </div>
 
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-bold text-zinc-700">
+        <p className="truncate text-[11px] font-bold text-zinc-500">
           {label}
         </p>
 
         <p
           className={`mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${complete
-              ? "text-emerald-600"
-              : "text-zinc-400"
+            ? "text-emerald-500/70"
+            : "text-zinc-400"
             }`}
         >
           {complete
@@ -1482,8 +1669,8 @@ function CompletionBadge({
   return (
     <div
       className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${complete
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-zinc-200 bg-[#F8FAFC] text-zinc-400"
+        ? "border-emerald-500/10 bg-emerald-500/[0.04] text-emerald-500/70"
+        : "border-zinc-200/90 bg-zinc-50 text-zinc-400"
         }`}
     >
       {complete && <Check size={10} />}
@@ -1510,8 +1697,7 @@ function SectionHeading({
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
         style={{
-          borderColor:
-            `${theme.accent}20`,
+          borderColor: `${theme.accent}18`,
           backgroundColor:
             theme.accentSoft,
         }}
@@ -1547,11 +1733,11 @@ function FieldLabel({
   required = false,
 }) {
   return (
-    <label className="flex items-center gap-1 text-[12px] font-bold text-zinc-700">
+    <label className="flex items-center gap-1 text-[12px] font-bold text-zinc-500">
       {label}
 
       {required && (
-        <span className="text-red-500">
+        <span className="text-red-400/70">
           *
         </span>
       )}
