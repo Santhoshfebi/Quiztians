@@ -83,31 +83,83 @@ export default function Quiz() {
       "pendingQuizResult"
     );
 
-    if (pending) {
-      const data = JSON.parse(pending);
+    if (!pending) return;
 
-      (async () => {
-        try {
-          await supabase.from("results").insert([data]);
+    (async () => {
+      try {
+        const stored = JSON.parse(pending);
 
-          sessionStorage.removeItem(
-            "pendingQuizResult"
-          );
+        // Backward compatibility with older pending-result data.
+        const payload = stored?.result
+          ? stored
+          : {
+            result: stored,
+            answers: [],
+          };
 
-          toast.success(
-            "Your last quiz result was safely restored!",
+        const { data, error } =
+          await supabase.functions.invoke(
+            "submit-quiz",
             {
-              duration: 4000,
+              body: payload,
             }
           );
-        } catch (err) {
+
+        if (error) {
           console.error(
-            "Error restoring pending result:",
-            err
+            "Error restoring pending quiz result:",
+            error
+          );
+          return;
+        }
+
+        if (!data?.success) {
+          if (data?.code === "ALREADY_ATTEMPTED") {
+            sessionStorage.removeItem(
+              "pendingQuizResult"
+            );
+          }
+
+          console.error(
+            "Pending quiz restore was rejected:",
+            data
+          );
+          return;
+        }
+
+        sessionStorage.removeItem(
+          "pendingQuizResult"
+        );
+
+        // Keep a newly issued activation token available for
+        // the Result page if this recovery happens in-session.
+        if (data?.activation_token) {
+          sessionStorage.setItem(
+            "quiztians-profile-activation-token",
+            data.activation_token
           );
         }
-      })();
-    }
+
+        if (data?.profile_claim_code) {
+          sessionStorage.setItem(
+            "quiztians-profile-claim-code",
+            data.profile_claim_code
+          );
+        }
+
+        toast.success(
+          "Your last quiz result was safely restored!",
+          {
+            duration: 4000,
+          }
+        );
+      } catch (err) {
+        console.error(
+          "Error processing pending result:",
+          err
+        );
+      }
+    })();
   }, []);
 
   // =========================================================
@@ -462,7 +514,6 @@ export default function Quiz() {
     }
 
     quizSubmittedRef.current = true;
-
     setHasSubmitted(true);
 
     localStorage.setItem(
@@ -480,7 +531,6 @@ export default function Quiz() {
 
     if (start_time) {
       const start = new Date(start_time);
-
       const end = new Date(end_time);
 
       time_taken = Math.floor(
@@ -490,95 +540,133 @@ export default function Quiz() {
 
     const resultData = {
       name: results.name,
-
       phone: results.phone,
-
       place: results.place,
-
       chapter: selectedChapter,
-
       score,
-
       total: questions.length,
-
       language:
         language === "en"
           ? "English"
           : "Tamil",
-
       start_time,
-
       end_time,
-
       time_taken,
     };
 
-    let resultInsert;
+    let activationToken = null;
+    let profileClaimCode = null;
+    let savedResultId = null;
 
     // -------------------------------------------------------
-    // SAVE RESULT
+    // SECURE QUIZ SUBMISSION
     // -------------------------------------------------------
 
     if (!isPreview) {
+      const submissionPayload = {
+        result: resultData,
+        answers: answersTracker.current.map(
+          (answer) => ({
+            question: answer.question,
+            correct_answer:
+              answer.correct_answer,
+            user_answer:
+              answer.user_answer,
+            lang: answer.lang,
+          })
+        ),
+      };
+
+      // Auto-submit keeps the complete payload locally until
+      // the Edge Function confirms that it was saved.
       if (isAuto) {
         sessionStorage.setItem(
           "pendingQuizResult",
-          JSON.stringify(resultData)
+          JSON.stringify(submissionPayload)
         );
       }
 
       try {
-        resultInsert = await supabase
-          .from("results")
-          .insert([resultData])
-          .select("id");
+        const { data, error } =
+          await supabase.functions.invoke(
+            "submit-quiz",
+            {
+              body: submissionPayload,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data?.success) {
+          if (data?.code === "ALREADY_ATTEMPTED") {
+            sessionStorage.removeItem(
+              "pendingQuizResult"
+            );
+
+            toast.error(
+              "You have already attempted this chapter."
+            );
+
+            navigate("/already-attempted", {
+              state: {
+                ...results,
+                chapter: selectedChapter,
+              },
+            });
+
+            return;
+          }
+
+          throw new Error(
+            data?.error ||
+            "Unable to submit quiz"
+          );
+        }
+
+        savedResultId =
+          data.result_id ?? null;
+
+        activationToken =
+          data.activation_token ?? null;
+
+        profileClaimCode =
+          data.profile_claim_code ?? null;
 
         sessionStorage.removeItem(
           "pendingQuizResult"
         );
+
+        if (activationToken) {
+          sessionStorage.setItem(
+            "quiztians-profile-activation-token",
+            activationToken
+          );
+        } else {
+          sessionStorage.removeItem(
+            "quiztians-profile-activation-token"
+          );
+        }
       } catch (error) {
         console.error(
           "Error submitting quiz:",
           error
         );
-      }
-    }
 
-    // -------------------------------------------------------
-    // SAVE ANSWER HISTORY
-    // -------------------------------------------------------
+        // A pending auto-submit remains in sessionStorage so
+        // the recovery effect can safely retry it.
+        if (!isAuto) {
+          localStorage.removeItem(attemptKey);
+          quizSubmittedRef.current = false;
+          setHasSubmitted(false);
 
-    if (resultInsert?.data?.[0]?.id) {
-      const result_id =
-        resultInsert.data[0].id;
+          toast.error(
+            "Unable to submit your quiz. Please try again."
+          );
 
-      const formattedAnswers =
-        answersTracker.current.map((a) => ({
-          result_id,
-
-          phone: results.phone,
-
-          chapter: selectedChapter,
-
-          question: a.question,
-
-          correct_answer:
-            a.correct_answer,
-
-          user_answer: a.user_answer,
-
-          lang: a.lang,
-        }));
-
-      try {
-        await supabase
-          .from("answers_history")
-          .insert(formattedAnswers);
-      } catch (err) {
-        console.error(
-          "Error saving answers_history:",
-          err
-        );
+          return;
+        }
       }
     }
 
@@ -596,14 +684,15 @@ export default function Quiz() {
       {
         state: {
           ...results,
-
           score,
-
           total: questions.length,
-
           isPreview,
-
           time_taken,
+          result_id: savedResultId,
+          activation_token:
+            activationToken,
+          profile_claim_code:
+            profileClaimCode,
         },
       }
     );

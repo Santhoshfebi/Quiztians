@@ -819,6 +819,55 @@ export default function Welcome() {
                   : "வேதாகமத்தை கற்றுக்கொள்ளுங்கள். உங்கள் அறிவை சோதியுங்கள். உங்களை சவாலுக்கு உட்படுத்தி உங்கள் அறிவை கண்டறியுங்கள்."}
               </p>
 
+              {/* MY PROFILE — HIGH VISIBILITY */}
+
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  y: 10,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  delay: 0.08,
+                  duration: 0.4,
+                }}
+                className="mt-5 flex justify-center"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate("/profile")}
+                  className="group flex min-h-[50px] w-full max-w-[330px] items-center justify-between rounded-2xl border border-violet-500/15 bg-violet-500/[0.045] px-4 text-left shadow-[0_16px_45px_-26px_rgba(124,58,237,0.8)] backdrop-blur transition hover:-translate-y-0.5 hover:border-violet-500/25 hover:bg-violet-500/[0.08]"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/15 bg-violet-500/[0.09] text-violet-400 transition group-hover:bg-violet-500/[0.13]">
+                      <UserRound size={16} />
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-black text-zinc-200 sm:text-xs">
+                        {pageLanguage === "en"
+                          ? "My Profile"
+                          : "என் சுயவிவரம்"}
+                      </span>
+
+                      <span className="mt-0.5 block truncate text-[9px] font-medium text-zinc-600 sm:text-[10px]">
+                        {pageLanguage === "en"
+                          ? "View history & achievements"
+                          : "வரலாறு மற்றும் சாதனைகளைப் பார்க்க"}
+                      </span>
+                    </span>
+                  </span>
+
+                  <ArrowRight
+                    size={15}
+                    className="ml-3 shrink-0 text-violet-400 transition-transform group-hover:translate-x-1"
+                  />
+                </button>
+              </motion.div>
+
               {/* LIVE STATE */}
 
               {isQuizAvailable ? (
@@ -1143,6 +1192,8 @@ export default function Welcome() {
                   : "விரைவில்"}
               </span>
             </button>
+
+
           </div>
         </section>
       </main>

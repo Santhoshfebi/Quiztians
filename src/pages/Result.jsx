@@ -19,6 +19,7 @@ export default function Result() {
     total,
     chapter,
     time_taken,
+    profile_claim_code,
   } = state || {};
 
   // =========================================================
@@ -247,6 +248,39 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
             }
           );
         });
+    }
+  };
+
+  // =========================================================
+  // COPY PROFILE CLAIM CODE
+  // =========================================================
+
+  const handleCopyClaimCode = async () => {
+    if (!profile_claim_code) return;
+
+    try {
+      await navigator.clipboard.writeText(profile_claim_code);
+
+      toast.success(
+        "Profile Claim Code copied!",
+        {
+          position: "top-center",
+          autoClose: 2000,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Unable to copy Profile Claim Code:",
+        error
+      );
+
+      toast.error(
+        "Unable to copy the claim code.",
+        {
+          position: "top-center",
+          autoClose: 2000,
+        }
+      );
     }
   };
 
@@ -932,6 +966,83 @@ Rank: ${rank ? `#${rank}` : "Unranked"}
                     </p>
                   </div>
                 </div>
+
+                {/* ===========================================
+                    PROFILE CLAIM CODE
+                =========================================== */}
+
+                {profile_claim_code &&
+                  !isRuleFailure && (
+                    <motion.div
+                      initial={{
+                        opacity: 0,
+                        y: 12,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      transition={{
+                        delay: 0.34,
+                      }}
+                      className="mt-5 overflow-hidden rounded-[22px] border border-violet-500/20 bg-violet-500/[0.055]"
+                    >
+                      <div className="p-4 sm:p-5">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/[0.08]">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              className="h-4 w-4 text-violet-400"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M7 10V8a5 5 0 0 1 10 0v2M6 10h12v10H6V10Z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                d="M12 14v2"
+                              />
+                            </svg>
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-black text-violet-200">
+                              Save your Profile Claim Code
+                            </p>
+
+                            <p className="mt-1 text-[10px] leading-4 text-zinc-500">
+                              Keep this code somewhere safe. You can use it later to activate your QUIZTIANS profile if the quick setup link is no longer available.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                          <div className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/[0.07] bg-[#09090B]/60 px-4">
+                            <span className="break-all text-center font-mono text-sm font-black tracking-[0.12em] text-white">
+                              {profile_claim_code}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleCopyClaimCode}
+                            className="min-h-[48px] shrink-0 rounded-xl border border-violet-500/20 bg-violet-500/[0.09] px-5 text-[11px] font-black text-violet-300 transition hover:bg-violet-500/[0.14] hover:text-violet-200 active:scale-[0.985]"
+                          >
+                            Copy Code
+                          </button>
+                        </div>
+
+                        <p className="mt-3 text-[9px] leading-4 text-amber-300/70">
+                          This code is shown only when it is first issued. Do not share it publicly.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
 
                 {/* ===========================================
                     PRIMARY ACTIONS
