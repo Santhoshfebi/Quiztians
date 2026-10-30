@@ -10,6 +10,7 @@ import {
     Eye,
     EyeOff,
     Languages,
+    KeyRound,
     Loader2,
     LockKeyhole,
     LogIn,
@@ -143,6 +144,7 @@ export default function ParticipantProfile() {
     const [password, setPassword] = useState("");
     const [checkedPhone, setCheckedPhone] = useState("");
     const [claimCode, setClaimCode] = useState("");
+    const [recoveryCode, setRecoveryCode] = useState("");
 
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -604,6 +606,113 @@ export default function ParticipantProfile() {
     };
 
     /* ========================================================
+       RESET FORGOTTEN PASSWORD
+    ======================================================== */
+
+    const handlePasswordRecovery = async (event) => {
+        event.preventDefault();
+
+        if (submitting) return;
+
+        setErrorMessage("");
+        setSuccessMessage("");
+
+        const cleanPhone = (checkedPhone || phone).trim();
+        const cleanRecoveryCode = recoveryCode
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, "");
+
+        if (!/^[0-9]{10}$/.test(cleanPhone)) {
+            setErrorMessage("Enter a valid 10-digit phone number.");
+            return;
+        }
+
+        if (!cleanRecoveryCode) {
+            setErrorMessage("Enter the recovery code provided by QUIZTIANS.");
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            setErrorMessage("Password must contain at least 8 characters.");
+            return;
+        }
+
+        if (newPassword.length > 128) {
+            setErrorMessage("Password is too long.");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setErrorMessage("Passwords do not match.");
+            return;
+        }
+
+        setSubmitting(true);
+
+        try {
+            const { data, error } = await supabase.functions.invoke(
+                "reset-participant-password",
+                {
+                    body: {
+                        phone: cleanPhone,
+                        recovery_code: cleanRecoveryCode,
+                        password: newPassword,
+                    },
+                }
+            );
+
+            if (error) {
+                console.error("Participant password recovery error:", error);
+
+                let message = data?.error || "Unable to reset your password.";
+
+                try {
+                    if (error.context) {
+                        const responseData = await error.context.json();
+                        if (responseData?.error) message = responseData.error;
+                    }
+                } catch {
+                    // Keep the safe fallback message.
+                }
+
+                setErrorMessage(message);
+                return;
+            }
+
+            if (!data?.success) {
+                setErrorMessage(
+                    data?.error || "Unable to reset your password."
+                );
+                return;
+            }
+
+            // The server revokes every participant session after recovery.
+            removeSession();
+            setSessionToken("");
+            setProfileData(null);
+            setPassword("");
+            setRecoveryCode("");
+            setNewPassword("");
+            setConfirmPassword("");
+            setShowNewPassword(false);
+            setShowConfirmPassword(false);
+            setPageState("login");
+            setSuccessMessage(
+                data?.message ||
+                "Password reset successfully. Sign in with your new password."
+            );
+        } catch (error) {
+            console.error("Participant password recovery failed:", error);
+            setErrorMessage(
+                "Unable to reset your password right now. Please try again."
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    /* ========================================================
        LOGOUT
     ======================================================== */
 
@@ -627,6 +736,7 @@ export default function ParticipantProfile() {
         setProfileData(null);
         setPassword("");
         setClaimCode("");
+        setRecoveryCode("");
         setNewPassword("");
         setConfirmPassword("");
         setErrorMessage("");
@@ -1030,6 +1140,156 @@ export default function ParticipantProfile() {
     }
 
     /* ========================================================
+       FORGOT PASSWORD
+    ======================================================== */
+
+    if (pageState === "forgot-password") {
+        return (
+            <PageShell>
+                <AuthContainer
+                    icon={KeyRound}
+                    eyebrow="Profile Recovery"
+                    title="Reset your password"
+                    description="Enter the temporary recovery code provided by a QUIZTIANS superadmin, then create a new password."
+                    onBack={() => {
+                        setRecoveryCode("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setErrorMessage("");
+                        setSuccessMessage("");
+                        setPageState("login");
+                    }}
+                >
+                    <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/[0.07] bg-[#0D0D10] px-4 py-3.5">
+                        <span className="flex items-center gap-3 text-sm font-semibold text-zinc-300">
+                            <Phone size={16} className="text-zinc-600" />
+                            {checkedPhone || phone}
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setPageState("phone");
+                                setCheckedPhone("");
+                                setRecoveryCode("");
+                                setNewPassword("");
+                                setConfirmPassword("");
+                                setErrorMessage("");
+                                setSuccessMessage("");
+                            }}
+                            className="text-[10px] font-black text-violet-400 transition hover:text-violet-300"
+                        >
+                            Change
+                        </button>
+                    </div>
+
+                    <form
+                        onSubmit={handlePasswordRecovery}
+                        className="mt-7 space-y-4"
+                    >
+                        <div>
+                            <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.13em] text-zinc-600">
+                                Recovery Code
+                            </label>
+
+                            <div className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#0D0D10] px-4 transition focus-within:border-violet-500/40">
+                                <KeyRound
+                                    size={16}
+                                    className="shrink-0 text-zinc-600"
+                                />
+
+                                <input
+                                    type="text"
+                                    value={recoveryCode}
+                                    onChange={(event) =>
+                                        setRecoveryCode(
+                                            event.target.value
+                                                .toUpperCase()
+                                                .replace(/\s+/g, "")
+                                        )
+                                    }
+                                    autoCapitalize="characters"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                    placeholder="QZ-7K9P-M4TX-82RW-H6JN"
+                                    className="min-w-0 flex-1 bg-transparent font-mono text-sm font-bold uppercase tracking-[0.06em] text-white outline-none placeholder:text-zinc-700"
+                                />
+                            </div>
+
+                            <p className="mt-2 px-1 text-[9px] leading-4 text-zinc-700">
+                                Recovery codes are temporary, one-time credentials provided by QUIZTIANS support.
+                            </p>
+                        </div>
+
+                        <PasswordField
+                            label="New Password"
+                            value={newPassword}
+                            onChange={setNewPassword}
+                            visible={showNewPassword}
+                            onToggle={() =>
+                                setShowNewPassword((current) => !current)
+                            }
+                            placeholder="Minimum 8 characters"
+                            autoComplete="new-password"
+                        />
+
+                        <PasswordField
+                            label="Confirm New Password"
+                            value={confirmPassword}
+                            onChange={setConfirmPassword}
+                            visible={showConfirmPassword}
+                            onToggle={() =>
+                                setShowConfirmPassword((current) => !current)
+                            }
+                            placeholder="Enter new password again"
+                            autoComplete="new-password"
+                        />
+
+                        <MessageBox
+                            error={errorMessage}
+                            success={successMessage}
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="group flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-violet-500 to-indigo-500 px-5 text-sm font-black text-white shadow-[0_18px_45px_-18px_rgba(124,58,237,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {submitting ? (
+                                <>
+                                    <Loader2
+                                        size={17}
+                                        className="animate-spin"
+                                    />
+                                    Resetting...
+                                </>
+                            ) : (
+                                <>
+                                    <KeyRound size={17} />
+                                    Reset Password
+                                </>
+                            )}
+                        </button>
+
+                        <div className="rounded-2xl border border-white/[0.055] bg-white/[0.02] p-4">
+                            <div className="flex gap-3">
+                                <ShieldCheck
+                                    size={15}
+                                    className="mt-0.5 shrink-0 text-violet-400"
+                                />
+
+                                <p className="text-[11px] leading-5 text-zinc-600">
+                                    After a successful reset, the recovery code is consumed and all existing profile sessions are signed out for security.
+                                </p>
+                            </div>
+                        </div>
+                    </form>
+                </AuthContainer>
+            </PageShell>
+        );
+    }
+
+    /* ========================================================
        LOGIN
     ======================================================== */
 
@@ -1063,6 +1323,24 @@ export default function ParticipantProfile() {
                             placeholder="Enter your password"
                             autoComplete="current-password"
                         />
+
+                        <div className="flex justify-end px-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setRecoveryCode("");
+                                    setNewPassword("");
+                                    setConfirmPassword("");
+                                    setErrorMessage("");
+                                    setSuccessMessage("");
+                                    setPageState("forgot-password");
+                                }}
+                                className="inline-flex items-center gap-1.5 text-[10px] font-black text-violet-400 transition hover:text-violet-300"
+                            >
+                                <KeyRound size={12} />
+                                Forgot Password?
+                            </button>
+                        </div>
 
                         <MessageBox
                             error={errorMessage}

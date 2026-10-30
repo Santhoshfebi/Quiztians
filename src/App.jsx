@@ -41,6 +41,7 @@ import QuizPreview from "./pages/ChaptersPreview";
 import EditQuestion from "./pages/EditQuestions";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminNotifications from "./pages/AdminNotifications";
+import ParticipantProfileRecovery from "./pages/ParticipantProfileRecovery";
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -110,6 +111,7 @@ function AppRoutes() {
       <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
       <Route path="/admin/announcements" element={<AdminAnnouncements />} />
       <Route path="/admin/notifications" element={<AdminNotifications />} />
+      <Route path="/admin/profile-recovery" element={<ParticipantProfileRecovery />} />
     </Routes>
   );
 }

@@ -13,6 +13,7 @@ import {
     Clock3,
     FileQuestion,
     History,
+    KeyRound,
     LayoutDashboard,
     LogOut,
     Megaphone,
@@ -110,6 +111,12 @@ const BASE_NAV_ITEMS = [
 
 const SUPERADMIN_NAV_ITEMS = [
     {
+        label: "Profile Recovery",
+        shortLabel: "Recovery",
+        icon: KeyRound,
+        route: "/admin/profile-recovery",
+    },
+    {
         label: "Login Logs",
         shortLabel: "Logs",
         icon: History,
@@ -176,6 +183,11 @@ const PAGE_META = {
     "/admin/notifications": {
         eyebrow: "Communication",
         title: "Push Notifications",
+    },
+
+    "/admin/profile-recovery": {
+        eyebrow: "Super Administrator",
+        title: "Profile Recovery",
     },
 
     "/admin/activity-logs": {
@@ -509,11 +521,10 @@ export default function AdminLayout({
             ===================================================== */}
 
             <div
-                className={`relative min-h-screen transition-[padding] duration-300 ease-out ${
-                    sidebarCollapsed
-                        ? "lg:pl-[84px]"
-                        : "lg:pl-[270px]"
-                }`}
+                className={`relative min-h-screen transition-[padding] duration-300 ease-out ${sidebarCollapsed
+                    ? "lg:pl-[84px]"
+                    : "lg:pl-[270px]"
+                    }`}
             >
                 {/* ===================================================
                     HEADER
@@ -667,18 +678,16 @@ function DesktopSidebar({
             ===================================================== */}
 
             <div
-                className={`shrink-0 border-b border-zinc-200/70 transition-[padding] duration-300 ${
-                    collapsed
-                        ? "px-3 py-5"
-                        : "px-6 py-6"
-                }`}
+                className={`shrink-0 border-b border-zinc-200/70 transition-[padding] duration-300 ${collapsed
+                    ? "px-3 py-5"
+                    : "px-6 py-6"
+                    }`}
             >
                 <div
-                    className={`flex ${
-                        collapsed
-                            ? "justify-center"
-                            : "justify-start"
-                    }`}
+                    className={`flex ${collapsed
+                        ? "justify-center"
+                        : "justify-start"
+                        }`}
                 >
                     <AnimatePresence mode="wait" initial={false}>
                         {collapsed ? (
@@ -732,9 +741,8 @@ function DesktopSidebar({
             ===================================================== */}
 
             <nav
-                className={`admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto py-5 transition-[padding] duration-300 ${
-                    collapsed ? "px-2.5" : "px-3"
-                }`}
+                className={`admin-hidden-scrollbar min-h-0 flex-1 overflow-y-auto py-5 transition-[padding] duration-300 ${collapsed ? "px-2.5" : "px-3"
+                    }`}
                 style={hiddenScrollbarStyle}
             >
                 {!collapsed && (
@@ -755,15 +763,13 @@ function DesktopSidebar({
                                 onClick={() => onNavigate(item.route)}
                                 title={collapsed ? item.label : undefined}
                                 aria-label={item.label}
-                                className={`group relative flex w-full items-center rounded-xl py-3 text-left transition ${
-                                    collapsed
-                                        ? "justify-center px-2"
-                                        : "gap-3 px-3"
-                                } ${
-                                    active
+                                className={`group relative flex w-full items-center rounded-xl py-3 text-left transition ${collapsed
+                                    ? "justify-center px-2"
+                                    : "gap-3 px-3"
+                                    } ${active
                                         ? "bg-zinc-100/90"
                                         : "text-zinc-900 hover:bg-zinc-100/70"
-                                }`}
+                                    }`}
                                 style={{
                                     color: active
                                         ? theme.accent
@@ -782,11 +788,10 @@ function DesktopSidebar({
                                 )}
 
                                 <div
-                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
-                                        active
-                                            ? "bg-white shadow-sm"
-                                            : "group-hover:bg-white"
-                                    }`}
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${active
+                                        ? "bg-white shadow-sm"
+                                        : "group-hover:bg-white"
+                                        }`}
                                 >
                                     <Icon
                                         size={17}
